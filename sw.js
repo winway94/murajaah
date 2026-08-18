@@ -7,8 +7,16 @@
    Naikkan CACHE_VERSION setiap kali index.html/manifest/ikon diubah,
    supaya pengguna otomatis dapat versi terbaru.
    ============================================================ */
-const CACHE_VERSION = "v13";
+const CACHE_VERSION = "v14";
 const CACHE_NAME = "hafalan-" + CACHE_VERSION;
+// Cache TERPISAH untuk aset statis pihak ketiga (SVG halaman mushaf +
+// audio murottal per-ayat). SENGAJA tidak ikut prefix "hafalan-"/
+// CACHE_VERSION di atas, supaya TIDAK ikut terhapus tiap kali app
+// update (lihat ACTIVATE di bawah) — isinya memang permanen (halaman N
+// & ayat X:Y selalu sama persis), jadi sekali diambil disimpan
+// selamanya, tidak perlu di-invalidate ulang tiap rilis versi baru.
+const MUSHAF_CACHE_NAME = "mushaf-assets-v1";
+const MUSHAF_CACHEABLE_HOSTS = ["cdn.jsdelivr.net", "everyayah.com"];
 
 // File same-origin yang wajib ada supaya app bisa dibuka offline.
 // Catatan: data hafalan sendiri TIDAK di-cache di sini — itu selalu
@@ -80,7 +88,30 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(req.url);
   const isSameOrigin = url.origin === self.location.origin;
-  if (!isSameOrigin) return; // biarkan browser yang urus (font, worker API, dst)
+
+  // Aset statis mushaf (SVG halaman + audio ayat) dari CDN pihak ketiga —
+  // cache-first PERMANEN (bukan stale-while-revalidate seperti app-shell
+  // di bawah), karena isinya memang tidak pernah berubah. Sekali halaman/
+  // ayat dibuka sekali saat online, seterusnya bisa diakses offline tanpa
+  // makan kuota data lagi.
+  if (!isSameOrigin && MUSHAF_CACHEABLE_HOSTS.includes(url.hostname)) {
+    event.respondWith(
+      caches.open(MUSHAF_CACHE_NAME).then((cache) =>
+        cache.match(req).then((cached) => {
+          if (cached) return cached;
+          return fetch(req)
+            .then((res) => {
+              if (res && res.status === 200) cache.put(req, res.clone());
+              return res;
+            })
+            .catch(() => cached); // offline & belum pernah dibuka -> gagal senyap
+        })
+      )
+    );
+    return;
+  }
+
+  if (!isSameOrigin) return; // domain lain (Worker API, dst) biarkan lewat apa adanya
 
   event.respondWith(
     caches.match(req).then((cached) => {

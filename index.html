@@ -216,6 +216,17 @@ button{font-family:var(--font-sans);}
 .bar-fill{width:100%;background:var(--success);border-radius:4px 4px 0 0;min-height:3px;}
 .bar-label{font-size:8.5px;color:var(--gray-500);margin-top:4px;}
 
+.heatmap-wrap{overflow-x:auto; -webkit-overflow-scrolling:touch;}
+.heatmap-grid{display:grid; grid-auto-flow:column; grid-template-rows:repeat(7,1fr); gap:3px; width:max-content;}
+.heatmap-cell{width:11px;height:11px;border-radius:2.5px;background:var(--gray-200);}
+.heatmap-cell[data-lvl="0"]{background:var(--gray-200);}
+.heatmap-cell[data-lvl="1"]{background:#BFE0D6;}
+.heatmap-cell[data-lvl="2"]{background:#7FC2AC;}
+.heatmap-cell[data-lvl="3"]{background:var(--success);}
+.heatmap-cell[data-lvl="4"]{background:var(--primary);}
+.heatmap-legend{display:flex;align-items:center;gap:4px;margin-top:10px;font-size:10.5px;color:var(--gray-500);}
+.heatmap-legend .heatmap-cell{width:10px;height:10px;}
+
 /* ---------- MODAL / OVERLAY ---------- */
 .overlay{position:fixed;inset:0;background:rgba(23,32,30,0.5);display:none;align-items:flex-end;justify-content:center;z-index:60;}
 .overlay.center{align-items:center;padding:20px;}
@@ -226,10 +237,16 @@ button{font-family:var(--font-sans);}
 .mushaf-sheet{padding:16px 16px calc(16px + env(safe-area-inset-bottom));}
 .mushaf-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px;}
 .mushaf-imgwrap{position:relative;background:var(--gray-100,#F0F2F1);border-radius:var(--radius-md,10px);min-height:320px;
-  display:flex;align-items:center;justify-content:center;overflow:hidden;}
-.mushaf-imgwrap img{width:100%;height:auto;display:block;}
+  display:flex;align-items:center;justify-content:center;overflow:hidden; touch-action:pan-y;}
+.mushaf-svgwrap{width:100%;}
+.mushaf-svgwrap svg{width:100%;height:auto;display:block;user-select:none;}
+.mushaf-svgwrap .ayahPolygon{fill:transparent;fill-opacity:0;cursor:pointer;transition:fill-opacity .15s ease;}
+.mushaf-svgwrap .ayahPolygon:active{fill:var(--accent);fill-opacity:.35;}
+.mushaf-svgwrap .ayahPolygon.ayah-playing{fill:var(--primary);fill-opacity:.22;}
 .mushaf-loading,.mushaf-error{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   text-align:center;padding:20px;font-size:12.5px;color:var(--gray-500);}
+.mushaf-tip{font-size:11px;color:var(--gray-500);text-align:center;margin:8px 0 0;}
+.mushaf-audiobar{display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 10px;background:var(--gray-100,#F0F2F1);border-radius:var(--radius-md,10px);}
 .mushaf-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;}
 .sheet h3{font-size:18px;font-weight:800;margin:0 0 4px;color:var(--gray-900);}
 .sheet p.hint{font-size:12px;color:var(--gray-500);margin:0 0 16px;}
@@ -368,6 +385,21 @@ button{font-family:var(--font-sans);}
       <div class="card" style="margin-top:10px;">
         <div class="bars" id="activityBars"></div>
       </div>
+      <p class="section-title">Kalender aktivitas (12 minggu terakhir)</p>
+      <div class="card" style="margin-top:10px; padding:14px 16px;">
+        <div class="heatmap-wrap">
+          <div class="heatmap-grid" id="heatmapGrid"></div>
+        </div>
+        <div class="heatmap-legend">
+          <span>Sepi</span>
+          <span class="heatmap-cell" data-lvl="0"></span>
+          <span class="heatmap-cell" data-lvl="1"></span>
+          <span class="heatmap-cell" data-lvl="2"></span>
+          <span class="heatmap-cell" data-lvl="3"></span>
+          <span class="heatmap-cell" data-lvl="4"></span>
+          <span>Ramai</span>
+        </div>
+      </div>
       <p class="section-title">Distribusi status</p>
       <div class="card donut-row" style="margin-top:10px;">
         <div class="donut-center"><svg id="statDonut" width="120" height="120" viewBox="0 0 120 120"></svg>
@@ -467,14 +499,14 @@ button{font-family:var(--font-sans);}
   </div>
   <button class="btn-full btn-outline" id="pageMarkToday" style="margin-bottom:10px;">Tandai direview hari ini</button>
   <button class="btn-full btn-outline" id="pageMarkLupa" style="margin-bottom:10px; color:var(--warning); border-color:var(--warning);">Tandai lupa (perlu hafal ulang)</button>
-  <button class="btn-full btn-outline" id="pageViewMushaf" style="margin-bottom:14px;">\ud83d\udcd6 Lihat halaman mushaf</button>
+  <button class="btn-full btn-outline" id="pageViewMushaf" style="margin-bottom:14px;">📖 Lihat halaman mushaf</button>
   <div class="modal-actions">
     <button class="btn btn-ghost" id="pageCancel">Batal</button>
     <button class="btn btn-primary" id="pageSave">Simpan</button>
   </div>
 </div></div>
 
-<!-- MUSHAF VIEWER (gambar scan halaman mushaf asli) -->
+<!-- MUSHAF VIEWER (SVG interaktif: highlight per-ayat + audio murottal) -->
 <div class="overlay center" id="mushafOverlay"><div class="sheet mushaf-sheet">
   <div class="mushaf-head">
     <div>
@@ -484,14 +516,20 @@ button{font-family:var(--font-sans);}
     <button class="icon-btn" id="mushafClose"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   </div>
   <div class="mushaf-imgwrap" id="mushafImgWrap">
-    <img id="mushafImg" alt="Halaman mushaf" />
-    <div class="mushaf-loading" id="mushafLoading">Memuat gambar\u2026</div>
-    <div class="mushaf-error" id="mushafError" style="display:none;">Gambar halaman ini gagal dimuat (perlu koneksi internet). Coba lagi, atau cek nanti saat online.</div>
+    <div class="mushaf-svgwrap" id="mushafSvgWrap"></div>
+    <div class="mushaf-loading" id="mushafLoading">Memuat halaman…</div>
+    <div class="mushaf-error" id="mushafError" style="display:none;">Halaman ini gagal dimuat (perlu koneksi internet). Coba lagi, atau cek nanti saat online.</div>
+  </div>
+  <p class="mushaf-tip">Ketuk ayat mana pun untuk memutar murottal dari situ.</p>
+  <div class="mushaf-audiobar" id="mushafAudioBar" style="display:none;">
+    <button class="icon-btn" id="mushafPlayToggle"></button>
+    <span id="mushafAudioLabel" style="font-size:12px;color:var(--gray-700);flex:1;"></span>
+    <button class="btn btn-ghost" id="mushafStop" style="padding:6px 10px;font-size:12px;">Stop</button>
   </div>
   <div class="mushaf-nav">
-    <button class="btn btn-ghost" id="mushafPrev">\u2039 Sebelumnya</button>
+    <button class="btn btn-ghost" id="mushafPrev">‹ Sebelumnya</button>
     <span id="mushafPageNum" style="font-size:12.5px;color:var(--gray-500);"></span>
-    <button class="btn btn-ghost" id="mushafNext">Berikutnya \u203a</button>
+    <button class="btn btn-ghost" id="mushafNext">Berikutnya ›</button>
   </div>
 </div></div>
 
@@ -523,7 +561,7 @@ button{font-family:var(--font-sans);}
   <div class="field" id="aiQuotaBox" style="display:none; margin-top:2px;">
     <label>Kuota AI hari ini (Cloudflare Workers AI, gratis)</label>
     <div style="background:var(--gray-100,#F1F3F2); border-radius:10px; padding:10px 12px; font-size:12.5px; color:var(--gray-700);">
-      <div id="aiQuotaText">Memuat\u2026</div>
+      <div id="aiQuotaText">Memuat…</div>
       <div style="background:var(--gray-300); border-radius:99px; height:6px; margin-top:8px; overflow:hidden;">
         <div id="aiQuotaBar" style="background:var(--primary); height:100%; width:0%; border-radius:99px; transition:width .3s;"></div>
       </div>
@@ -575,13 +613,32 @@ const DEFAULT_API_BASE = 'https://round-truth-3389.murajaah-reminder.workers.dev
 const LS_PAGE_META = 'hafalan_page_meta_v1';
 const PAGE_META_API = 'https://api.alquran.cloud/v1/page/';
 const PAGE_META_EDITION = 'quran-simple';
-/* ---------- Gambar scan halaman mushaf asli ----------
-   Sumber: repo open-source tarekeldeeb/madina_images (scan Mushaf
-   Madinah, berbasis quran.com-images), disajikan lewat CDN jsDelivr
-   (gratis, cepat, cache permanen, CORS aktif). Nama file 3 digit
-   zero-padded: w1024_page001.png s/d w1024_page604.png. */
-const MUSHAF_IMAGE_BASE = 'https://cdn.jsdelivr.net/gh/tarekeldeeb/madina_images@w1024/w1024_page';
-function mushafImageUrl(page){ return MUSHAF_IMAGE_BASE + String(page).padStart(3,'0') + '.png'; }
+/* ---------- Halaman mushaf sebagai SVG interaktif (bukan gambar statis) ----------
+   Sumber: repo open-source quranpedia/quran-svg — vektor Mushaf Madinah
+   (Hafs) 604 halaman, CC0 (bebas pakai, tanpa atribusi wajib), berbasis
+   King Fahd Complex. Setiap halaman SVG sudah berisi elemen
+   <path class="ayahPolygon" surah=".." ayah=".."> transparan per-ayat,
+   jadi bisa langsung dijadikan area ketuk (highlight & pemicu audio)
+   tanpa perlu data koordinat terpisah. Disajikan lewat CDN jsDelivr. */
+const MUSHAF_SVG_BASE = 'https://cdn.jsdelivr.net/gh/quranpedia/quran-svg@main/mushafs/hafs/svg/';
+function mushafSvgUrl(page){ return MUSHAF_SVG_BASE + String(page).padStart(3,'0') + '.svg'; }
+const mushafSvgTextCache = {}; // cache in-memory 1 sesi (persist antar-sesi ditangani Service Worker)
+/* buang <script>/handler on* dari SVG pihak ketiga sebelum di-inject ke DOM
+   (defense-in-depth — sumbernya memang statis & tepercaya, tapi tetap
+   dijaga supaya tidak ada celah eksekusi kode asing). */
+function sanitizeSvgText(svgText){
+  return svgText
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/\son\w+="[^"]*"/gi, '')
+    .replace(/\son\w+='[^']*'/gi, '');
+}
+/* ---------- Audio murottal per-ayat ----------
+   Sumber: everyayah.com (gratis, tanpa API key), reciter Alafasy 128kbps.
+   Nama file: {surah 3 digit}{ayat 3 digit}.mp3, mis. 002005.mp3 = QS 2:5. */
+const AUDIO_RECITER = 'Alafasy_128kbps';
+function ayahAudioUrl(surah, ayah){
+  return 'https://everyayah.com/data/'+AUDIO_RECITER+'/'+String(surah).padStart(3,'0')+String(ayah).padStart(3,'0')+'.mp3';
+}
 let pageMetaCache = null;
 const pageMetaInFlight = {};
 const pageMetaFailed = {};
@@ -993,6 +1050,52 @@ function renderRiwayatGlobal(){
 }
 
 /* ---------- STATISTIK ---------- */
+/* ---------- Kalender aktivitas (heatmap ala GitHub contributions) ----------
+   Menampilkan 12 minggu terakhir, kolom=minggu, baris=hari (Minggu-Sabtu).
+   Warna makin gelap = makin banyak halaman dicatat murajaah hari itu. */
+function heatmapLevel(count){
+  if(count<=0) return 0;
+  if(count<=2) return 1;
+  if(count<=5) return 2;
+  if(count<=9) return 3;
+  return 4;
+}
+function renderHeatmap(all){
+  const grid = document.getElementById('heatmapGrid');
+  if(!grid) return;
+  const WEEKS = 12;
+  const today = new Date(); today.setHours(0,0,0,0);
+  // mundur (WEEKS*7 - 1) hari, lalu geser lagi ke hari Minggu terdekat
+  // sebelumnya, supaya kolom-kolom heatmap rapi mulai dari hari Minggu.
+  const start = new Date(today); start.setDate(start.getDate() - (WEEKS*7 - 1));
+  start.setDate(start.getDate() - start.getDay());
+
+  // hitung jumlah event per tanggal (key YYYY-MM-DD) sekali saja, biar
+  // tidak nge-filter array 'all' berulang-ulang untuk tiap sel.
+  const countByDate = {};
+  all.forEach(h=>{ const key = h.at.slice(0,10); countByDate[key] = (countByDate[key]||0)+1; });
+
+  const totalDays = Math.round((today-start)/86400000) + 1;
+  const totalCols = Math.ceil(totalDays/7);
+  let html = '';
+  for(let col=0; col<totalCols; col++){
+    for(let row=0; row<7; row++){
+      const d = new Date(start); d.setDate(d.getDate() + col*7 + row);
+      if(d>today){ html += '<span class="heatmap-cell" style="visibility:hidden;"></span>'; continue; }
+      const key = d.toISOString().slice(0,10);
+      const count = countByDate[key]||0;
+      const lvl = heatmapLevel(count);
+      const label = d.toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'});
+      html += '<span class="heatmap-cell" data-lvl="'+lvl+'" title="'+label+' \u2014 '+count+' halaman"></span>';
+    }
+  }
+  grid.innerHTML = html;
+  // auto-scroll ke paling kanan (minggu terbaru), biar user langsung
+  // lihat aktivitas hari-hari terakhir tanpa perlu geser manual dulu.
+  const wrap = grid.parentElement;
+  if(wrap) wrap.scrollLeft = wrap.scrollWidth;
+}
+
 function renderStatistik(){
   const juz = appData.juz;
   const all = flattenHistory().filter(h=> h.event==='murajaah' || h.event==='murajaah_bulk');
@@ -1036,6 +1139,8 @@ function renderStatistik(){
     barsHtml += '<div class="bar-col"><div class="bar-fill" style="height:'+h+'px"></div><div class="bar-label">'+dc.day.getDate()+'</div></div>';
   });
   bars.innerHTML = barsHtml;
+
+  renderHeatmap(all);
 
   let counts = { belum:0, dihafal:0, murajaah:0, stabil:0 };
   for(let i=1;i<=TOTAL_JUZ;i++){ const ps=juzPageStats(juz[i]); counts.belum+=ps.belum; counts.dihafal+=ps.dihafal; counts.murajaah+=ps.murajaah; counts.stabil+=ps.stabil; }
@@ -1239,34 +1344,140 @@ function refreshPageEditorHint(){
     'Halaman mushaf ke-'+p+ (meta ? ' \u2014 '+meta.label+'.' : '.');
 }
 
-/* ---------- MUSHAF VIEWER (gambar scan halaman asli) ---------- */
+/* ---------- MUSHAF VIEWER (SVG interaktif: highlight per-ayat + audio) ---------- */
 let currentMushafPage = null;
+let mushafPlaylist = [];      // [{surah, ayah}, ...] urutan baca di halaman ini
+let mushafPlayIndex = -1;     // -1 = tidak sedang memutar apa pun
+const mushafAudioEl = new Audio();
+
 function openMushafViewer(page){
   currentMushafPage = Math.min(TOTAL_PAGES, Math.max(1, page));
   document.getElementById('mushafOverlay').classList.add('open');
   renderMushafViewer();
 }
-function closeMushafViewer(){ document.getElementById('mushafOverlay').classList.remove('open'); }
-function renderMushafViewer(){
+function closeMushafViewer(){
+  stopMushafAudio();
+  document.getElementById('mushafOverlay').classList.remove('open');
+}
+async function renderMushafViewer(){
   const p = currentMushafPage;
+  stopMushafAudio();
   const meta = getPageMeta(p); // sudah di-cache dari fitur info surah/ayat, dipakai ulang di sini
   document.getElementById('mushafTitle').textContent = 'Halaman '+p;
   document.getElementById('mushafHint').textContent = meta ? meta.label : 'Memuat info surah\u2026';
   document.getElementById('mushafPageNum').textContent = p+' / '+TOTAL_PAGES;
   document.getElementById('mushafPrev').disabled = (p<=1);
   document.getElementById('mushafNext').disabled = (p>=TOTAL_PAGES);
-  const img = document.getElementById('mushafImg');
+
+  const wrap = document.getElementById('mushafSvgWrap');
   const loading = document.getElementById('mushafLoading');
   const errEl = document.getElementById('mushafError');
-  img.style.display = 'none';
+  wrap.innerHTML = '';
   errEl.style.display = 'none';
   loading.style.display = 'flex';
-  img.onload = ()=>{ loading.style.display='none'; img.style.display='block'; };
-  img.onerror = ()=>{ loading.style.display='none'; errEl.style.display='flex'; };
-  img.src = mushafImageUrl(p);
+  mushafPlaylist = [];
+
+  try{
+    let svgText = mushafSvgTextCache[p];
+    if(!svgText){
+      const res = await fetch(mushafSvgUrl(p));
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      svgText = sanitizeSvgText(await res.text());
+      mushafSvgTextCache[p] = svgText;
+    }
+    if(currentMushafPage !== p) return; // user sudah pindah halaman sebelum fetch selesai
+    wrap.innerHTML = svgText;
+    loading.style.display = 'none';
+
+    // bangun playlist ayat dari urutan elemen ayahPolygon di SVG (sesuai
+    // urutan baca), dedupe by nomor ayat (1 ayat bisa punya beberapa
+    // poligon kalau baris teksnya patah jadi >1 baris).
+    const seen = new Set();
+    wrap.querySelectorAll('.ayahPolygon').forEach(poly=>{
+      const surah = Number(poly.getAttribute('surah'));
+      const ayah = Number(poly.getAttribute('ayah'));
+      if(!surah || !ayah) return;
+      const key = surah+':'+ayah;
+      if(!seen.has(key)){ seen.add(key); mushafPlaylist.push({ surah, ayah }); }
+      poly.addEventListener('click', ()=> playAyahFrom(surah, ayah));
+    });
+  }catch(e){
+    console.log('gagal muat halaman mushaf:', e);
+    loading.style.display = 'none';
+    errEl.style.display = 'flex';
+  }
 }
 function mushafPrev(){ if(currentMushafPage>1){ currentMushafPage--; renderMushafViewer(); } }
 function mushafNext(){ if(currentMushafPage<TOTAL_PAGES){ currentMushafPage++; renderMushafViewer(); } }
+
+/* ---------- Kontrol audio murottal per-ayat ---------- */
+function ayahLabel(surah, ayah){
+  const meta = getPageMeta(currentMushafPage);
+  const seg = meta && meta.segs && meta.segs.find(s=> ayah>=s.from && ayah<=s.to);
+  return 'QS '+(seg ? seg.surah : 'Surah '+surah)+' : '+ayah;
+}
+function updateAyahHighlight(){
+  document.querySelectorAll('.mushaf-svgwrap .ayahPolygon.ayah-playing').forEach(el=> el.classList.remove('ayah-playing'));
+  if(mushafPlayIndex<0 || mushafPlayIndex>=mushafPlaylist.length) return;
+  const { surah, ayah } = mushafPlaylist[mushafPlayIndex];
+  document.querySelectorAll('.mushaf-svgwrap .ayahPolygon[surah="'+surah+'"][ayah="'+ayah+'"]').forEach(el=> el.classList.add('ayah-playing'));
+}
+function playCurrentAyah(){
+  if(mushafPlayIndex<0 || mushafPlayIndex>=mushafPlaylist.length){ stopMushafAudio(); return; }
+  const { surah, ayah } = mushafPlaylist[mushafPlayIndex];
+  mushafAudioEl.src = ayahAudioUrl(surah, ayah);
+  mushafAudioEl.play().catch(e=> console.log('audio gagal diputar:', e));
+  updateAyahHighlight();
+  document.getElementById('mushafAudioBar').style.display = 'flex';
+  document.getElementById('mushafAudioLabel').textContent = 'Memutar \u2014 '+ayahLabel(surah, ayah);
+  document.getElementById('mushafPlayToggle').textContent = '\u23F8'; // pause
+}
+function playAyahFrom(surah, ayah){
+  const idx = mushafPlaylist.findIndex(a=> a.surah===surah && a.ayah===ayah);
+  mushafPlayIndex = idx>=0 ? idx : 0;
+  playCurrentAyah();
+}
+function toggleMushafPlay(){
+  if(!mushafPlaylist.length) return;
+  if(!mushafAudioEl.paused){ mushafAudioEl.pause(); document.getElementById('mushafPlayToggle').textContent = '\u25B6'; return; }
+  if(mushafPlayIndex<0) mushafPlayIndex = 0;
+  playCurrentAyah();
+}
+function stopMushafAudio(){
+  mushafAudioEl.pause();
+  mushafAudioEl.removeAttribute('src');
+  mushafPlayIndex = -1;
+  updateAyahHighlight();
+  const bar = document.getElementById('mushafAudioBar');
+  if(bar) bar.style.display = 'none';
+  const btn = document.getElementById('mushafPlayToggle');
+  if(btn) btn.textContent = '\u25B6';
+}
+mushafAudioEl.addEventListener('ended', ()=>{
+  mushafPlayIndex++;
+  if(mushafPlayIndex < mushafPlaylist.length) playCurrentAyah();
+  else stopMushafAudio();
+});
+
+/* ---------- Swipe kiri/kanan buat pindah halaman ---------- */
+function setupMushafSwipe(){
+  const el = document.getElementById('mushafImgWrap');
+  if(!el) return;
+  let sx=0, sy=0, active=false;
+  el.addEventListener('touchstart', (e)=>{
+    if(e.touches.length!==1) return;
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY; active = true;
+  }, { passive:true });
+  el.addEventListener('touchend', (e)=>{
+    if(!active) return;
+    active = false;
+    const dx = (e.changedTouches[0].clientX - sx);
+    const dy = (e.changedTouches[0].clientY - sy);
+    if(Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy)*1.5){
+      if(dx < 0) mushafNext(); else mushafPrev();
+    }
+  }, { passive:true });
+}
 
 function closePageEditor(){ document.getElementById('pageOverlay').classList.remove('open'); currentEditJuz=null; currentEditPage=null; }
 async function savePageEditor(){
@@ -1490,6 +1701,9 @@ function init(){
   document.getElementById('mushafClose').onclick = closeMushafViewer;
   document.getElementById('mushafPrev').onclick = mushafPrev;
   document.getElementById('mushafNext').onclick = mushafNext;
+  document.getElementById('mushafPlayToggle').onclick = toggleMushafPlay;
+  document.getElementById('mushafStop').onclick = stopMushafAudio;
+  setupMushafSwipe();
 
   document.getElementById('menuPin').onclick = openPinModal;
   document.getElementById('menuServer').onclick = openServerModal;
