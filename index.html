@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="icon-16x16.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;700&family=Amiri+Quran&display=swap" rel="stylesheet">
 <style>
 :root{
   --primary:#164A40;
@@ -237,12 +237,20 @@ button{font-family:var(--font-sans);}
 .mushaf-sheet{padding:16px 16px calc(16px + env(safe-area-inset-bottom));}
 .mushaf-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px;}
 .mushaf-imgwrap{position:relative;background:var(--gray-100,#F0F2F1);border-radius:var(--radius-md,10px);min-height:320px;
-  display:flex;align-items:center;justify-content:center;overflow:hidden; touch-action:pan-y;}
-.mushaf-svgwrap{width:100%;}
-.mushaf-svgwrap svg{width:100%;height:auto;display:block;user-select:none;}
-.mushaf-svgwrap .ayahPolygon{fill:transparent;fill-opacity:0;cursor:pointer;transition:fill-opacity .15s ease;}
-.mushaf-svgwrap .ayahPolygon:active{fill:var(--accent);fill-opacity:.35;}
-.mushaf-svgwrap .ayahPolygon.ayah-playing{fill:var(--primary);fill-opacity:.22;}
+  max-height:56vh; overflow-y:auto; touch-action:pan-y;}
+.mushaf-imgwrap img{width:100%;height:auto;display:block;}
+/* ---- mode teks (default): halaman dirender pakai teks Arab asli + font
+   "Amiri Quran", bukan gambar. Tiap ayat dibungkus span yang bisa
+   diketuk (highlight kuning saat aktif ditekan, highlight hijau saat
+   sedang diputar audio-nya). ---- */
+.mushaf-textwrap{padding:18px 16px 22px;}
+.mushaf-surah-banner{text-align:center;font-family:'Amiri Quran',serif;font-size:22px;color:var(--primary);
+  border:1.5px solid var(--gray-300);border-radius:10px;padding:10px 8px;margin:0 0 16px;background:var(--white);}
+.mushaf-ayat-text{direction:rtl;text-align:justify;font-family:'Amiri Quran',serif;font-size:26px;line-height:2.35;color:var(--gray-900);}
+.mushaf-ayah{cursor:pointer;border-radius:6px;padding:1px 2px;transition:background-color .15s ease;}
+.mushaf-ayah:active{background:#FDECC8;}
+.mushaf-ayah.ayah-playing{background:#D9EEE6;}
+.mushaf-ayah-num{font-size:15px;color:var(--primary);font-family:'DM Sans',sans-serif;padding:0 2px;}
 .mushaf-loading,.mushaf-error{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   text-align:center;padding:20px;font-size:12.5px;color:var(--gray-500);}
 .mushaf-tip{font-size:11px;color:var(--gray-500);text-align:center;margin:8px 0 0;}
@@ -435,6 +443,15 @@ button{font-family:var(--font-sans);}
           Kunci aplikasi sekarang
         </button>
       </div>
+      <div class="card" style="margin-top:14px; padding:14px 16px;">
+        <p class="section-title" style="margin:0 0 4px;">Unduh mushaf untuk offline</p>
+        <p class="hint" id="offlineDlHint" style="margin:0 0 10px;">Memuat…</p>
+        <div style="background:var(--gray-200,#E4E7E6); border-radius:99px; height:8px; overflow:hidden; margin-bottom:12px;">
+          <div id="offlineDlBar" style="background:var(--primary); height:100%; width:0%; border-radius:99px; transition:width .2s;"></div>
+        </div>
+        <button class="btn-full btn-outline" id="btnDownloadOffline">Unduh semua halaman</button>
+        <p class="hint" style="margin:8px 0 0; font-size:11px;">Cuma unduh teks ayat (kecil, beberapa MB), bukan audio. Sekali diunduh, halaman bisa dibaca tanpa internet selamanya.</p>
+      </div>
     </div>
 
     <!-- DETAIL JUZ -->
@@ -506,25 +523,32 @@ button{font-family:var(--font-sans);}
   </div>
 </div></div>
 
-<!-- MUSHAF VIEWER (SVG interaktif: highlight per-ayat + audio murottal) -->
+<!-- MUSHAF VIEWER (teks Arab asli + audio murottal, dengan opsi lihat gambar) -->
 <div class="overlay center" id="mushafOverlay"><div class="sheet mushaf-sheet">
   <div class="mushaf-head">
     <div>
       <h3 id="mushafTitle" style="margin:0;">Halaman</h3>
       <p class="hint" id="mushafHint" style="margin:2px 0 0;"></p>
     </div>
-    <button class="icon-btn" id="mushafClose"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <div style="display:flex; align-items:center; gap:6px;">
+      <button class="icon-btn" id="mushafToggleMode" title="Ganti tampilan (teks/gambar)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></button>
+      <button class="icon-btn" id="mushafClose"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
   </div>
   <div class="mushaf-imgwrap" id="mushafImgWrap">
-    <div class="mushaf-svgwrap" id="mushafSvgWrap"></div>
+    <div class="mushaf-textwrap" id="mushafTextWrap" style="display:none;"></div>
+    <img id="mushafImg" alt="Halaman mushaf" style="display:none;" />
     <div class="mushaf-loading" id="mushafLoading">Memuat halaman…</div>
-    <div class="mushaf-error" id="mushafError" style="display:none;">Halaman ini gagal dimuat (perlu koneksi internet). Coba lagi, atau cek nanti saat online.</div>
+    <div class="mushaf-error" id="mushafError" style="display:none;">Halaman ini gagal dimuat sama sekali (perlu koneksi internet). Coba lagi, atau cek nanti saat online.</div>
   </div>
-  <p class="mushaf-tip">Ketuk ayat mana pun untuk memutar murottal dari situ.</p>
+  <p class="mushaf-tip" id="mushafTip" style="display:none;">Ketuk ayat mana pun untuk memutar murottal dari situ.</p>
   <div class="mushaf-audiobar" id="mushafAudioBar" style="display:none;">
     <button class="icon-btn" id="mushafPlayToggle"></button>
     <span id="mushafAudioLabel" style="font-size:12px;color:var(--gray-700);flex:1;"></span>
     <button class="btn btn-ghost" id="mushafStop" style="padding:6px 10px;font-size:12px;">Stop</button>
+  </div>
+  <div class="mushaf-audiobar" id="mushafAudioStart" style="display:none;">
+    <button class="btn-full btn-outline" id="mushafPlayAll">▶ Putar murottal halaman ini</button>
   </div>
   <div class="mushaf-nav">
     <button class="btn btn-ghost" id="mushafPrev">‹ Sebelumnya</button>
@@ -610,28 +634,24 @@ const DEFAULT_API_BASE = 'https://round-truth-3389.murajaah-reminder.workers.dev
    jadi tiap halaman cukup di-fetch sekali seumur hidup app ini.
    Kalau offline / API gagal, app tetap jalan normal — hanya info
    surah/ayat yang tidak muncul (fallback ke "hal. N" saja). */
-const LS_PAGE_META = 'hafalan_page_meta_v1';
+const LS_PAGE_META = 'hafalan_page_meta_v3'; // v3: nambah teks Arab per-ayat (dipakai render halaman + audio)
 const PAGE_META_API = 'https://api.alquran.cloud/v1/page/';
 const PAGE_META_EDITION = 'quran-simple';
-/* ---------- Halaman mushaf sebagai SVG interaktif (bukan gambar statis) ----------
-   Sumber: repo open-source quranpedia/quran-svg — vektor Mushaf Madinah
-   (Hafs) 604 halaman, CC0 (bebas pakai, tanpa atribusi wajib), berbasis
-   King Fahd Complex. Setiap halaman SVG sudah berisi elemen
-   <path class="ayahPolygon" surah=".." ayah=".."> transparan per-ayat,
-   jadi bisa langsung dijadikan area ketuk (highlight & pemicu audio)
-   tanpa perlu data koordinat terpisah. Disajikan lewat CDN jsDelivr. */
-const MUSHAF_SVG_BASE = 'https://cdn.jsdelivr.net/gh/quranpedia/quran-svg@main/mushafs/hafs/svg/';
-function mushafSvgUrl(page){ return MUSHAF_SVG_BASE + String(page).padStart(3,'0') + '.svg'; }
-const mushafSvgTextCache = {}; // cache in-memory 1 sesi (persist antar-sesi ditangani Service Worker)
-/* buang <script>/handler on* dari SVG pihak ketiga sebelum di-inject ke DOM
-   (defense-in-depth — sumbernya memang statis & tepercaya, tapi tetap
-   dijaga supaya tidak ada celah eksekusi kode asing). */
-function sanitizeSvgText(svgText){
-  return svgText
-    .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/\son\w+="[^"]*"/gi, '')
-    .replace(/\son\w+='[^']*'/gi, '');
-}
+/* ---------- Halaman mushaf: dirender sebagai TEKS (bukan gambar/SVG) ----------
+   Setelah sempat coba SVG pihak ketiga (quranpedia/quran-svg) yang ternyata
+   tidak reliable, pendekatan ini justru lebih sederhana & lebih tahan
+   lama: teks Arab per-ayat SUDAH kita ambil lewat fitur info-surah/ayat
+   (Al Quran Cloud API, lihat di atas) — jadi tidak perlu API/CDN
+   tambahan sama sekali buat menampilkan halaman. Dirender pakai font
+   "Amiri Quran" dari Google Fonts (CDN paling stabil yang ada, dipakai
+   miliaran situs) supaya tetap enak dibaca ala mushaf, dan tiap ayat
+   dibungkus <span> yang bisa diketuk (highlight + trigger audio),
+   sesuatu yang jauh lebih rumit dilakukan di atas gambar/SVG.
+   Gambar scan PNG (tarekeldeeb/madina_images) tetap disediakan sebagai
+   MODE ALTERNATIF (tombol toggle) buat yang mau lihat tata-letak asli
+   persis fisik mushaf — tapi bukan lagi jalur utama/wajib. */
+const MUSHAF_IMAGE_BASE = 'https://cdn.jsdelivr.net/gh/tarekeldeeb/madina_images@w1024/w1024_page';
+function mushafImageUrl(page){ return MUSHAF_IMAGE_BASE + String(page).padStart(3,'0') + '.png'; }
 /* ---------- Audio murottal per-ayat ----------
    Sumber: everyayah.com (gratis, tanpa API key), reciter Alafasy 128kbps.
    Nama file: {surah 3 digit}{ayat 3 digit}.mp3, mis. 002005.mp3 = QS 2:5. */
@@ -652,19 +672,24 @@ function loadPageMetaCache(){
 function savePageMetaCache(){
   try{ localStorage.setItem(LS_PAGE_META, JSON.stringify(pageMetaCache)); }catch(e){ /* penuh/di-block, abaikan */ }
 }
-/* gabungkan ayat-ayat 1 halaman jadi ringkasan per-surah berurutan,
-   karena 1 halaman kadang berisi akhir 1 surah + awal surah berikutnya */
+/* gabungkan ayat-ayat 1 halaman jadi ringkasan per-surah berurutan
+   (karena 1 halaman kadang berisi akhir 1 surah + awal surah berikutnya),
+   SEKALIGUS simpan teks Arab tiap ayat — dipakai buat render halaman
+   (mode teks) dan playlist audio, dari SATU fetch yang sama. */
 function buildPageLabel(ayahs){
   const segs = [];
+  const flatAyahs = [];
   ayahs.forEach(a=>{
-    const nama = a.surah && (a.surah.name ? a.surah.name.replace(/^سورة\s*/, '') : a.surah.englishName) || '';
-    const namaTampil = (a.surah && a.surah.englishName) || nama;
+    const surahNum = a.surah && a.surah.number;
+    const namaTampil = (a.surah && a.surah.englishName) || '';
+    const namaArab = (a.surah && a.surah.name) || '';
     const last = segs[segs.length-1];
     if(last && last.surah===namaTampil){ last.to = a.numberInSurah; }
-    else segs.push({ surah:namaTampil, from:a.numberInSurah, to:a.numberInSurah });
+    else segs.push({ surah:namaTampil, surahArab:namaArab, surahNumber:surahNum, from:a.numberInSurah, to:a.numberInSurah });
+    if(surahNum) flatAyahs.push({ surah:surahNum, ayah:a.numberInSurah, text:a.text, surahName:namaTampil });
   });
   const label = segs.map(s=> 'QS '+s.surah+' '+(s.from===s.to ? s.from : s.from+'\u2013'+s.to)).join(' \u2022 ');
-  return { label, segs };
+  return { label, segs, ayahs: flatAyahs };
 }
 /* dipanggil ulang tiap kali 1 halaman selesai di-fetch, supaya bagian
    UI yang sedang tampil bisa diperbarui begitu labelnya datang */
@@ -681,6 +706,14 @@ function onPageMetaLoaded(p){
   if(currentEditJuz && currentEditPage===p) refreshPageEditorHint();
   if(document.getElementById('quickOverlay') && document.getElementById('quickOverlay').classList.contains('open')){
     populateQuickPages();
+  }
+  // kalau viewer mushaf lagi kebuka di halaman ini & belum ada teks/
+  // playlist-nya (masih nunggu info surah/ayat), render ulang begitu
+  // datanya datang — ini yang bikin mode teks bisa muncul otomatis
+  // setelah loading, tanpa user perlu buka-tutup lagi.
+  if(document.getElementById('mushafOverlay') && document.getElementById('mushafOverlay').classList.contains('open')
+     && currentMushafPage===p && !mushafPlaylist.length){
+    renderMushafViewer();
   }
 }
 /* ambil metadata halaman dari cache; kalau belum ada, mulai fetch di
@@ -703,6 +736,73 @@ function getPageMeta(p){
       .finally(()=>{ delete pageMetaInFlight[p]; });
   }
   return null;
+}
+
+/* ---------- Unduh semua halaman untuk dipakai offline ----------
+   Berbeda dari getPageMeta() (yang fetch 1 halaman di background & lepas
+   tangan), ini SEKUENSIAL & di-await, khusus dipanggil dari tombol
+   "Unduh semua halaman" di Pengaturan — supaya progresnya bisa dipantau
+   & bisa dibatalkan kapan saja. */
+async function fetchAndCachePageMetaSync(p){
+  const cache = loadPageMetaCache();
+  if(cache[p]) return cache[p];
+  try{
+    const res = await fetch(PAGE_META_API + p + '/' + PAGE_META_EDITION);
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const json = await res.json();
+    const ayahs = (json && json.data && json.data.ayahs) || [];
+    if(!ayahs.length) throw new Error('respons kosong');
+    cache[p] = buildPageLabel(ayahs);
+    savePageMetaCache();
+    delete pageMetaFailed[p];
+    return cache[p];
+  }catch(e){
+    console.log('unduh offline hal.'+p+' gagal:', e);
+    return null;
+  }
+}
+function offlineDownloadedCount(){
+  const cache = loadPageMetaCache();
+  let n = 0;
+  for(let p=1;p<=TOTAL_PAGES;p++) if(cache[p]) n++;
+  return n;
+}
+function renderOfflineProgress(){
+  const hint = document.getElementById('offlineDlHint');
+  const bar = document.getElementById('offlineDlBar');
+  if(!hint || !bar) return;
+  const n = offlineDownloadedCount();
+  const pct = Math.round(n/TOTAL_PAGES*100);
+  hint.textContent = n+' / '+TOTAL_PAGES+' halaman tersimpan offline ('+pct+'%).';
+  bar.style.width = pct+'%';
+}
+let offlineDownloadCancelled = false;
+let offlineDownloadRunning = false;
+async function downloadAllPagesForOffline(){
+  if(offlineDownloadRunning) return;
+  offlineDownloadRunning = true;
+  offlineDownloadCancelled = false;
+  const btn = document.getElementById('btnDownloadOffline');
+  btn.textContent = 'Batalkan unduhan';
+  btn.onclick = ()=>{ offlineDownloadCancelled = true; };
+  let failed = 0;
+  for(let p=1; p<=TOTAL_PAGES; p++){
+    if(offlineDownloadCancelled) break;
+    const cache = loadPageMetaCache();
+    if(!cache[p]){
+      const meta = await fetchAndCachePageMetaSync(p);
+      if(!meta) failed++;
+      await new Promise(r=> setTimeout(r, 100)); // jeda kecil, jangan banjiri API
+    }
+    renderOfflineProgress();
+  }
+  offlineDownloadRunning = false;
+  btn.textContent = 'Unduh semua halaman';
+  btn.onclick = downloadAllPagesForOffline;
+  renderOfflineProgress();
+  if(offlineDownloadCancelled) showToast('Unduhan dibatalkan.', true);
+  else if(failed) showToast(failed+' halaman gagal diunduh (coba lagi nanti).', false);
+  else showToast('Semua halaman berhasil diunduh untuk offline!', true);
 }
 /* label singkat rentang surah utk 1 juz, mis. "QS Al-Kahf 75 \u2013 QS Maryam 40" */
 function juzSurahRangeLabel(n){
@@ -914,6 +1014,7 @@ function switchView(view){
     riwayat:['Riwayat',''], statistik:['Statistik',''], pengaturan:['Pengaturan',''] };
   if(titles[view]){ document.getElementById('appbarTitle').textContent = titles[view][0]; document.getElementById('appbarSub').textContent = titles[view][1]; }
   document.getElementById('btnKebab').style.visibility = view==='detail' ? 'hidden' : 'visible';
+  if(view==='pengaturan') renderOfflineProgress();
   window.scrollTo(0,0);
 }
 
@@ -1344,11 +1445,42 @@ function refreshPageEditorHint(){
     'Halaman mushaf ke-'+p+ (meta ? ' \u2014 '+meta.label+'.' : '.');
 }
 
-/* ---------- MUSHAF VIEWER (SVG interaktif: highlight per-ayat + audio) ---------- */
+/* ---------- MUSHAF VIEWER (teks Arab asli, fallback gambar + audio) ---------- */
 let currentMushafPage = null;
-let mushafPlaylist = [];      // [{surah, ayah}, ...] urutan baca di halaman ini
+let mushafViewMode = localStorage.getItem('hafalan_mushaf_view_mode') || 'text'; // 'text' | 'image'
+let mushafPlaylist = [];      // [{surah, ayah, text}, ...] urutan baca di halaman ini
 let mushafPlayIndex = -1;     // -1 = tidak sedang memutar apa pun
 const mushafAudioEl = new Audio();
+
+function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function toArabicDigits(n){
+  const map = ['\u0660','\u0661','\u0662','\u0663','\u0664','\u0665','\u0666','\u0667','\u0668','\u0669'];
+  return String(n).split('').map(d=> map[+d] !== undefined ? map[+d] : d).join('');
+}
+/* susun HTML halaman: kelompokkan ayat per-surah (banner nama surah tiap
+   kali surah berganti dalam halaman itu), tiap ayat dibungkus <span>
+   yang bisa diketuk buat trigger audio & highlight. */
+function buildMushafTextHtml(meta){
+  const blocks = [];
+  let currentGroup = null;
+  meta.ayahs.forEach(a=>{
+    if(!currentGroup || currentGroup.surah !== a.surah){
+      const seg = meta.segs.find(s=> s.surahNumber===a.surah);
+      blocks.push({ type:'banner', text: seg ? seg.surahArab : '' });
+      currentGroup = { type:'text', surah:a.surah, ayahs:[] };
+      blocks.push(currentGroup);
+    }
+    currentGroup.ayahs.push(a);
+  });
+  return blocks.map(b=>{
+    if(b.type==='banner') return '<div class="mushaf-surah-banner">'+escapeHtml(b.text)+'</div>';
+    const spans = b.ayahs.map(a=>
+      '<span class="mushaf-ayah" data-surah="'+a.surah+'" data-ayah="'+a.ayah+'">'+escapeHtml(a.text)+
+      ' <span class="mushaf-ayah-num">\uFD3F'+toArabicDigits(a.ayah)+'\uFD3E</span></span> '
+    ).join('');
+    return '<p class="mushaf-ayat-text">'+spans+'</p>';
+  }).join('');
+}
 
 function openMushafViewer(page){
   currentMushafPage = Math.min(TOTAL_PAGES, Math.max(1, page));
@@ -1359,7 +1491,12 @@ function closeMushafViewer(){
   stopMushafAudio();
   document.getElementById('mushafOverlay').classList.remove('open');
 }
-async function renderMushafViewer(){
+function toggleMushafViewMode(){
+  mushafViewMode = (mushafViewMode==='text') ? 'image' : 'text';
+  try{ localStorage.setItem('hafalan_mushaf_view_mode', mushafViewMode); }catch(e){}
+  renderMushafViewer();
+}
+function renderMushafViewer(){
   const p = currentMushafPage;
   stopMushafAudio();
   const meta = getPageMeta(p); // sudah di-cache dari fitur info surah/ayat, dipakai ulang di sini
@@ -1369,58 +1506,58 @@ async function renderMushafViewer(){
   document.getElementById('mushafPrev').disabled = (p<=1);
   document.getElementById('mushafNext').disabled = (p>=TOTAL_PAGES);
 
-  const wrap = document.getElementById('mushafSvgWrap');
+  const textWrap = document.getElementById('mushafTextWrap');
+  const imgEl = document.getElementById('mushafImg');
+  const tip = document.getElementById('mushafTip');
   const loading = document.getElementById('mushafLoading');
   const errEl = document.getElementById('mushafError');
-  wrap.innerHTML = '';
+  textWrap.style.display = 'none'; textWrap.innerHTML = '';
+  imgEl.style.display = 'none';
+  tip.style.display = 'none';
   errEl.style.display = 'none';
   loading.style.display = 'flex';
   mushafPlaylist = [];
+  document.getElementById('mushafAudioStart').style.display = 'none';
 
-  try{
-    let svgText = mushafSvgTextCache[p];
-    if(!svgText){
-      const res = await fetch(mushafSvgUrl(p));
-      if(!res.ok) throw new Error('HTTP '+res.status);
-      svgText = sanitizeSvgText(await res.text());
-      mushafSvgTextCache[p] = svgText;
-    }
-    if(currentMushafPage !== p) return; // user sudah pindah halaman sebelum fetch selesai
-    wrap.innerHTML = svgText;
-    loading.style.display = 'none';
+  const hasAyahData = meta && meta.ayahs && meta.ayahs.length;
+  if(hasAyahData) mushafPlaylist = meta.ayahs.slice();
 
-    // bangun playlist ayat dari urutan elemen ayahPolygon di SVG (sesuai
-    // urutan baca), dedupe by nomor ayat (1 ayat bisa punya beberapa
-    // poligon kalau baris teksnya patah jadi >1 baris).
-    const seen = new Set();
-    wrap.querySelectorAll('.ayahPolygon').forEach(poly=>{
-      const surah = Number(poly.getAttribute('surah'));
-      const ayah = Number(poly.getAttribute('ayah'));
-      if(!surah || !ayah) return;
-      const key = surah+':'+ayah;
-      if(!seen.has(key)){ seen.add(key); mushafPlaylist.push({ surah, ayah }); }
-      poly.addEventListener('click', ()=> playAyahFrom(surah, ayah));
-    });
-  }catch(e){
-    console.log('gagal muat halaman mushaf:', e);
+  if(mushafViewMode==='text' && hasAyahData){
     loading.style.display = 'none';
-    errEl.style.display = 'flex';
+    textWrap.innerHTML = buildMushafTextHtml(meta);
+    textWrap.style.display = 'block';
+    tip.style.display = 'block';
+    document.getElementById('mushafAudioStart').style.display = 'block';
+  }else if(mushafViewMode==='text' && !meta && !pageMetaFailed[p]){
+    // teks belum ada di cache, masih nunggu fetch info surah/ayat di
+    // belakang layar -> tetap tampilkan loading, nanti onPageMetaLoaded()
+    // yang panggil ulang fungsi ini begitu datanya siap.
+    loading.style.display = 'flex';
+  }else{
+    // mode gambar (baik karena dipilih user, atau otomatis jadi cadangan
+    // kalau mode teks gagal ambil data) — sumber PNG yang sudah terbukti
+    // reliable, dipakai sebagai jaring pengaman terakhir.
+    imgEl.onload = ()=>{ loading.style.display='none'; imgEl.style.display='block'; };
+    imgEl.onerror = ()=>{ loading.style.display='none'; errEl.style.display='flex'; };
+    imgEl.src = mushafImageUrl(p);
+    if(hasAyahData) document.getElementById('mushafAudioStart').style.display = 'block';
   }
 }
 function mushafPrev(){ if(currentMushafPage>1){ currentMushafPage--; renderMushafViewer(); } }
 function mushafNext(){ if(currentMushafPage<TOTAL_PAGES){ currentMushafPage++; renderMushafViewer(); } }
 
-/* ---------- Kontrol audio murottal per-ayat ---------- */
+/* ---------- Kontrol audio murottal ---------- */
 function ayahLabel(surah, ayah){
   const meta = getPageMeta(currentMushafPage);
   const seg = meta && meta.segs && meta.segs.find(s=> ayah>=s.from && ayah<=s.to);
   return 'QS '+(seg ? seg.surah : 'Surah '+surah)+' : '+ayah;
 }
 function updateAyahHighlight(){
-  document.querySelectorAll('.mushaf-svgwrap .ayahPolygon.ayah-playing').forEach(el=> el.classList.remove('ayah-playing'));
+  document.querySelectorAll('.mushaf-textwrap .mushaf-ayah.ayah-playing').forEach(el=> el.classList.remove('ayah-playing'));
   if(mushafPlayIndex<0 || mushafPlayIndex>=mushafPlaylist.length) return;
   const { surah, ayah } = mushafPlaylist[mushafPlayIndex];
-  document.querySelectorAll('.mushaf-svgwrap .ayahPolygon[surah="'+surah+'"][ayah="'+ayah+'"]').forEach(el=> el.classList.add('ayah-playing'));
+  const el = document.querySelector('.mushaf-textwrap .mushaf-ayah[data-surah="'+surah+'"][data-ayah="'+ayah+'"]');
+  if(el){ el.classList.add('ayah-playing'); el.scrollIntoView({ block:'center', behavior:'smooth' }); }
 }
 function playCurrentAyah(){
   if(mushafPlayIndex<0 || mushafPlayIndex>=mushafPlaylist.length){ stopMushafAudio(); return; }
@@ -1428,6 +1565,7 @@ function playCurrentAyah(){
   mushafAudioEl.src = ayahAudioUrl(surah, ayah);
   mushafAudioEl.play().catch(e=> console.log('audio gagal diputar:', e));
   updateAyahHighlight();
+  document.getElementById('mushafAudioStart').style.display = 'none';
   document.getElementById('mushafAudioBar').style.display = 'flex';
   document.getElementById('mushafAudioLabel').textContent = 'Memutar \u2014 '+ayahLabel(surah, ayah);
   document.getElementById('mushafPlayToggle').textContent = '\u23F8'; // pause
@@ -1452,6 +1590,8 @@ function stopMushafAudio(){
   if(bar) bar.style.display = 'none';
   const btn = document.getElementById('mushafPlayToggle');
   if(btn) btn.textContent = '\u25B6';
+  const startBtn = document.getElementById('mushafAudioStart');
+  if(startBtn) startBtn.style.display = mushafPlaylist.length ? 'block' : 'none';
 }
 mushafAudioEl.addEventListener('ended', ()=>{
   mushafPlayIndex++;
@@ -1477,6 +1617,12 @@ function setupMushafSwipe(){
       if(dx < 0) mushafNext(); else mushafPrev();
     }
   }, { passive:true });
+  // delegasi klik: ketuk ayat mana pun di mode teks buat mulai audio dari situ
+  el.addEventListener('click', (e)=>{
+    const span = e.target.closest('.mushaf-ayah');
+    if(!span) return;
+    playAyahFrom(Number(span.dataset.surah), Number(span.dataset.ayah));
+  });
 }
 
 function closePageEditor(){ document.getElementById('pageOverlay').classList.remove('open'); currentEditJuz=null; currentEditPage=null; }
@@ -1699,16 +1845,19 @@ function init(){
   document.getElementById('pageMarkLupa').onclick = markPageLupa;
   document.getElementById('pageViewMushaf').onclick = ()=>{ if(currentEditPage!=null) openMushafViewer(currentEditPage); };
   document.getElementById('mushafClose').onclick = closeMushafViewer;
+  document.getElementById('mushafToggleMode').onclick = toggleMushafViewMode;
   document.getElementById('mushafPrev').onclick = mushafPrev;
   document.getElementById('mushafNext').onclick = mushafNext;
   document.getElementById('mushafPlayToggle').onclick = toggleMushafPlay;
   document.getElementById('mushafStop').onclick = stopMushafAudio;
+  document.getElementById('mushafPlayAll').onclick = ()=>{ mushafPlayIndex = 0; playCurrentAyah(); };
   setupMushafSwipe();
 
   document.getElementById('menuPin').onclick = openPinModal;
   document.getElementById('menuServer').onclick = openServerModal;
   document.getElementById('menuRefresh').onclick = async ()=>{ await fetchData(); renderAll(); };
   document.getElementById('menuLock').onclick = showLockScreen;
+  document.getElementById('btnDownloadOffline').onclick = downloadAllPagesForOffline;
 
   document.getElementById('pinCancel').onclick = closePinModal;
   document.getElementById('pinSave').onclick = savePinModal;
