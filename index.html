@@ -226,11 +226,6 @@
   </div>
 </div>
 
-<div class="update-toast" id="updateToast">
-  <span>Versi baru tersedia.</span>
-  <button id="btnUpdateNow">Perbarui sekarang</button>
-</div>
-
 <script>
 const STATUS_META = {
   belum:{label:'Belum dihafal', color:'#B4B2A9'},
@@ -522,26 +517,12 @@ function init(){
 }
 init();
 
-/* ---------- PWA: service worker + alur update ---------- */
+/* ---------- PWA: service worker (mode paksa update) ----------
+   Service worker baru otomatis aktif sendiri (skipWaiting di sw.js),
+   di sini kita cuma perlu reload halaman begitu itu terjadi. */
 function registerServiceWorker(){
   if(!('serviceWorker' in navigator)) return;
-  navigator.serviceWorker.register('./sw.js').then((reg)=>{
-    reg.addEventListener('updatefound', ()=>{
-      const newWorker = reg.installing;
-      if(!newWorker) return;
-      newWorker.addEventListener('statechange', ()=>{
-        if(newWorker.state === 'installed' && navigator.serviceWorker.controller){
-          document.getElementById('updateToast').classList.add('show');
-        }
-      });
-    });
-  }).catch((e)=> console.log('SW register gagal:', e));
-
-  document.getElementById('btnUpdateNow').onclick = ()=>{
-    navigator.serviceWorker.getRegistration().then((reg)=>{
-      if(reg && reg.waiting) reg.waiting.postMessage({ type:'SKIP_WAITING' });
-    });
-  };
+  navigator.serviceWorker.register('./sw.js').catch((e)=> console.log('SW register gagal:', e));
 
   let refreshed = false;
   navigator.serviceWorker.addEventListener('controllerchange', ()=>{

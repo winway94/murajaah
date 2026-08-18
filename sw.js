@@ -1,10 +1,13 @@
 /* ============================================================
    Service Worker — Hafalan & Murajaah
    Cache app-shell dasar supaya bisa dibuka offline / lebih cepat.
+   MODE: paksa update — begitu ada versi baru terdeteksi, service worker
+   baru langsung aktif dan halaman otomatis reload sendiri (lihat
+   controllerchange di index.html), tanpa perlu klik apa pun.
    Naikkan CACHE_VERSION setiap kali index.html/manifest/ikon diubah,
    supaya pengguna otomatis dapat versi terbaru.
    ============================================================ */
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v2";
 const CACHE_NAME = "hafalan-" + CACHE_VERSION;
 
 // File same-origin yang wajib ada supaya app bisa dibuka offline.
@@ -40,9 +43,9 @@ self.addEventListener("install", (event) => {
       );
     })
   );
-  // Sengaja TIDAK panggil self.skipWaiting() di sini — worker baru akan
-  // "waiting" sampai halaman kirim pesan SKIP_WAITING (lihat listener
-  // message di bawah), supaya update tidak memaksa reload tiba-tiba.
+  // DIPAKSA update: worker baru langsung aktif begitu selesai di-install,
+  // tidak menunggu tab lama ditutup atau tombol "Perbarui Sekarang" diklik.
+  self.skipWaiting();
 });
 
 /* ---------- MESSAGE: terima sinyal "SKIP_WAITING" dari halaman ---------- */
