@@ -7,7 +7,7 @@
    Naikkan CACHE_VERSION setiap kali index.html/manifest/ikon diubah,
    supaya pengguna otomatis dapat versi terbaru.
    ============================================================ */
-const CACHE_VERSION = "v5";
+const CACHE_VERSION = "v6";
 const CACHE_NAME = "hafalan-" + CACHE_VERSION;
 
 // File same-origin yang wajib ada supaya app bisa dibuka offline.

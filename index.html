@@ -466,6 +466,7 @@ let appData = null;
 let pin = localStorage.getItem(LS_PIN);
 let pinBuffer = '';
 let lastSyncOk = true;
+let lastSyncDetail = '';
 let currentView = 'beranda';
 let currentDetailJuz = null;
 let currentDetailTab = 'ringkasan';
@@ -497,16 +498,21 @@ function normalizeData(raw){
 }
 
 async function fetchData(){
-  if(!serverConfigured()){ appData = defaultData(); lastSyncOk = false; return; }
+  if(!serverConfigured()){ appData = defaultData(); lastSyncOk = false; lastSyncDetail=''; return; }
   try{
     const res = await fetch(apiBase() + '/data', { headers:{ 'X-App-Token': appToken() } });
-    if(!res.ok) throw new Error('HTTP ' + res.status);
+    if(!res.ok){
+      let bodyText = '';
+      try{ bodyText = JSON.stringify(await res.json()); }catch(e2){}
+      throw new Error('HTTP ' + res.status + (bodyText ? ' — ' + bodyText : ''));
+    }
     appData = normalizeData(await res.json());
-    lastSyncOk = true;
+    lastSyncOk = true; lastSyncDetail='';
   }catch(e){
     console.log('fetchData gagal:', e);
     appData = appData || defaultData();
     lastSyncOk = false;
+    lastSyncDetail = String(e && e.message || e);
   }
 }
 async function pushData(){
@@ -599,7 +605,7 @@ function renderAll(){
 function renderSyncBanner(){
   const el = document.getElementById('syncBanner');
   if(!serverConfigured()) el.innerHTML = '<div class="sync-banner sync-err">Belum tersambung ke server. Buka Pengaturan untuk mengisi URL Worker dan token.</div>';
-  else if(!lastSyncOk) el.innerHTML = '<div class="sync-banner sync-err">Gagal sinkron ke server. Cek koneksi/token lalu muat ulang.</div>';
+  else if(!lastSyncOk) el.innerHTML = '<div class="sync-banner sync-err">Gagal sinkron ke server.' + (lastSyncDetail ? '<br><span style="font-family:monospace;font-size:10.5px;opacity:.85;">'+lastSyncDetail.replace(/</g,'&lt;')+'</span>' : '') + '</div>';
   else el.innerHTML = '<div class="sync-banner sync-ok">Tersambung ke server.</div>';
 }
 
