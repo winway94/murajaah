@@ -1,0 +1,96 @@
+/* ============================================================
+   Service Worker — Hafalan & Murajaah
+   Cache app-shell dasar supaya bisa dibuka offline / lebih cepat.
+   Naikkan CACHE_VERSION setiap kali index.html/manifest/ikon diubah,
+   supaya pengguna otomatis dapat versi terbaru.
+   ============================================================ */
+const CACHE_VERSION = "v1";
+const CACHE_NAME = "hafalan-" + CACHE_VERSION;
+
+// File same-origin yang wajib ada supaya app bisa dibuka offline.
+// Catatan: data hafalan sendiri TIDAK di-cache di sini — itu selalu
+// diambil langsung dari Worker (lihat fetchData() di index.html),
+// supaya progres yang tampil selalu yang terbaru saat online.
+const CORE_ASSETS = [
+  "./",
+  "./index.html",
+  "./manifest.json",
+  "./icon-192x192.png",
+  "./icon-512x512.png",
+  "./icon-192x192-maskable.png",
+  "./icon-512x512-maskable.png",
+  "./icon-180x180.png",
+  "./icon-32x32.png",
+  "./icon-16x16.png"
+];
+
+/* ---------- INSTALL: simpan app-shell ke cache ---------- */
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      // addAll akan gagal total kalau salah satu URL 404 —
+      // jadi ditambahkan satu per satu dan diabaikan kalau gagal,
+      // supaya instalasi tidak batal hanya karena 1 file hilang.
+      return Promise.all(
+        CORE_ASSETS.map((url) =>
+          cache.add(url).catch((err) => {
+            console.log("SW: gagal cache", url, err);
+          })
+        )
+      );
+    })
+  );
+  // Sengaja TIDAK panggil self.skipWaiting() di sini — worker baru akan
+  // "waiting" sampai halaman kirim pesan SKIP_WAITING (lihat listener
+  // message di bawah), supaya update tidak memaksa reload tiba-tiba.
+});
+
+/* ---------- MESSAGE: terima sinyal "SKIP_WAITING" dari halaman ---------- */
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
+});
+
+/* ---------- ACTIVATE: bersihkan cache versi lama ---------- */
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(
+        keys
+          .filter((key) => key.startsWith("hafalan-") && key !== CACHE_NAME)
+          .map((key) => caches.delete(key))
+      )
+    )
+  );
+  self.clients.claim();
+});
+
+/* ---------- FETCH: cache-first untuk app-shell same-origin, ----------
+   fallback ke network. Request ke Worker API (/data, /telegram-webhook)
+   dan ke domain lain (font Google, dll) sengaja DILEWATKAN dari cache,
+   supaya data hafalan yang tampil selalu terbaru dan tidak ada masalah
+   CORS/opaque response. */
+self.addEventListener("fetch", (event) => {
+  const req = event.request;
+  if (req.method !== "GET") return;
+
+  const url = new URL(req.url);
+  const isSameOrigin = url.origin === self.location.origin;
+  if (!isSameOrigin) return; // biarkan browser yang urus (font, worker API, dst)
+
+  event.respondWith(
+    caches.match(req).then((cached) => {
+      const networkFetch = fetch(req)
+        .then((res) => {
+          if (res && res.status === 200) {
+            const resClone = res.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone));
+          }
+          return res;
+        })
+        .catch(() => cached); // offline & tidak ada di cache -> gagal senyap
+      return cached || networkFetch;
+    })
+  );
+});

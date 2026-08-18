@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Hafalan &amp; Murajaah</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#123832">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Hafalan">
+<link rel="apple-touch-icon" href="icon-180x180.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="icon-16x16.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Karla:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#123832; --ink-2:#0B2622; --teal:#2F7A6E; --teal-deep:#1B5E56;
+    --gold:#C9A44C; --gold-soft:#E8D9B0; --parchment:#F6F0E2; --ivory:#FBF8F1;
+    --brick:#B54A3D; --brick-soft:#F3DAD5; --text-dark:#1B2B28; --text-mute:#5C6B66;
+    --font-display:'Amiri', serif; --font-body:'Karla', sans-serif; --font-mono:'IBM Plex Mono', monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:var(--font-body);color:var(--text-dark);background:var(--parchment);}
+  .app{max-width:900px;margin:0 auto;min-height:100vh;position:relative;}
+
+  .lock-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;
+    background-color:var(--ink);
+    background-image:
+      repeating-linear-gradient(45deg, rgba(201,164,76,0.09) 0 1px, transparent 1px 42px),
+      repeating-linear-gradient(-45deg, rgba(201,164,76,0.09) 0 1px, transparent 1px 42px);
+    padding:24px;}
+  .lock-card{width:100%;max-width:340px;text-align:center;color:var(--ivory);}
+  .lock-eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin:0 0 6px;}
+  .lock-title{font-family:var(--font-display);font-size:32px;font-weight:700;margin:0 0 28px;}
+  .pin-dots{display:flex;justify-content:center;gap:14px;margin-bottom:28px;flex-wrap:wrap;}
+  .pin-dot{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--gold);background:transparent;transition:background .15s;}
+  .pin-dot.filled{background:var(--gold);}
+  .pin-dots.shake{animation:shake .32s;}
+  @keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+  .keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:260px;margin:0 auto;}
+  .key{font-family:var(--font-mono);font-size:20px;color:var(--ivory);
+    background:rgba(255,255,255,0.06);border:1px solid rgba(201,164,76,0.35);
+    border-radius:12px;padding:16px 0;cursor:pointer;}
+  .key:active{background:rgba(201,164,76,0.25);}
+  .lock-msg{font-size:13px;color:var(--gold-soft);margin-top:18px;min-height:18px;}
+  .lock-footnote{font-size:11px;color:rgba(251,248,241,0.5);margin-top:28px;line-height:1.6;}
+  .lock-link{background:none;border:none;color:var(--gold);font-family:var(--font-mono);font-size:11.5px;text-decoration:underline;cursor:pointer;margin-top:14px;}
+
+  .dashboard{display:none;padding:28px 20px 60px;}
+  .dash-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;gap:10px;flex-wrap:wrap;}
+  .dash-title{font-family:var(--font-display);font-size:26px;margin:0;color:var(--ink);}
+  .dash-sub{font-size:13px;color:var(--text-mute);margin:4px 0 0;}
+  .icon-btn{background:var(--ivory);border:1px solid var(--gold-soft);color:var(--ink);border-radius:10px;padding:9px 14px;font-family:var(--font-body);font-size:13px;cursor:pointer;}
+  .header-actions{display:flex;gap:8px;flex-wrap:wrap;}
+
+  .sync-banner{font-family:var(--font-mono);font-size:11.5px;padding:8px 14px;border-radius:8px;margin-bottom:16px;}
+  .sync-ok{background:#DCE8E5;color:var(--ink-2);}
+  .sync-err{background:var(--brick-soft);color:#7A2E24;}
+
+  .summary-row{display:flex;gap:24px;align-items:center;background:var(--ivory);border:1px solid var(--gold-soft);border-radius:16px;padding:20px;margin-bottom:20px;flex-wrap:wrap;}
+  .rosette{flex-shrink:0;width:132px;height:132px;position:relative;}
+  .rosette-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+  .rosette-num{font-family:var(--font-display);font-size:26px;font-weight:700;color:var(--ink);line-height:1;}
+  .rosette-label{font-size:10px;color:var(--text-mute);text-transform:uppercase;letter-spacing:.06em;margin-top:2px;}
+  .stat-grid{flex:1;min-width:220px;display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+  .stat-card{background:var(--parchment);border-radius:10px;padding:10px 12px;}
+  .stat-num{font-family:var(--font-mono);font-size:19px;font-weight:500;color:var(--ink);}
+  .stat-label{font-size:11.5px;color:var(--text-mute);margin-top:2px;}
+
+  .overdue-panel{background:var(--brick-soft);border:1px solid var(--brick);border-radius:14px;padding:16px 18px;margin-bottom:20px;}
+  .overdue-title{font-size:13.5px;font-weight:700;color:var(--brick);margin:0 0 8px;}
+  .overdue-list{display:flex;flex-wrap:wrap;gap:8px;}
+  .overdue-chip{font-family:var(--font-mono);font-size:12px;background:var(--ivory);border:1px solid var(--brick);color:#7A2E24;border-radius:8px;padding:5px 10px;}
+
+  .legend{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:16px;}
+  .legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-mute);}
+  .legend-dot{width:10px;height:10px;border-radius:50%;}
+
+  .juz-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px;}
+  .juz-card{border-radius:12px;padding:12px 8px;text-align:center;cursor:pointer;border:1.5px solid transparent;background:var(--ivory);}
+  .juz-num{font-family:var(--font-display);font-size:20px;font-weight:700;}
+  .juz-status{font-size:10px;margin-top:4px;line-height:1.3;}
+  .juz-days{font-family:var(--font-mono);font-size:9.5px;margin-top:3px;opacity:.85;}
+  .st-belum{background:var(--ivory);border-color:#D3D1C7;} .st-belum .juz-num,.st-belum .juz-status{color:#888780;}
+  .st-dihafal{background:#FBF1DC;border-color:var(--gold);} .st-dihafal .juz-num,.st-dihafal .juz-status{color:#7A5B14;}
+  .st-murajaah{background:#E5F1EE;border-color:var(--teal);} .st-murajaah .juz-num,.st-murajaah .juz-status{color:#0F4A3F;}
+  .st-stabil{background:#DCE8E5;border-color:var(--ink);} .st-stabil .juz-num,.st-stabil .juz-status{color:var(--ink-2);}
+  .juz-card.is-overdue{border-color:var(--brick);box-shadow:0 0 0 2px rgba(181,74,61,0.18) inset;}
+  .juz-card.is-overdue .juz-days{color:var(--brick);font-weight:600;}
+
+  .overlay{position:fixed;inset:0;background:rgba(11,38,34,0.55);display:none;align-items:center;justify-content:center;padding:20px;z-index:50;}
+  .overlay.open{display:flex;}
+  .modal{background:var(--ivory);border-radius:16px;padding:24px;max-width:380px;width:100%;max-height:90vh;overflow:auto;}
+  .modal h3{font-family:var(--font-display);margin:0 0 4px;font-size:20px;}
+  .modal p.hint{font-size:12px;color:var(--text-mute);margin:0 0 18px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:12px;color:var(--text-mute);margin-bottom:5px;}
+  .field select,.field input{width:100%;padding:9px 10px;border-radius:8px;border:1px solid var(--gold-soft);font-family:var(--font-body);font-size:14px;background:#fff;}
+  .modal-actions{display:flex;gap:8px;margin-top:18px;}
+  .btn{flex:1;padding:10px;border-radius:9px;border:none;font-family:var(--font-body);font-weight:700;font-size:13.5px;cursor:pointer;}
+  .btn-primary{background:var(--ink);color:var(--ivory);}
+  .btn-ghost{background:transparent;border:1px solid var(--gold-soft);color:var(--text-dark);}
+
+  .update-toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:60;
+    background:var(--ink);color:var(--ivory);border-radius:12px;padding:12px 14px;
+    display:none;align-items:center;gap:12px;box-shadow:0 6px 18px rgba(0,0,0,0.25);max-width:92vw;}
+  .update-toast.show{display:flex;}
+  .update-toast span{font-size:13px;}
+  .update-toast button{font-family:var(--font-body);font-weight:700;font-size:12.5px;
+    background:var(--gold);color:var(--ink-2);border:none;border-radius:8px;padding:8px 12px;cursor:pointer;white-space:nowrap;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="lock-screen" id="lockScreen">
+    <div class="lock-card">
+      <p class="lock-eyebrow" id="lockEyebrow">Kunci aplikasi</p>
+      <h1 class="lock-title" id="lockTitle">Masukkan PIN</h1>
+      <div class="pin-dots" id="pinDots"></div>
+      <div class="keypad" id="keypad"></div>
+      <p class="lock-msg" id="lockMsg"></p>
+      <button class="lock-link" id="btnServerSetup">Pengaturan server &amp; bot Telegram</button>
+      <p class="lock-footnote">PIN hanya mengunci tampilan di perangkat ini. Data hafalan tersimpan di repo GitHub Anda lewat Worker — jaga token Worker tetap rahasia.</p>
+    </div>
+  </div>
+
+  <div class="dashboard" id="dashboard">
+    <div class="dash-header">
+      <div>
+        <h1 class="dash-title">Hafalan &amp; Murajaah</h1>
+        <p class="dash-sub" id="todayLabel"></p>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn" id="btnRefresh">Muat ulang</button>
+        <button class="icon-btn" id="btnPin">Ubah PIN</button>
+        <button class="icon-btn" id="btnServer">Server</button>
+        <button class="icon-btn" id="btnLock">Kunci</button>
+      </div>
+    </div>
+
+    <div id="syncBanner"></div>
+
+    <div class="summary-row">
+      <div class="rosette">
+        <svg id="rosetteSvg" viewBox="0 0 132 132" width="132" height="132"></svg>
+        <div class="rosette-center">
+          <div class="rosette-num" id="rosetteNum">0/30</div>
+          <div class="rosette-label">stabil</div>
+        </div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-num" id="statStabil">0</div><div class="stat-label">Juz stabil (mutqin)</div></div>
+        <div class="stat-card"><div class="stat-num" id="statMurajaah">0</div><div class="stat-label">Sedang murajaah</div></div>
+        <div class="stat-card"><div class="stat-num" id="statDihafal">0</div><div class="stat-label">Sedang dihafal</div></div>
+        <div class="stat-card"><div class="stat-num" id="statBelum">0</div><div class="stat-label">Belum dihafal</div></div>
+      </div>
+    </div>
+
+    <div class="overdue-panel" id="overduePanel" style="display:none;">
+      <p class="overdue-title">Perlu di-murajaah ulang (lebih dari 30 hari)</p>
+      <div class="overdue-list" id="overdueList"></div>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item"><span class="legend-dot" style="background:#B4B2A9"></span>Belum dihafal</div>
+      <div class="legend-item"><span class="legend-dot" style="background:var(--gold)"></span>Sedang dihafal</div>
+      <div class="legend-item"><span class="legend-dot" style="background:var(--teal)"></span>Sedang murajaah</div>
+      <div class="legend-item"><span class="legend-dot" style="background:var(--ink)"></span>Stabil (mutqin)</div>
+    </div>
+
+    <div class="juz-grid" id="juzGrid"></div>
+  </div>
+
+</div>
+
+<div class="overlay" id="editOverlay">
+  <div class="modal">
+    <h3 id="editTitle">Juz 1</h3>
+    <p class="hint">Perbarui status hafalan dan tanggal murajaah terakhir.</p>
+    <div class="field"><label>Status</label>
+      <select id="editStatus">
+        <option value="belum">Belum dihafal</option>
+        <option value="dihafal">Sedang dihafal</option>
+        <option value="murajaah">Sedang murajaah</option>
+        <option value="stabil">Stabil (mutqin)</option>
+      </select>
+    </div>
+    <div class="field"><label>Tanggal murajaah terakhir</label><input type="date" id="editDate"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="editCancel">Batal</button>
+      <button class="btn btn-primary" id="editSave">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="pinOverlay">
+  <div class="modal">
+    <h3>Ubah PIN</h3>
+    <p class="hint">PIN 6 digit baru untuk membuka aplikasi ini di perangkat ini.</p>
+    <div class="field"><label>PIN baru</label><input type="password" id="newPin" inputmode="numeric" maxlength="6" placeholder="6 digit"></div>
+    <div class="field"><label>Ulangi PIN baru</label><input type="password" id="newPin2" inputmode="numeric" maxlength="6" placeholder="6 digit"></div>
+    <p class="lock-msg" id="pinModalMsg" style="color:var(--brick);"></p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="pinCancel">Batal</button>
+      <button class="btn btn-primary" id="pinSave">Simpan PIN</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="serverOverlay">
+  <div class="modal">
+    <h3>Pengaturan server</h3>
+    <p class="hint">Alamat Worker dan token aplikasi Anda (lihat panduan setup). Tersimpan hanya di browser ini.</p>
+    <div class="field"><label>URL Worker</label><input type="text" id="apiBase" placeholder="https://hafalan-murajaah-worker.xxxx.workers.dev"></div>
+    <div class="field"><label>App token</label><input type="password" id="appToken" placeholder="Token dari wrangler secret put APP_TOKEN"></div>
+    <p class="lock-msg" id="serverModalMsg" style="color:var(--brick);"></p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="serverCancel">Batal</button>
+      <button class="btn btn-primary" id="serverSave">Simpan &amp; sambungkan</button>
+    </div>
+  </div>
+</div>
+
+<div class="update-toast" id="updateToast">
+  <span>Versi baru tersedia.</span>
+  <button id="btnUpdateNow">Perbarui sekarang</button>
+</div>
+
+<script>
+const STATUS_META = {
+  belum:{label:'Belum dihafal', color:'#B4B2A9'},
+  dihafal:{label:'Sedang dihafal', color:'#C9A44C'},
+  murajaah:{label:'Sedang murajaah', color:'#2F7A6E'},
+  stabil:{label:'Stabil (mutqin)', color:'#123832'}
+};
+const TOTAL_JUZ = 30;
+const OVERDUE_DAYS = 30;
+const LS_PIN = 'hafalan_pin';
+const LS_API_BASE = 'hafalan_api_base';
+const LS_APP_TOKEN = 'hafalan_app_token';
+
+let appData = null;
+let pin = localStorage.getItem(LS_PIN);
+let pinBuffer = '';
+let editingJuz = null;
+let lastSyncOk = true;
+
+function apiBase(){ return localStorage.getItem(LS_API_BASE) || ''; }
+function appToken(){ return localStorage.getItem(LS_APP_TOKEN) || ''; }
+function serverConfigured(){ return !!apiBase() && !!appToken(); }
+
+function defaultData(){
+  const juz = {};
+  for(let i=1;i<=TOTAL_JUZ;i++) juz[i] = { status:'belum', lastMurajaah:null };
+  return { juz };
+}
+
+async function fetchData(){
+  if(!serverConfigured()){ appData = defaultData(); lastSyncOk = false; return; }
+  try{
+    const res = await fetch(apiBase() + '/data', { headers:{ 'X-App-Token': appToken() } });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const remote = await res.json();
+    appData = remote && remote.juz ? remote : defaultData();
+    lastSyncOk = true;
+  }catch(e){
+    console.log('fetchData gagal:', e);
+    appData = appData || defaultData();
+    lastSyncOk = false;
+  }
+}
+
+async function pushData(){
+  if(!serverConfigured()) return false;
+  try{
+    const res = await fetch(apiBase() + '/data', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'X-App-Token': appToken() },
+      body: JSON.stringify(appData)
+    });
+    lastSyncOk = res.ok;
+    return res.ok;
+  }catch(e){
+    console.log('pushData gagal:', e);
+    lastSyncOk = false;
+    return false;
+  }
+}
+
+function daysSince(dateStr){
+  if(!dateStr) return null;
+  return Math.floor((new Date() - new Date(dateStr)) / 86400000);
+}
+function isOverdue(entry){
+  if(entry.status !== 'murajaah' && entry.status !== 'stabil') return false;
+  if(!entry.lastMurajaah) return true;
+  return daysSince(entry.lastMurajaah) > OVERDUE_DAYS;
+}
+
+/* ---------- LOCK SCREEN ---------- */
+function buildKeypad(){
+  const keypad = document.getElementById('keypad');
+  keypad.innerHTML = '';
+  ['1','2','3','4','5','6','7','8','9','','0','back'].forEach(k=>{
+    const btn = document.createElement('button');
+    btn.className = 'key';
+    if(k===''){ btn.style.visibility='hidden'; }
+    else if(k==='back'){ btn.textContent = '⌫'; btn.onclick = ()=>onKey('back'); }
+    else { btn.textContent = k; btn.onclick = ()=>onKey(k); }
+    keypad.appendChild(btn);
+  });
+}
+function renderDotsShell(){
+  const wrap = document.getElementById('pinDots');
+  wrap.innerHTML = '';
+  for(let i=0;i<6;i++){ const d=document.createElement('div'); d.className='pin-dot'; wrap.appendChild(d); }
+}
+function renderDots(){
+  document.querySelectorAll('.pin-dot').forEach((d,i)=> d.classList.toggle('filled', i < pinBuffer.length));
+}
+function shakeDots(msg){
+  const wrap = document.getElementById('pinDots');
+  wrap.classList.add('shake');
+  document.getElementById('lockMsg').textContent = msg || 'PIN salah, coba lagi.';
+  setTimeout(()=> wrap.classList.remove('shake'), 320);
+}
+function onKey(k){
+  if(k==='back'){ pinBuffer = pinBuffer.slice(0,-1); renderDots(); return; }
+  if(pinBuffer.length >= 6) return;
+  pinBuffer += k;
+  renderDots();
+  if(pinBuffer.length === 6){
+    if(!pin){
+      localStorage.setItem(LS_PIN, pinBuffer);
+      pin = pinBuffer; pinBuffer=''; renderDots();
+      unlockApp();
+      return;
+    }
+    if(pinBuffer === pin){ pinBuffer=''; unlockApp(); }
+    else{
+      shakeDots();
+      setTimeout(()=>{ pinBuffer=''; renderDots(); document.getElementById('lockMsg').textContent=''; }, 500);
+    }
+  }
+}
+function showLockScreen(){
+  pinBuffer=''; renderDotsShell(); renderDots();
+  document.getElementById('lockMsg').textContent = '';
+  document.getElementById('lockEyebrow').textContent = pin ? 'Kunci aplikasi' : 'Pengaturan awal';
+  document.getElementById('lockTitle').textContent = pin ? 'Masukkan PIN' : 'Buat PIN baru';
+  document.getElementById('lockScreen').style.display = 'flex';
+  document.getElementById('dashboard').style.display = 'none';
+}
+async function unlockApp(){
+  document.getElementById('lockScreen').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+  await fetchData();
+  renderDashboard();
+}
+
+/* ---------- DASHBOARD ---------- */
+function renderSyncBanner(){
+  const el = document.getElementById('syncBanner');
+  if(!serverConfigured()){
+    el.innerHTML = '<div class="sync-banner sync-err">Belum tersambung ke server. Klik "Server" untuk mengisi URL Worker dan token.</div>';
+  }else if(!lastSyncOk){
+    el.innerHTML = '<div class="sync-banner sync-err">Gagal sinkron ke server, perubahan mungkin belum tersimpan online. Cek koneksi/token lalu klik "Muat ulang".</div>';
+  }else{
+    el.innerHTML = '<div class="sync-banner sync-ok">Tersambung ke server.</div>';
+  }
+}
+
+function renderDashboard(){
+  renderSyncBanner();
+  const juz = appData.juz;
+  let counts = { belum:0, dihafal:0, murajaah:0, stabil:0 };
+  let overdue = [];
+  for(let i=1;i<=TOTAL_JUZ;i++){
+    const e = juz[i] || (juz[i] = { status:'belum', lastMurajaah:null });
+    counts[e.status]++;
+    if(isOverdue(e)) overdue.push(i);
+  }
+  document.getElementById('statStabil').textContent = counts.stabil;
+  document.getElementById('statMurajaah').textContent = counts.murajaah;
+  document.getElementById('statDihafal').textContent = counts.dihafal;
+  document.getElementById('statBelum').textContent = counts.belum;
+  document.getElementById('rosetteNum').textContent = counts.stabil + '/' + TOTAL_JUZ;
+  document.getElementById('todayLabel').textContent = new Date().toLocaleDateString('id-ID', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+
+  drawRosette(juz);
+
+  const panel = document.getElementById('overduePanel');
+  const list = document.getElementById('overdueList');
+  if(overdue.length){
+    panel.style.display = 'block';
+    list.innerHTML = overdue.map(n=>{
+      const d = daysSince(juz[n].lastMurajaah);
+      return '<span class="overdue-chip">Juz ' + n + ' — ' + (d===null?'belum pernah murajaah':d+' hari lalu') + '</span>';
+    }).join('');
+  }else{ panel.style.display = 'none'; }
+
+  const grid = document.getElementById('juzGrid');
+  grid.innerHTML = '';
+  for(let i=1;i<=TOTAL_JUZ;i++){
+    const e = juz[i];
+    const overdueFlag = isOverdue(e);
+    const card = document.createElement('div');
+    card.className = 'juz-card st-' + e.status + (overdueFlag ? ' is-overdue' : '');
+    const d = daysSince(e.lastMurajaah);
+    let dayLabel = '';
+    if(e.status==='murajaah' || e.status==='stabil') dayLabel = d===null ? 'belum ada tgl' : (d + ' hari lalu');
+    card.innerHTML = '<div class="juz-num">'+i+'</div><div class="juz-status">'+STATUS_META[e.status].label+'</div>'+(dayLabel?'<div class="juz-days">'+dayLabel+'</div>':'');
+    card.onclick = ()=> openEdit(i);
+    grid.appendChild(card);
+  }
+}
+
+function drawRosette(juz){
+  const svg = document.getElementById('rosetteSvg');
+  const r=58, cx=66, cy=66, segAngle=360/TOTAL_JUZ, gap=2.2;
+  let parts = ['<circle cx="66" cy="66" r="62" fill="none" stroke="#E8D9B0" stroke-width="1"/>'];
+  for(let i=1;i<=TOTAL_JUZ;i++){
+    const color = STATUS_META[juz[i].status].color;
+    const start=(i-1)*segAngle+gap/2-90, end=i*segAngle-gap/2-90;
+    const largeArc = (end-start) > 180 ? 1 : 0;
+    const x1=cx+r*Math.cos(start*Math.PI/180), y1=cy+r*Math.sin(start*Math.PI/180);
+    const x2=cx+r*Math.cos(end*Math.PI/180), y2=cy+r*Math.sin(end*Math.PI/180);
+    parts.push('<path d="M '+x1.toFixed(2)+' '+y1.toFixed(2)+' A '+r+' '+r+' 0 '+largeArc+' 1 '+x2.toFixed(2)+' '+y2.toFixed(2)+'" fill="none" stroke="'+color+'" stroke-width="9" stroke-linecap="round"/>');
+  }
+  svg.innerHTML = parts.join('');
+}
+
+/* ---------- EDIT MODAL ---------- */
+function openEdit(n){
+  editingJuz = n;
+  const e = appData.juz[n];
+  document.getElementById('editTitle').textContent = 'Juz ' + n;
+  document.getElementById('editStatus').value = e.status;
+  document.getElementById('editDate').value = e.lastMurajaah || '';
+  document.getElementById('editOverlay').classList.add('open');
+}
+function closeEdit(){ document.getElementById('editOverlay').classList.remove('open'); editingJuz=null; }
+async function saveEdit(){
+  if(editingJuz === null) return;
+  const status = document.getElementById('editStatus').value;
+  const dateVal = document.getElementById('editDate').value || null;
+  appData.juz[editingJuz] = { status, lastMurajaah: dateVal };
+  closeEdit();
+  renderDashboard();
+  await pushData();
+  renderSyncBanner();
+}
+
+/* ---------- PIN MODAL ---------- */
+function openPinModal(){
+  document.getElementById('newPin').value=''; document.getElementById('newPin2').value='';
+  document.getElementById('pinModalMsg').textContent='';
+  document.getElementById('pinOverlay').classList.add('open');
+}
+function closePinModal(){ document.getElementById('pinOverlay').classList.remove('open'); }
+function savePinModal(){
+  const p1 = document.getElementById('newPin').value.trim();
+  const p2 = document.getElementById('newPin2').value.trim();
+  const msg = document.getElementById('pinModalMsg');
+  if(!/^\d{6}$/.test(p1)){ msg.textContent = 'PIN harus 6 digit angka.'; return; }
+  if(p1 !== p2){ msg.textContent = 'PIN tidak sama, coba lagi.'; return; }
+  localStorage.setItem(LS_PIN, p1); pin = p1;
+  closePinModal();
+}
+
+/* ---------- SERVER MODAL ---------- */
+function openServerModal(){
+  document.getElementById('apiBase').value = apiBase();
+  document.getElementById('appToken').value = appToken();
+  document.getElementById('serverModalMsg').textContent = '';
+  document.getElementById('serverOverlay').classList.add('open');
+}
+function closeServerModal(){ document.getElementById('serverOverlay').classList.remove('open'); }
+async function saveServerModal(){
+  const base = document.getElementById('apiBase').value.trim().replace(/\/$/, '');
+  const token = document.getElementById('appToken').value.trim();
+  const msg = document.getElementById('serverModalMsg');
+  if(!/^https?:\/\//.test(base)){ msg.textContent = 'URL Worker harus diawali https://'; return; }
+  if(!token){ msg.textContent = 'App token wajib diisi.'; return; }
+  localStorage.setItem(LS_API_BASE, base);
+  localStorage.setItem(LS_APP_TOKEN, token);
+  closeServerModal();
+  if(document.getElementById('dashboard').style.display === 'block'){
+    await fetchData();
+    renderDashboard();
+  }
+}
+
+/* ---------- INIT ---------- */
+function init(){
+  buildKeypad();
+  renderDotsShell();
+  showLockScreen();
+
+  document.getElementById('btnLock').onclick = showLockScreen;
+  document.getElementById('btnPin').onclick = openPinModal;
+  document.getElementById('btnServer').onclick = openServerModal;
+  document.getElementById('btnServerSetup').onclick = openServerModal;
+  document.getElementById('btnRefresh').onclick = async ()=>{ await fetchData(); renderDashboard(); };
+  document.getElementById('editCancel').onclick = closeEdit;
+  document.getElementById('editSave').onclick = saveEdit;
+  document.getElementById('pinCancel').onclick = closePinModal;
+  document.getElementById('pinSave').onclick = savePinModal;
+  document.getElementById('serverCancel').onclick = closeServerModal;
+  document.getElementById('serverSave').onclick = saveServerModal;
+
+  registerServiceWorker();
+}
+init();
+
+/* ---------- PWA: service worker + alur update ---------- */
+function registerServiceWorker(){
+  if(!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.register('./sw.js').then((reg)=>{
+    reg.addEventListener('updatefound', ()=>{
+      const newWorker = reg.installing;
+      if(!newWorker) return;
+      newWorker.addEventListener('statechange', ()=>{
+        if(newWorker.state === 'installed' && navigator.serviceWorker.controller){
+          document.getElementById('updateToast').classList.add('show');
+        }
+      });
+    });
+  }).catch((e)=> console.log('SW register gagal:', e));
+
+  document.getElementById('btnUpdateNow').onclick = ()=>{
+    navigator.serviceWorker.getRegistration().then((reg)=>{
+      if(reg && reg.waiting) reg.waiting.postMessage({ type:'SKIP_WAITING' });
+    });
+  };
+
+  let refreshed = false;
+  navigator.serviceWorker.addEventListener('controllerchange', ()=>{
+    if(refreshed) return;
+    refreshed = true;
+    window.location.reload();
+  });
+}
+</script>
+</body>
+</html>
