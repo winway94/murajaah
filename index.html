@@ -427,7 +427,12 @@ button{font-family:var(--font-sans);}
   <h3>Pengaturan server</h3>
   <p class="hint">Alamat Worker dan token aplikasi Anda. Tersimpan hanya di browser ini.</p>
   <div class="field"><label>URL Worker</label><input type="text" id="apiBase" placeholder="https://nama-worker.xxxx.workers.dev"></div>
-  <div class="field"><label>App token</label><input type="password" id="appToken" placeholder="Token APP_TOKEN"></div>
+  <div class="field"><label>App token</label>
+    <div style="display:flex;gap:6px;">
+      <input type="text" id="appToken" placeholder="Token APP_TOKEN" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="flex:1;">
+    </div>
+    <p style="font-size:11px;color:var(--gray-500,#888);margin:6px 0 0;">Ditampilkan langsung (bukan disamarkan) supaya Anda bisa cek persis sama dengan yang di Cloudflare.</p>
+  </div>
   <p class="lock-msg" id="serverModalMsg" style="color:var(--danger);"></p>
   <div class="modal-actions">
     <button class="btn btn-ghost" id="serverCancel">Batal</button>
