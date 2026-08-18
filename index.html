@@ -109,6 +109,11 @@ button{font-family:var(--font-sans);}
 .chip{font-size:12px;font-weight:600;background:var(--white);border:1px solid var(--danger);color:#8C4237;
   border-radius:var(--radius-sm);padding:6px 10px;cursor:pointer;}
 .alert-more{font-size:12.5px;font-weight:700;color:var(--danger);background:none;border:none;cursor:pointer;padding:6px 4px;}
+.alert-card.alert-warn{background:#FDF0E2;border-color:var(--warning);}
+.alert-card.alert-warn .alert-head{color:var(--warning);}
+.alert-card.alert-warn .alert-sub{color:#8A5321;}
+.alert-card.alert-warn .chip{border-color:var(--warning);color:#8A5321;}
+.alert-card.alert-warn .alert-more{color:var(--warning);}
 
 .section-head{display:flex;align-items:center;justify-content:space-between;margin:18px 0 10px;}
 .section-title{font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--gray-500);font-weight:700;margin:0;}
@@ -121,6 +126,20 @@ button{font-family:var(--font-sans);}
 .juz-dot-card:active{background:var(--gray-100);}
 .juz-dot-num{font-size:14px;font-weight:700;color:var(--gray-900);}
 .juz-dot{width:7px;height:7px;border-radius:50%;margin:6px auto 0;}
+.juz-dot-sub{font-size:8.5px;color:var(--gray-500);margin-top:4px;font-weight:600;}
+
+/* ---------- PAGE GRID (per-halaman, di dalam detail juz) ---------- */
+.page-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;padding:14px 16px;}
+.page-cell{aspect-ratio:1;border-radius:8px;border:1.5px solid transparent;display:flex;align-items:center;justify-content:center;
+  font-size:10.5px;font-weight:700;color:#fff;cursor:pointer;position:relative;}
+.page-cell.overdue{border-color:var(--danger);box-shadow:0 0 0 1.5px var(--danger) inset;}
+.page-cell:active{opacity:.75;}
+.page-legend{display:flex;flex-wrap:wrap;gap:10px;padding:0 16px 12px;}
+.page-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--gray-500);}
+.page-legend-dot{width:8px;height:8px;border-radius:3px;}
+.page-progress-row{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 0;}
+.page-progress-row .section-title{margin:0;}
+.page-progress-frac{font-size:12.5px;font-weight:700;color:var(--gray-700);}
 
 .fab{position:fixed;right:calc(50% - 240px + 18px);bottom:82px;width:52px;height:52px;border-radius:50%;
   background:var(--primary);color:var(--white);border:none;box-shadow:var(--shadow-lg);
@@ -204,6 +223,14 @@ button{font-family:var(--font-sans);}
 .sheet{background:var(--white);border-radius:20px 20px 0 0;padding:22px 20px calc(22px + env(safe-area-inset-bottom));
   width:100%;max-width:480px;max-height:85vh;overflow:auto;}
 .overlay.center .sheet{border-radius:var(--radius-lg);max-height:90vh;}
+.mushaf-sheet{padding:16px 16px calc(16px + env(safe-area-inset-bottom));}
+.mushaf-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px;}
+.mushaf-imgwrap{position:relative;background:var(--gray-100,#F0F2F1);border-radius:var(--radius-md,10px);min-height:320px;
+  display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.mushaf-imgwrap img{width:100%;height:auto;display:block;}
+.mushaf-loading,.mushaf-error{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  text-align:center;padding:20px;font-size:12.5px;color:var(--gray-500);}
+.mushaf-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;}
 .sheet h3{font-size:18px;font-weight:800;margin:0 0 4px;color:var(--gray-900);}
 .sheet p.hint{font-size:12px;color:var(--gray-500);margin:0 0 16px;}
 .field{margin-bottom:14px;}
@@ -298,6 +325,15 @@ button{font-family:var(--font-sans);}
         <div class="alert-chips" id="overdueChips"></div>
       </div>
 
+      <div class="alert-card alert-warn" id="lupaCard" style="display:none;">
+        <div class="alert-head">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 8v5M12 16h.01"/><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v5h5"/></svg>
+          LUPA — PERLU HAFAL ULANG
+        </div>
+        <p class="alert-sub" id="lupaSub">0 halaman perlu dihafal ulang</p>
+        <div class="alert-chips" id="lupaChips"></div>
+      </div>
+
       <div class="section-head">
         <p class="section-title">Semua juz</p>
         <select class="filter-btn" id="filterSelect">
@@ -306,6 +342,7 @@ button{font-family:var(--font-sans);}
           <option value="dihafal">Sedang dihafal</option>
           <option value="murajaah">Sedang murajaah</option>
           <option value="stabil">Stabil (mutqin)</option>
+          <option value="lupa">Lupa (perlu hafal ulang)</option>
           <option value="overdue">Perlu murajaah</option>
         </select>
       </div>
@@ -324,7 +361,7 @@ button{font-family:var(--font-sans);}
       <div class="stat-grid-2" style="margin-top:10px;">
         <div class="card stat-box"><div class="stat-box-num" id="statTotalMurajaah">0</div><div class="stat-box-label">Total murajaah tercatat</div></div>
         <div class="card stat-box"><div class="stat-box-num" id="statRataMinggu">0</div><div class="stat-box-label">Rata-rata / minggu (4 mgg)</div></div>
-        <div class="card stat-box"><div class="stat-box-num" id="statOverdueCount">0</div><div class="stat-box-label">Juz perlu murajaah sekarang</div></div>
+        <div class="card stat-box"><div class="stat-box-num" id="statOverdueCount">0</div><div class="stat-box-label">Halaman perlu murajaah sekarang</div></div>
         <div class="card stat-box"><div class="stat-box-num" id="statPalingLama">-</div><div class="stat-box-label">Paling lama tak disentuh</div></div>
       </div>
       <p class="section-title">Aktivitas murajaah 14 hari terakhir</p>
@@ -399,13 +436,62 @@ button{font-family:var(--font-sans);}
 <!-- QUICK LOG -->
 <div class="overlay" id="quickOverlay"><div class="sheet">
   <h3>Log murajaah cepat</h3>
-  <p class="hint">Catat juz yang baru saja Anda murajaah hari ini.</p>
+  <p class="hint">Catat halaman (atau seluruh juz) yang baru saja Anda murajaah hari ini.</p>
   <div class="field"><label>Pilih juz</label>
     <select id="quickJuz"></select>
+  </div>
+  <div class="field"><label>Pilih halaman</label>
+    <select id="quickPage"></select>
   </div>
   <div class="modal-actions">
     <button class="btn btn-ghost" id="quickCancel">Batal</button>
     <button class="btn btn-primary" id="quickSave">Tandai murajaah hari ini</button>
+  </div>
+</div></div>
+
+<!-- PAGE EDIT (edit status 1 halaman) -->
+<div class="overlay center" id="pageOverlay"><div class="sheet">
+  <h3 id="pageModalTitle">Halaman</h3>
+  <p class="hint" id="pageModalHint"></p>
+  <div class="field"><label>Status</label>
+    <select id="pageStatus">
+      <option value="belum">Belum dihafal</option>
+      <option value="dihafal">Sedang dihafal</option>
+      <option value="murajaah">Sedang murajaah</option>
+      <option value="stabil">Stabil (mutqin)</option>
+      <option value="lupa">Lupa (perlu hafal ulang)</option>
+    </select>
+  </div>
+  <div class="field"><label>Tanggal murajaah terakhir</label>
+    <input type="date" id="pageDate">
+  </div>
+  <button class="btn-full btn-outline" id="pageMarkToday" style="margin-bottom:10px;">Tandai direview hari ini</button>
+  <button class="btn-full btn-outline" id="pageMarkLupa" style="margin-bottom:10px; color:var(--warning); border-color:var(--warning);">Tandai lupa (perlu hafal ulang)</button>
+  <button class="btn-full btn-outline" id="pageViewMushaf" style="margin-bottom:14px;">\ud83d\udcd6 Lihat halaman mushaf</button>
+  <div class="modal-actions">
+    <button class="btn btn-ghost" id="pageCancel">Batal</button>
+    <button class="btn btn-primary" id="pageSave">Simpan</button>
+  </div>
+</div></div>
+
+<!-- MUSHAF VIEWER (gambar scan halaman mushaf asli) -->
+<div class="overlay center" id="mushafOverlay"><div class="sheet mushaf-sheet">
+  <div class="mushaf-head">
+    <div>
+      <h3 id="mushafTitle" style="margin:0;">Halaman</h3>
+      <p class="hint" id="mushafHint" style="margin:2px 0 0;"></p>
+    </div>
+    <button class="icon-btn" id="mushafClose"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div class="mushaf-imgwrap" id="mushafImgWrap">
+    <img id="mushafImg" alt="Halaman mushaf" />
+    <div class="mushaf-loading" id="mushafLoading">Memuat gambar\u2026</div>
+    <div class="mushaf-error" id="mushafError" style="display:none;">Gambar halaman ini gagal dimuat (perlu koneksi internet). Coba lagi, atau cek nanti saat online.</div>
+  </div>
+  <div class="mushaf-nav">
+    <button class="btn btn-ghost" id="mushafPrev">\u2039 Sebelumnya</button>
+    <span id="mushafPageNum" style="font-size:12.5px;color:var(--gray-500);"></span>
+    <button class="btn btn-ghost" id="mushafNext">Berikutnya \u203a</button>
   </div>
 </div></div>
 
@@ -434,6 +520,15 @@ button{font-family:var(--font-sans);}
     <p style="font-size:11px;color:var(--gray-500,#888);margin:6px 0 0;">Ditampilkan langsung (bukan disamarkan) supaya Anda bisa cek persis sama dengan yang di Cloudflare.</p>
   </div>
   <p class="lock-msg" id="serverModalMsg" style="color:var(--danger);"></p>
+  <div class="field" id="aiQuotaBox" style="display:none; margin-top:2px;">
+    <label>Kuota AI hari ini (Cloudflare Workers AI, gratis)</label>
+    <div style="background:var(--gray-100,#F1F3F2); border-radius:10px; padding:10px 12px; font-size:12.5px; color:var(--gray-700);">
+      <div id="aiQuotaText">Memuat\u2026</div>
+      <div style="background:var(--gray-300); border-radius:99px; height:6px; margin-top:8px; overflow:hidden;">
+        <div id="aiQuotaBar" style="background:var(--primary); height:100%; width:0%; border-radius:99px; transition:width .3s;"></div>
+      </div>
+    </div>
+  </div>
   <div class="modal-actions">
     <button class="btn btn-ghost" id="serverCancel">Batal</button>
     <button class="btn btn-primary" id="serverSave">Simpan &amp; sambungkan</button>
@@ -445,15 +540,122 @@ const STATUS_META = {
   belum:{label:'Belum dihafal', color:'var(--gray-300)'},
   dihafal:{label:'Sedang dihafal', color:'var(--accent)'},
   murajaah:{label:'Sedang murajaah', color:'var(--success)'},
-  stabil:{label:'Stabil (mutqin)', color:'var(--primary)'}
+  stabil:{label:'Stabil (mutqin)', color:'var(--primary)'},
+  lupa:{label:'Lupa (perlu hafal ulang)', color:'var(--warning)'}
 };
 const TOTAL_JUZ = 30;
+const TOTAL_PAGES = 604;
 const OVERDUE_DAYS = 30;
+/* ---------- pembagian halaman per juz (skema mushaf Madinah, 604 hal.) ---------- */
+const JUZ_RANGES = (()=>{
+  const arr = [];
+  let start = 1;
+  for(let n=1;n<=TOTAL_JUZ;n++){
+    const end = n===1 ? 21 : n===TOTAL_JUZ ? TOTAL_PAGES : start+19;
+    arr.push([start,end]);
+    start = end+1;
+  }
+  return arr;
+})();
+function juzRange(n){ return JUZ_RANGES[n-1]; }
+function juzPageCount(n){ const [s,e]=juzRange(n); return e-s+1; }
 const LS_PIN = 'hafalan_pin';
 const SS_UNLOCKED = 'hafalan_unlocked';
 const LS_API_BASE = 'hafalan_api_base';
 const LS_APP_TOKEN = 'hafalan_app_token';
 const DEFAULT_API_BASE = 'https://round-truth-3389.murajaah-reminder.workers.dev';
+
+/* ---------- Info surah & ayat per halaman mushaf ----------
+   Sumber: Al Quran Cloud API (api.alquran.cloud, proyek Islamic Network,
+   gratis & tanpa API key). Hasilnya di-cache permanen di localStorage
+   per nomor halaman (1-604) karena teksnya statis / tidak pernah berubah,
+   jadi tiap halaman cukup di-fetch sekali seumur hidup app ini.
+   Kalau offline / API gagal, app tetap jalan normal — hanya info
+   surah/ayat yang tidak muncul (fallback ke "hal. N" saja). */
+const LS_PAGE_META = 'hafalan_page_meta_v1';
+const PAGE_META_API = 'https://api.alquran.cloud/v1/page/';
+const PAGE_META_EDITION = 'quran-simple';
+/* ---------- Gambar scan halaman mushaf asli ----------
+   Sumber: repo open-source tarekeldeeb/madina_images (scan Mushaf
+   Madinah, berbasis quran.com-images), disajikan lewat CDN jsDelivr
+   (gratis, cepat, cache permanen, CORS aktif). Nama file 3 digit
+   zero-padded: w1024_page001.png s/d w1024_page604.png. */
+const MUSHAF_IMAGE_BASE = 'https://cdn.jsdelivr.net/gh/tarekeldeeb/madina_images@w1024/w1024_page';
+function mushafImageUrl(page){ return MUSHAF_IMAGE_BASE + String(page).padStart(3,'0') + '.png'; }
+let pageMetaCache = null;
+const pageMetaInFlight = {};
+const pageMetaFailed = {};
+
+function loadPageMetaCache(){
+  if(pageMetaCache) return pageMetaCache;
+  try{ pageMetaCache = JSON.parse(localStorage.getItem(LS_PAGE_META) || '{}'); }
+  catch(e){ pageMetaCache = {}; }
+  return pageMetaCache;
+}
+function savePageMetaCache(){
+  try{ localStorage.setItem(LS_PAGE_META, JSON.stringify(pageMetaCache)); }catch(e){ /* penuh/di-block, abaikan */ }
+}
+/* gabungkan ayat-ayat 1 halaman jadi ringkasan per-surah berurutan,
+   karena 1 halaman kadang berisi akhir 1 surah + awal surah berikutnya */
+function buildPageLabel(ayahs){
+  const segs = [];
+  ayahs.forEach(a=>{
+    const nama = a.surah && (a.surah.name ? a.surah.name.replace(/^سورة\s*/, '') : a.surah.englishName) || '';
+    const namaTampil = (a.surah && a.surah.englishName) || nama;
+    const last = segs[segs.length-1];
+    if(last && last.surah===namaTampil){ last.to = a.numberInSurah; }
+    else segs.push({ surah:namaTampil, from:a.numberInSurah, to:a.numberInSurah });
+  });
+  const label = segs.map(s=> 'QS '+s.surah+' '+(s.from===s.to ? s.from : s.from+'\u2013'+s.to)).join(' \u2022 ');
+  return { label, segs };
+}
+/* dipanggil ulang tiap kali 1 halaman selesai di-fetch, supaya bagian
+   UI yang sedang tampil bisa diperbarui begitu labelnya datang */
+function onPageMetaLoaded(p){
+  if(currentView==='detail' && currentDetailJuz){
+    const [s,end] = juzRange(currentDetailJuz);
+    if(p>=s && p<=end){
+      if(currentDetailTab==='ringkasan'){
+        if(p===s || p===end) renderDetail(); // perbarui juga label rentang surah di header
+        else renderPageGrid(currentDetailJuz);
+      }
+    }
+  }
+  if(currentEditJuz && currentEditPage===p) refreshPageEditorHint();
+  if(document.getElementById('quickOverlay') && document.getElementById('quickOverlay').classList.contains('open')){
+    populateQuickPages();
+  }
+}
+/* ambil metadata halaman dari cache; kalau belum ada, mulai fetch di
+   background (non-blocking) dan panggil onPageMetaLoaded() begitu selesai.
+   Return null kalau belum tersedia -> UI pakai fallback dulu. */
+function getPageMeta(p){
+  const cache = loadPageMetaCache();
+  if(cache[p]) return cache[p];
+  if(!pageMetaInFlight[p] && !pageMetaFailed[p]){
+    pageMetaInFlight[p] = fetch(PAGE_META_API + p + '/' + PAGE_META_EDITION)
+      .then(r=> r.ok ? r.json() : Promise.reject(new Error('HTTP '+r.status)))
+      .then(json=>{
+        const ayahs = (json && json.data && json.data.ayahs) || [];
+        if(!ayahs.length) throw new Error('respons kosong');
+        cache[p] = buildPageLabel(ayahs);
+        savePageMetaCache();
+        onPageMetaLoaded(p);
+      })
+      .catch(e=>{ pageMetaFailed[p] = true; console.log('info surah/ayat hal.'+p+' gagal dimuat:', e); })
+      .finally(()=>{ delete pageMetaInFlight[p]; });
+  }
+  return null;
+}
+/* label singkat rentang surah utk 1 juz, mis. "QS Al-Kahf 75 \u2013 QS Maryam 40" */
+function juzSurahRangeLabel(n){
+  const [s,end] = juzRange(n);
+  const first = getPageMeta(s), last = getPageMeta(end);
+  if(!first || !last) return 'Memuat info surah\u2026';
+  const a = first.segs[0], b = last.segs[last.segs.length-1];
+  if(a.surah===b.surah && s===end) return 'QS '+a.surah+' '+a.from+'\u2013'+b.to;
+  return 'QS '+a.surah+' '+a.from + '  \u2192  QS '+b.surah+' '+b.to;
+}
 
 const QUOTES = [
   { text:"Allah menjadikan Al-Qur'an mudah untuk dipelajari — adakah yang mau mengambil pelajaran darinya?", src:'QS. Al-Qamar: 17' },
@@ -472,29 +674,67 @@ let currentDetailJuz = null;
 let currentDetailTab = 'ringkasan';
 let gridFilter = 'semua';
 let overdueExpanded = false;
+let lupaExpanded = false;
 
 function apiBase(){ return localStorage.getItem(LS_API_BASE) || DEFAULT_API_BASE; }
 function appToken(){ return localStorage.getItem(LS_APP_TOKEN) || ''; }
 function serverConfigured(){ return !!apiBase() && !!appToken(); }
 
-function defaultJuzEntry(){ return { status:'belum', lastMurajaah:null, notes:'', history:[] }; }
-function ensureJuzShape(e){
+/* skema v3: setiap juz punya sub-objek "pages" berisi status & tanggal
+   murajaah per HALAMAN (nomor halaman mushaf, 1-604). Data lama (skema v2,
+   status per juz) otomatis dimigrasikan: statusnya diterapkan rata ke
+   semua halaman juz itu. */
+function defaultJuzEntry(n){
+  const [s,e] = juzRange(n);
+  const pages = {};
+  for(let p=s;p<=e;p++) pages[p] = { status:'belum', lastMurajaah:null };
+  return { notes:'', history:[], pages };
+}
+function ensureJuzShape(e, n){
+  const [s,end] = juzRange(n);
+  const legacyStatus = e && e.status;
+  const legacyDate = (e && e.lastMurajaah) || null;
+  const rawPages = (e && e.pages && typeof e.pages==='object') ? e.pages : null;
+  const pages = {};
+  for(let p=s;p<=end;p++){
+    const rp = rawPages && rawPages[p];
+    if(rp) pages[p] = { status: rp.status||'belum', lastMurajaah: rp.lastMurajaah||null };
+    else if(legacyStatus) pages[p] = { status: legacyStatus, lastMurajaah: legacyDate };
+    else pages[p] = { status:'belum', lastMurajaah:null };
+  }
   return {
-    status: (e && e.status) || 'belum',
-    lastMurajaah: (e && e.lastMurajaah) || null,
     notes: (e && typeof e.notes === 'string') ? e.notes : '',
-    history: (e && Array.isArray(e.history)) ? e.history : []
+    history: (e && Array.isArray(e.history)) ? e.history : [],
+    pages
   };
 }
 function defaultData(){
   const juz = {};
-  for(let i=1;i<=TOTAL_JUZ;i++) juz[i] = defaultJuzEntry();
+  for(let i=1;i<=TOTAL_JUZ;i++) juz[i] = defaultJuzEntry(i);
   return { juz };
 }
 function normalizeData(raw){
-  const d = (raw && raw.juz) ? raw : defaultData();
-  for(let i=1;i<=TOTAL_JUZ;i++) d.juz[i] = ensureJuzShape(d.juz[i]);
-  return d;
+  const src = (raw && raw.juz) ? raw.juz : {};
+  const juz = {};
+  for(let i=1;i<=TOTAL_JUZ;i++) juz[i] = ensureJuzShape(src[i], i);
+  return { juz };
+}
+/* status gabungan sebuah juz, dihitung otomatis dari status semua halamannya */
+function juzAggregateStatus(entry){
+  const vals = Object.values(entry.pages).map(p=>p.status);
+  const c = { belum:0, dihafal:0, murajaah:0, stabil:0, lupa:0 };
+  vals.forEach(v=>c[v]++);
+  const total = vals.length;
+  if(c.stabil===total) return 'stabil';
+  if(c.belum===total) return 'belum';
+  if(c.lupa>0) return 'lupa';
+  if(c.dihafal>0 || (c.belum>0 && (c.murajaah>0||c.stabil>0))) return 'dihafal';
+  return 'murajaah';
+}
+function juzPageStats(entry){
+  const c = { belum:0, dihafal:0, murajaah:0, stabil:0, lupa:0, total:0 };
+  Object.values(entry.pages).forEach(p=>{ c[p.status]++; c.total++; });
+  return c;
 }
 
 async function fetchData(){
@@ -539,8 +779,28 @@ function pushHistory(entry, event, extra){
 }
 
 function daysSince(dateStr){ if(!dateStr) return null; return Math.floor((new Date() - new Date(dateStr)) / 86400000); }
-function isOverdue(e){ if(e.status!=='murajaah' && e.status!=='stabil') return false; if(!e.lastMurajaah) return true; return daysSince(e.lastMurajaah) > OVERDUE_DAYS; }
-function dotColor(e){ if(isOverdue(e)) return 'var(--danger)'; if(e.status==='belum') return 'var(--gray-300)'; if(e.status==='dihafal') return 'var(--accent)'; return 'var(--success)'; }
+function isPageOverdue(p){ if(p.status!=='murajaah' && p.status!=='stabil') return false; if(!p.lastMurajaah) return true; return daysSince(p.lastMurajaah) > OVERDUE_DAYS; }
+function isJuzOverdue(entry){ return Object.values(entry.pages).some(isPageOverdue); }
+function overduePagesInJuz(entry){
+  const arr=[];
+  Object.keys(entry.pages).map(Number).sort((a,b)=>a-b).forEach(p=>{
+    if(isPageOverdue(entry.pages[p])) arr.push({ page:p, days:daysSince(entry.pages[p].lastMurajaah) });
+  });
+  return arr.sort((a,b)=> (b.days??9999)-(a.days??9999));
+}
+/* halaman yang ditandai "lupa" (perlu dihafal ulang) dalam 1 juz */
+function lupaPagesInJuz(entry){
+  return Object.keys(entry.pages).map(Number).sort((a,b)=>a-b).filter(p=> entry.pages[p].status==='lupa');
+}
+function dotColor(entry){
+  if(isJuzOverdue(entry)) return 'var(--danger)';
+  const agg = juzAggregateStatus(entry);
+  if(agg==='belum') return 'var(--gray-300)';
+  if(agg==='dihafal') return 'var(--accent)';
+  if(agg==='stabil') return 'var(--primary)';
+  if(agg==='lupa') return 'var(--warning)';
+  return 'var(--success)'; // murajaah
+}
 function fmtDate(iso){ if(!iso) return '-'; return new Date(iso).toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'}); }
 function fmtDateShort(iso){ if(!iso) return '-'; return new Date(iso).toLocaleDateString('id-ID',{day:'numeric',month:'short'}); }
 
@@ -617,31 +877,58 @@ function renderSyncBanner(){
 /* ---------- BERANDA ---------- */
 function renderBeranda(){
   const juz = appData.juz;
-  let counts = { belum:0, dihafal:0, murajaah:0, stabil:0 };
-  let overdue = [];
-  for(let i=1;i<=TOTAL_JUZ;i++){ const e=juz[i]; counts[e.status]++; if(isOverdue(e)) overdue.push(i); }
+  let counts = { belum:0, dihafal:0, murajaah:0, stabil:0, lupa:0 };
+  let overdueJuz = []; // juz yang punya >=1 halaman overdue
+  let overduePageTotal = 0;
+  let lupaJuz = []; // juz yang punya >=1 halaman berstatus "lupa"
+  let lupaPageTotal = 0;
+  let juzStabilCount = 0;
+  for(let i=1;i<=TOTAL_JUZ;i++){
+    const e = juz[i];
+    const ps = juzPageStats(e);
+    counts.belum += ps.belum; counts.dihafal += ps.dihafal; counts.murajaah += ps.murajaah; counts.stabil += ps.stabil; counts.lupa += ps.lupa;
+    if(juzAggregateStatus(e)==='stabil') juzStabilCount++;
+    const op = overduePagesInJuz(e);
+    if(op.length){ overdueJuz.push(i); overduePageTotal += op.length; }
+    const lp = lupaPagesInJuz(e);
+    if(lp.length){ lupaJuz.push(i); lupaPageTotal += lp.length; }
+  }
 
-  document.getElementById('progNum').textContent = counts.stabil + ' / ' + TOTAL_JUZ;
+  document.getElementById('progNum').textContent = counts.stabil + ' / ' + TOTAL_PAGES;
+  document.getElementById('progLabel').textContent = 'Halaman mutqin (' + juzStabilCount + ' juz penuh)';
   document.getElementById('statStabilN').textContent = counts.stabil;
   document.getElementById('statMurajaahN').textContent = counts.murajaah;
   document.getElementById('statDihafalN').textContent = counts.dihafal;
   document.getElementById('statBelumN').textContent = counts.belum;
-  const pct = Math.round(counts.stabil/TOTAL_JUZ*100);
+  const pct = Math.round(counts.stabil/TOTAL_PAGES*100);
   document.getElementById('progBarFill').style.width = pct + '%';
   drawRing('progRing', pct, 72, 6, '#B99A45', 'rgba(255,255,255,0.18)');
 
   const overdueCard = document.getElementById('overdueCard');
-  if(overdue.length){
+  if(overdueJuz.length){
     overdueCard.style.display='block';
-    document.getElementById('overdueSub').textContent = overdue.length + ' juz sudah lebih dari 30 hari';
-    const shown = overdueExpanded ? overdue : overdue.slice(0,3);
+    document.getElementById('overdueSub').textContent = overduePageTotal + ' halaman (di ' + overdueJuz.length + ' juz) sudah lebih dari 30 hari';
+    const shown = overdueExpanded ? overdueJuz : overdueJuz.slice(0,3);
     let html = shown.map(n=>'<button class="chip" data-juz="'+n+'">Juz '+String(n).padStart(2,'0')+'</button>').join('');
-    if(!overdueExpanded && overdue.length>3) html += '<button class="alert-more" id="btnLihatSemua">Lihat semua \u203A</button>';
+    if(!overdueExpanded && overdueJuz.length>3) html += '<button class="alert-more" id="btnLihatSemua">Lihat semua \u203A</button>';
     document.getElementById('overdueChips').innerHTML = html;
     document.querySelectorAll('#overdueChips .chip').forEach(c=> c.onclick=()=> openDetail(Number(c.dataset.juz)));
     const btnMore = document.getElementById('btnLihatSemua');
     if(btnMore) btnMore.onclick = ()=>{ overdueExpanded=true; renderBeranda(); };
   }else{ overdueCard.style.display='none'; overdueExpanded=false; }
+
+  const lupaCard = document.getElementById('lupaCard');
+  if(lupaJuz.length){
+    lupaCard.style.display='block';
+    document.getElementById('lupaSub').textContent = lupaPageTotal + ' halaman (di ' + lupaJuz.length + ' juz) perlu dihafal ulang dari awal';
+    const shownL = lupaExpanded ? lupaJuz : lupaJuz.slice(0,3);
+    let htmlL = shownL.map(n=>'<button class="chip" data-juz="'+n+'">Juz '+String(n).padStart(2,'0')+'</button>').join('');
+    if(!lupaExpanded && lupaJuz.length>3) htmlL += '<button class="alert-more" id="btnLihatSemuaLupa">Lihat semua \u203A</button>';
+    document.getElementById('lupaChips').innerHTML = htmlL;
+    document.querySelectorAll('#lupaChips .chip').forEach(c=> c.onclick=()=> openDetail(Number(c.dataset.juz)));
+    const btnMoreL = document.getElementById('btnLihatSemuaLupa');
+    if(btnMoreL) btnMoreL.onclick = ()=>{ lupaExpanded=true; renderBeranda(); };
+  }else{ lupaCard.style.display='none'; lupaExpanded=false; }
 
   renderJuzGrid();
 }
@@ -652,13 +939,17 @@ function renderJuzGrid(){
   grid.innerHTML='';
   for(let i=1;i<=TOTAL_JUZ;i++){
     const e = juz[i];
+    const agg = juzAggregateStatus(e);
+    const overdue = isJuzOverdue(e);
     if(gridFilter!=='semua'){
-      if(gridFilter==='overdue' && !isOverdue(e)) continue;
-      if(gridFilter!=='overdue' && e.status!==gridFilter) continue;
+      if(gridFilter==='overdue' && !overdue) continue;
+      if(gridFilter!=='overdue' && agg!==gridFilter) continue;
     }
+    const ps = juzPageStats(e);
     const card = document.createElement('div');
     card.className='juz-dot-card';
-    card.innerHTML = '<div class="juz-dot-num">'+String(i).padStart(2,'0')+'</div><div class="juz-dot" style="background:'+dotColor(e)+'"></div>';
+    card.innerHTML = '<div class="juz-dot-num">'+String(i).padStart(2,'0')+'</div><div class="juz-dot" style="background:'+dotColor(e)+'"></div>'+
+      '<div class="juz-dot-sub">'+ps.stabil+'/'+ps.total+'</div>';
     card.onclick = ()=> openDetail(i);
     grid.appendChild(card);
   }
@@ -685,8 +976,10 @@ function flattenHistory(){
   return all;
 }
 function historyLabel(h){
-  if(h.event==='murajaah') return 'Murajaah Juz ' + String(h.juz).padStart(2,'0');
-  if(h.event==='status_change') return 'Juz '+String(h.juz).padStart(2,'0')+': '+STATUS_META[h.from].label+' \u2192 '+STATUS_META[h.to].label;
+  if(h.event==='murajaah') return 'Murajaah Juz ' + String(h.juz).padStart(2,'0') + (h.page ? ' hal.'+h.page : '');
+  if(h.event==='murajaah_bulk') return 'Seluruh Juz ' + String(h.juz).padStart(2,'0') + ' direview (' + (h.pagesCount||'?') + ' halaman)';
+  if(h.event==='status_change') return 'Juz '+String(h.juz).padStart(2,'0')+(h.page?' hal.'+h.page:'')+': '+STATUS_META[h.from].label+' \u2192 '+STATUS_META[h.to].label;
+  if(h.event==='status_change_bulk') return 'Seluruh Juz '+String(h.juz).padStart(2,'0')+' diubah ke '+STATUS_META[h.to].label+' ('+(h.pagesCount||'?')+' halaman)';
   return 'Juz ' + String(h.juz).padStart(2,'0') + ' diperbarui';
 }
 function renderRiwayatGlobal(){
@@ -702,7 +995,7 @@ function renderRiwayatGlobal(){
 /* ---------- STATISTIK ---------- */
 function renderStatistik(){
   const juz = appData.juz;
-  const all = flattenHistory().filter(h=> h.event==='murajaah');
+  const all = flattenHistory().filter(h=> h.event==='murajaah' || h.event==='murajaah_bulk');
   document.getElementById('statTotalMurajaah').textContent = all.length;
 
   const now = new Date();
@@ -710,19 +1003,22 @@ function renderStatistik(){
   const last4w = all.filter(h=> new Date(h.at) >= fourWeeksAgo).length;
   document.getElementById('statRataMinggu').textContent = (last4w/4).toFixed(1);
 
-  const overdueCount = Object.values(juz).filter(isOverdue).length;
-  document.getElementById('statOverdueCount').textContent = overdueCount;
+  let overduePageCount = 0;
+  for(let i=1;i<=TOTAL_JUZ;i++) overduePageCount += overduePagesInJuz(juz[i]).length;
+  document.getElementById('statOverdueCount').textContent = overduePageCount;
 
-  let paling = null, palingDays = -1;
+  let paling = null, palingPage = null, palingDays = -1;
   for(let i=1;i<=TOTAL_JUZ;i++){
-    const e = juz[i];
-    if(e.status==='murajaah' || e.status==='stabil'){
-      const d = daysSince(e.lastMurajaah);
-      const dd = d===null ? 99999 : d;
-      if(dd > palingDays){ palingDays = dd; paling = i; }
-    }
+    Object.keys(juz[i].pages).map(Number).forEach(p=>{
+      const pg = juz[i].pages[p];
+      if(pg.status==='murajaah' || pg.status==='stabil'){
+        const d = daysSince(pg.lastMurajaah);
+        const dd = d===null ? 99999 : d;
+        if(dd > palingDays){ palingDays = dd; paling = i; palingPage = p; }
+      }
+    });
   }
-  document.getElementById('statPalingLama').textContent = paling ? 'Juz '+String(paling).padStart(2,'0') : '-';
+  document.getElementById('statPalingLama').textContent = paling ? 'Juz '+String(paling).padStart(2,'0')+' hal.'+palingPage : '-';
 
   const bars = document.getElementById('activityBars');
   let barsHtml = '';
@@ -742,12 +1038,12 @@ function renderStatistik(){
   bars.innerHTML = barsHtml;
 
   let counts = { belum:0, dihafal:0, murajaah:0, stabil:0 };
-  for(let i=1;i<=TOTAL_JUZ;i++) counts[juz[i].status]++;
-  document.getElementById('legStabil').textContent = 'Stabil: '+counts.stabil;
-  document.getElementById('legMurajaah').textContent = 'Murajaah: '+counts.murajaah;
-  document.getElementById('legDihafal').textContent = 'Dihafal: '+counts.dihafal;
-  document.getElementById('legBelum').textContent = 'Belum: '+counts.belum;
-  const pct = Math.round(counts.stabil/TOTAL_JUZ*100);
+  for(let i=1;i<=TOTAL_JUZ;i++){ const ps=juzPageStats(juz[i]); counts.belum+=ps.belum; counts.dihafal+=ps.dihafal; counts.murajaah+=ps.murajaah; counts.stabil+=ps.stabil; }
+  document.getElementById('legStabil').textContent = 'Stabil: '+counts.stabil+' hal.';
+  document.getElementById('legMurajaah').textContent = 'Murajaah: '+counts.murajaah+' hal.';
+  document.getElementById('legDihafal').textContent = 'Dihafal: '+counts.dihafal+' hal.';
+  document.getElementById('legBelum').textContent = 'Belum: '+counts.belum+' hal.';
+  const pct = Math.round(counts.stabil/TOTAL_PAGES*100);
   document.getElementById('statDonutPct').textContent = pct+'%';
   drawRing('statDonut', pct, 120, 12, '#164A40', '#E5E9E7');
 }
@@ -764,20 +1060,23 @@ function closeDetail(){ currentDetailJuz=null; switchView('beranda'); }
 function renderDetail(){
   const n = currentDetailJuz;
   const e = appData.juz[n];
-  const overdue = isOverdue(e);
-  const d = daysSince(e.lastMurajaah);
+  const agg = juzAggregateStatus(e);
+  const overduePages = overduePagesInJuz(e);
+  const overdue = overduePages.length>0;
+  const ps = juzPageStats(e);
   const quote = QUOTES[n % QUOTES.length];
+  const [rangeStart] = juzRange(n);
 
-  let donutHtml = '';
   let recText = '';
   if(overdue){
-    recText = 'Sudah ' + (d===null?'belum pernah dicatat':d+' hari') + ' sejak murajaah terakhir. Mulai murajaah hari ini untuk menjaga hafalan tetap kuat.';
-  }else if(e.status==='belum'){
-    recText = 'Juz ini belum mulai dihafal. Tandai sebagai "Sedang dihafal" begitu Anda mulai.';
-  }else if(e.status==='dihafal'){
-    recText = 'Terus lanjutkan hafalan juz ini. Begitu selesai, ubah status ke "Sedang murajaah".';
+    const sample = overduePages.slice(0,4).map(o=>'hal.'+o.page).join(', ');
+    recText = overduePages.length + ' halaman perlu diulang (' + sample + (overduePages.length>4?', ...':'') + '). Mulai murajaah hari ini untuk menjaga hafalan tetap kuat.';
+  }else if(agg==='belum'){
+    recText = 'Juz ini belum mulai dihafal. Tap halaman di bawah untuk menandai "Sedang dihafal" begitu Anda mulai.';
+  }else if(agg==='dihafal'){
+    recText = 'Masih ada halaman yang belum selesai dihafal (' + ps.stabil + '/' + ps.total + ' hal. sudah mutqin). Terus lanjutkan.';
   }else{
-    recText = 'Kondisi juz ini masih aman. Pertahankan jadwal murajaah rutin.';
+    recText = 'Kondisi juz ini masih aman (' + ps.stabil + '/' + ps.total + ' hal. mutqin). Pertahankan jadwal murajaah rutin.';
   }
 
   const el = document.getElementById('screenDetail');
@@ -793,9 +1092,10 @@ function renderDetail(){
         <div class="hero-row">
           <div>
             <p class="hero-eyebrow">Status</p>
-            <p class="hero-status">${overdue?'Perlu Murajaah':STATUS_META[e.status].label}</p>
-            <p class="hero-meta-label">Terakhir murajaah</p>
-            <p class="hero-meta-val">${d===null?'Belum pernah':d+' hari yang lalu'}</p>
+            <p class="hero-status">${overdue?overduePages.length+' hal. perlu murajaah':STATUS_META[agg].label}</p>
+            <p class="hero-meta-label">Progres halaman</p>
+            <p class="hero-meta-val">${ps.stabil}/${ps.total} mutqin \u00b7 hal.${rangeStart}\u2013${rangeStart+ps.total-1}</p>
+            <p class="hero-meta-val" style="opacity:.85; margin-top:2px;">${juzSurahRangeLabel(n)}</p>
           </div>
           <div class="hero-badge">
             ${overdue
@@ -825,25 +1125,44 @@ function renderDetail(){
         <p class="rec-text">${recText}</p>
         <button class="btn-full btn-primary" id="btnMulaiMurajaah">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg>
-          Mulai Murajaah
+          Tandai Seluruh Juz Direview Hari Ini
         </button>
       </div>
       <div class="card" style="margin-top:12px;">
+        <div class="page-progress-row">
+          <p class="section-title">Halaman (tap untuk ubah)</p>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <button class="icon-btn" id="btnViewMushafJuz" title="Lihat halaman mushaf" style="padding:2px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></button>
+            <span class="page-progress-frac">${ps.stabil}/${ps.total}</span>
+          </div>
+        </div>
+        <div class="page-grid" id="pageGrid"></div>
+        <div class="page-legend">
+          <div class="page-legend-item"><span class="page-legend-dot" style="background:var(--gray-300)"></span>Belum</div>
+          <div class="page-legend-item"><span class="page-legend-dot" style="background:var(--accent)"></span>Dihafal</div>
+          <div class="page-legend-item"><span class="page-legend-dot" style="background:var(--success)"></span>Murajaah</div>
+          <div class="page-legend-item"><span class="page-legend-dot" style="background:var(--primary)"></span>Stabil</div>
+          <div class="page-legend-item"><span class="page-legend-dot" style="background:var(--warning)"></span>Lupa</div>
+          <div class="page-legend-item"><span class="page-legend-dot" style="background:var(--danger)"></span>Overdue</div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:12px;">
         <div class="field" style="padding:14px 16px 4px;">
-          <label>Ubah status</label>
+          <label>Ubah status seluruh juz sekaligus</label>
           <select id="detailStatus">
             <option value="belum">Belum dihafal</option>
             <option value="dihafal">Sedang dihafal</option>
             <option value="murajaah">Sedang murajaah</option>
             <option value="stabil">Stabil (mutqin)</option>
+            <option value="lupa">Lupa (perlu hafal ulang)</option>
           </select>
         </div>
         <div class="field" style="padding:4px 16px 14px;">
-          <label>Tanggal murajaah terakhir</label>
-          <input type="date" id="detailDate" value="${e.lastMurajaah||''}">
+          <label>Tanggal murajaah terakhir (untuk semua halaman)</label>
+          <input type="date" id="detailDate">
         </div>
         <div style="padding:0 16px 16px;">
-          <button class="btn-full btn-outline" id="btnSaveStatus">Simpan perubahan</button>
+          <button class="btn-full btn-outline" id="btnSaveStatus">Terapkan ke seluruh juz</button>
         </div>
       </div>
       <div class="quote-card">
@@ -851,14 +1170,16 @@ function renderDetail(){
         <p class="quote-src">${quote.src}</p>
       </div>
     `;
-    document.getElementById('detailStatus').value = e.status;
+    document.getElementById('detailStatus').value = agg;
     document.getElementById('btnMulaiMurajaah').onclick = ()=> markMurajaahToday(n);
     document.getElementById('btnSaveStatus').onclick = ()=> saveDetailStatus(n);
+    document.getElementById('btnViewMushafJuz').onclick = ()=> openMushafViewer(rangeStart);
+    renderPageGrid(n);
   }else if(currentDetailTab==='riwayat'){
     const hist = (e.history||[]).slice().sort((a,b)=> new Date(b.at)-new Date(a.at));
     body.innerHTML = '<div class="card" style="padding:4px 16px;">' + (
       hist.length ? hist.map(h=>
-        '<div class="history-row"><div class="history-dot" style="background:'+(h.event==='murajaah'?'var(--success)':'var(--accent)')+'"></div>'+
+        '<div class="history-row"><div class="history-dot" style="background:'+((h.event==='murajaah'||h.event==='murajaah_bulk')?'var(--success)':'var(--accent)')+'"></div>'+
         '<div><div class="history-text">'+historyLabel(Object.assign({juz:n},h))+'</div><div class="history-date">'+fmtDate(h.at)+'</div></div></div>'
       ).join('') : '<div class="empty-state">Belum ada riwayat untuk juz ini.</div>'
     ) + '</div>';
@@ -874,25 +1195,155 @@ function renderDetail(){
   }
 }
 
-async function markMurajaahToday(n){
+function renderPageGrid(n){
   const e = appData.juz[n];
-  const fromStatus = e.status;
-  if(e.status==='belum' || e.status==='dihafal') e.status='murajaah';
-  e.lastMurajaah = new Date().toISOString().slice(0,10);
-  pushHistory(e, 'murajaah', fromStatus!==e.status ? { from:fromStatus, to:e.status } : {});
+  const grid = document.getElementById('pageGrid');
+  if(!grid) return;
+  const [start,end] = juzRange(n);
+  grid.innerHTML = '';
+  for(let p=start;p<=end;p++){
+    const pg = e.pages[p];
+    const overdue = isPageOverdue(pg);
+    const cell = document.createElement('div');
+    cell.className = 'page-cell' + (overdue?' overdue':'');
+    cell.style.background = STATUS_META[pg.status].color;
+    if(pg.status==='belum') cell.style.color = 'var(--gray-700)';
+    cell.textContent = p - start + 1;
+    const meta = getPageMeta(p);
+    cell.title = 'Halaman '+p+' (mushaf)' + (meta ? ' \u2014 '+meta.label : '') + ' \u2014 '+STATUS_META[pg.status].label;
+    cell.onclick = ()=> openPageEditor(n, p);
+    grid.appendChild(cell);
+  }
+}
+
+/* ---------- EDIT 1 HALAMAN ---------- */
+let currentEditJuz = null, currentEditPage = null;
+function openPageEditor(n, p){
+  currentEditJuz = n; currentEditPage = p;
+  const e = appData.juz[n];
+  const pg = e.pages[p];
+  const rel = p - juzRange(n)[0] + 1;
+  document.getElementById('pageModalTitle').textContent = 'Juz '+n+' \u2014 Halaman '+rel;
+  document.getElementById('pageStatus').value = pg.status;
+  document.getElementById('pageDate').value = pg.lastMurajaah || '';
+  document.getElementById('pageOverlay').classList.add('open');
+  refreshPageEditorHint();
+}
+/* isi ulang teks bantuan di modal edit halaman dengan info surah/ayat
+   begitu tersedia (dipanggil saat modal dibuka & saat fetch selesai) */
+function refreshPageEditorHint(){
+  if(currentEditJuz==null || currentEditPage==null) return;
+  const p = currentEditPage;
+  const meta = getPageMeta(p);
+  document.getElementById('pageModalHint').textContent =
+    'Halaman mushaf ke-'+p+ (meta ? ' \u2014 '+meta.label+'.' : '.');
+}
+
+/* ---------- MUSHAF VIEWER (gambar scan halaman asli) ---------- */
+let currentMushafPage = null;
+function openMushafViewer(page){
+  currentMushafPage = Math.min(TOTAL_PAGES, Math.max(1, page));
+  document.getElementById('mushafOverlay').classList.add('open');
+  renderMushafViewer();
+}
+function closeMushafViewer(){ document.getElementById('mushafOverlay').classList.remove('open'); }
+function renderMushafViewer(){
+  const p = currentMushafPage;
+  const meta = getPageMeta(p); // sudah di-cache dari fitur info surah/ayat, dipakai ulang di sini
+  document.getElementById('mushafTitle').textContent = 'Halaman '+p;
+  document.getElementById('mushafHint').textContent = meta ? meta.label : 'Memuat info surah\u2026';
+  document.getElementById('mushafPageNum').textContent = p+' / '+TOTAL_PAGES;
+  document.getElementById('mushafPrev').disabled = (p<=1);
+  document.getElementById('mushafNext').disabled = (p>=TOTAL_PAGES);
+  const img = document.getElementById('mushafImg');
+  const loading = document.getElementById('mushafLoading');
+  const errEl = document.getElementById('mushafError');
+  img.style.display = 'none';
+  errEl.style.display = 'none';
+  loading.style.display = 'flex';
+  img.onload = ()=>{ loading.style.display='none'; img.style.display='block'; };
+  img.onerror = ()=>{ loading.style.display='none'; errEl.style.display='flex'; };
+  img.src = mushafImageUrl(p);
+}
+function mushafPrev(){ if(currentMushafPage>1){ currentMushafPage--; renderMushafViewer(); } }
+function mushafNext(){ if(currentMushafPage<TOTAL_PAGES){ currentMushafPage++; renderMushafViewer(); } }
+
+function closePageEditor(){ document.getElementById('pageOverlay').classList.remove('open'); currentEditJuz=null; currentEditPage=null; }
+async function savePageEditor(){
+  const n = currentEditJuz, p = currentEditPage;
+  if(!n || !p) return;
+  const e = appData.juz[n];
+  const pg = e.pages[p];
+  const newStatus = document.getElementById('pageStatus').value;
+  const newDate = document.getElementById('pageDate').value || null;
+  if(newStatus !== pg.status) pushHistory(e, 'status_change', { page:p, from:pg.status, to:newStatus });
+  pg.status = newStatus; pg.lastMurajaah = newDate;
+  closePageEditor();
   renderDetail(); renderAll();
   const ok = await pushData(); renderSyncBanner();
-  showToast(ok ? 'Tersimpan — murajaah hari ini tercatat.' : ('Gagal simpan: ' + lastSyncDetail), ok);
+  showToast(ok ? 'Halaman '+p+' tersimpan.' : ('Gagal simpan: ' + lastSyncDetail), ok);
 }
+async function markPageToday(){
+  const n = currentEditJuz, p = currentEditPage;
+  if(!n || !p) return;
+  const e = appData.juz[n];
+  const pg = e.pages[p];
+  const fromStatus = pg.status;
+  if(pg.status==='belum' || pg.status==='dihafal') pg.status='murajaah';
+  pg.lastMurajaah = new Date().toISOString().slice(0,10);
+  document.getElementById('pageStatus').value = pg.status;
+  document.getElementById('pageDate').value = pg.lastMurajaah;
+  pushHistory(e, 'murajaah', fromStatus!==pg.status ? { page:p, from:fromStatus, to:pg.status } : { page:p });
+  closePageEditor();
+  renderDetail(); renderAll();
+  const ok = await pushData(); renderSyncBanner();
+  showToast(ok ? 'Halaman '+p+' ditandai direview hari ini.' : ('Gagal simpan: ' + lastSyncDetail), ok);
+}
+/* tandai 1 halaman "lupa" — dipakai saat hafalan yang tadinya sudah
+   murajaah/stabil ternyata lupa lagi & perlu dihafal ulang dari awal.
+   Tanggal murajaah terakhir sengaja TIDAK diubah/dihapus supaya riwayat
+   sebelumnya tetap tercatat; yang berubah cuma status halamannya. */
+async function markPageLupa(){
+  const n = currentEditJuz, p = currentEditPage;
+  if(!n || !p) return;
+  const e = appData.juz[n];
+  const pg = e.pages[p];
+  const fromStatus = pg.status;
+  pg.status = 'lupa';
+  document.getElementById('pageStatus').value = pg.status;
+  pushHistory(e, 'status_change', { page:p, from:fromStatus, to:'lupa' });
+  closePageEditor();
+  renderDetail(); renderAll();
+  const ok = await pushData(); renderSyncBanner();
+  showToast(ok ? 'Halaman '+p+' ditandai lupa \u2014 perlu dihafal ulang.' : ('Gagal simpan: ' + lastSyncDetail), ok);
+}
+
+/* markMurajaahToday: tandai SELURUH juz (semua halamannya) direview hari ini */
+async function markMurajaahToday(n){
+  const e = appData.juz[n];
+  const today = new Date().toISOString().slice(0,10);
+  let count = 0;
+  Object.values(e.pages).forEach(pg=>{
+    if(pg.status==='belum' || pg.status==='dihafal') pg.status='murajaah';
+    pg.lastMurajaah = today;
+    count++;
+  });
+  pushHistory(e, 'murajaah_bulk', { pagesCount: count });
+  renderDetail(); renderAll();
+  const ok = await pushData(); renderSyncBanner();
+  showToast(ok ? 'Tersimpan — seluruh juz ('+count+' hal.) murajaah hari ini tercatat.' : ('Gagal simpan: ' + lastSyncDetail), ok);
+}
+/* saveDetailStatus: terapkan satu status+tanggal ke SEMUA halaman juz sekaligus */
 async function saveDetailStatus(n){
   const e = appData.juz[n];
   const newStatus = document.getElementById('detailStatus').value;
   const newDate = document.getElementById('detailDate').value || null;
-  if(newStatus !== e.status) pushHistory(e, 'status_change', { from:e.status, to:newStatus });
-  e.status = newStatus; e.lastMurajaah = newDate;
+  let count = 0;
+  Object.values(e.pages).forEach(pg=>{ pg.status = newStatus; pg.lastMurajaah = newDate; count++; });
+  pushHistory(e, 'status_change_bulk', { to:newStatus, pagesCount:count });
   renderDetail(); renderAll();
   const ok = await pushData(); renderSyncBanner();
-  showToast(ok ? 'Perubahan tersimpan.' : ('Gagal simpan: ' + lastSyncDetail), ok);
+  showToast(ok ? 'Perubahan diterapkan ke '+count+' halaman.' : ('Gagal simpan: ' + lastSyncDetail), ok);
 }
 async function saveNotes(n){
   appData.juz[n].notes = document.getElementById('notesBox').value;
@@ -922,16 +1373,49 @@ function openQuickLog(){
   sel.innerHTML = '';
   for(let i=1;i<=TOTAL_JUZ;i++){
     const opt = document.createElement('option'); opt.value=i;
-    opt.textContent = 'Juz '+String(i).padStart(2,'0')+' \u2014 '+STATUS_META[appData.juz[i].status].label;
+    opt.textContent = 'Juz '+String(i).padStart(2,'0')+' \u2014 '+STATUS_META[juzAggregateStatus(appData.juz[i])].label;
     sel.appendChild(opt);
   }
+  populateQuickPages();
   document.getElementById('quickOverlay').classList.add('open');
+}
+function populateQuickPages(){
+  const n = Number(document.getElementById('quickJuz').value);
+  const sel = document.getElementById('quickPage');
+  const prevVal = sel.value;
+  sel.innerHTML = '';
+  const optAll = document.createElement('option'); optAll.value='all'; optAll.textContent = 'Seluruh juz (semua halaman)';
+  sel.appendChild(optAll);
+  const [start,end] = juzRange(n);
+  for(let p=start;p<=end;p++){
+    const rel = p-start+1;
+    const pg = appData.juz[n].pages[p];
+    const meta = getPageMeta(p);
+    const opt = document.createElement('option'); opt.value=p;
+    opt.textContent = 'Halaman '+rel+' (hal.'+p+')' + (meta ? ' \u2014 '+meta.label : '') + ' \u2014 '+STATUS_META[pg.status].label;
+    sel.appendChild(opt);
+  }
+  if(prevVal && [...sel.options].some(o=>o.value===prevVal)) sel.value = prevVal;
 }
 function closeQuickLog(){ document.getElementById('quickOverlay').classList.remove('open'); }
 async function saveQuickLog(){
   const n = Number(document.getElementById('quickJuz').value);
-  await markMurajaahToday(n);
+  const pageVal = document.getElementById('quickPage').value;
   closeQuickLog();
+  if(pageVal==='all'){
+    await markMurajaahToday(n);
+  }else{
+    const p = Number(pageVal);
+    const e = appData.juz[n];
+    const pg = e.pages[p];
+    const fromStatus = pg.status;
+    if(pg.status==='belum' || pg.status==='dihafal') pg.status='murajaah';
+    pg.lastMurajaah = new Date().toISOString().slice(0,10);
+    pushHistory(e, 'murajaah', fromStatus!==pg.status ? { page:p, from:fromStatus, to:pg.status } : { page:p });
+    renderAll();
+    const ok = await pushData(); renderSyncBanner();
+    showToast(ok ? 'Halaman '+p+' ditandai murajaah hari ini.' : ('Gagal simpan: ' + lastSyncDetail), ok);
+  }
 }
 
 /* ---------- PIN / SERVER MODALS ---------- */
@@ -944,7 +1428,31 @@ function savePinModal(){
   if(p1!==p2){ msg.textContent='PIN tidak sama, coba lagi.'; return; }
   localStorage.setItem(LS_PIN,p1); pin=p1; closePinModal();
 }
-function openServerModal(){ document.getElementById('apiBase').value=apiBase(); document.getElementById('appToken').value=appToken(); document.getElementById('serverModalMsg').textContent=''; document.getElementById('serverOverlay').classList.add('open'); }
+function openServerModal(){ document.getElementById('apiBase').value=apiBase(); document.getElementById('appToken').value=appToken(); document.getElementById('serverModalMsg').textContent=''; document.getElementById('serverOverlay').classList.add('open'); loadAiQuota(); }
+/* Ambil & tampilkan pemakaian kuota Workers AI hari ini dari endpoint
+   /ai-quota Worker (opsional — kalau Worker versi lama belum punya
+   endpoint ini, atau AI/AI_QUOTA belum dikonfigurasi, kotaknya cukup
+   disembunyikan lagi diam-diam, tidak dianggap error). */
+async function loadAiQuota(){
+  const box = document.getElementById('aiQuotaBox');
+  if(!serverConfigured()){ box.style.display='none'; return; }
+  try{
+    const res = await fetch(apiBase() + '/ai-quota', { headers:{ 'X-App-Token': appToken() } });
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const q = await res.json();
+    if(!q.aiConfigured){ box.style.display='none'; return; }
+    box.style.display='block';
+    const pct = Math.min(100, q.percent||0);
+    document.getElementById('aiQuotaBar').style.width = pct+'%';
+    document.getElementById('aiQuotaBar').style.background = pct>=90 ? 'var(--danger)' : pct>=70 ? 'var(--warning)' : 'var(--primary)';
+    document.getElementById('aiQuotaText').textContent =
+      q.usedNeuron+' / '+q.budgetNeuron+' Neuron ('+pct+'%)' +
+      (q.quotaTrackingActive ? '' : ' \u2014 pelacakan belum aktif (KV AI_QUOTA belum diisi)');
+  }catch(e){
+    console.log('loadAiQuota gagal:', e);
+    box.style.display='none'; // gagal diam-diam, bukan fitur inti
+  }
+}
 function closeServerModal(){ document.getElementById('serverOverlay').classList.remove('open'); }
 async function saveServerModal(){
   const base=document.getElementById('apiBase').value.trim().replace(/\/$/,'');
@@ -971,7 +1479,17 @@ function init(){
   document.getElementById('btnFab').onclick = openQuickLog;
   document.getElementById('quickCancel').onclick = closeQuickLog;
   document.getElementById('quickSave').onclick = saveQuickLog;
+  document.getElementById('quickJuz').onchange = populateQuickPages;
   document.getElementById('filterSelect').onchange = (e)=>{ gridFilter=e.target.value; renderJuzGrid(); };
+
+  document.getElementById('pageCancel').onclick = closePageEditor;
+  document.getElementById('pageSave').onclick = savePageEditor;
+  document.getElementById('pageMarkToday').onclick = markPageToday;
+  document.getElementById('pageMarkLupa').onclick = markPageLupa;
+  document.getElementById('pageViewMushaf').onclick = ()=>{ if(currentEditPage!=null) openMushafViewer(currentEditPage); };
+  document.getElementById('mushafClose').onclick = closeMushafViewer;
+  document.getElementById('mushafPrev').onclick = mushafPrev;
+  document.getElementById('mushafNext').onclick = mushafNext;
 
   document.getElementById('menuPin').onclick = openPinModal;
   document.getElementById('menuServer').onclick = openServerModal;
