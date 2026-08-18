@@ -876,7 +876,8 @@ async function markMurajaahToday(n){
   e.lastMurajaah = new Date().toISOString().slice(0,10);
   pushHistory(e, 'murajaah', fromStatus!==e.status ? { from:fromStatus, to:e.status } : {});
   renderDetail(); renderAll();
-  await pushData(); renderSyncBanner();
+  const ok = await pushData(); renderSyncBanner();
+  showToast(ok ? 'Tersimpan — murajaah hari ini tercatat.' : 'Gagal simpan ke server. Cek koneksi/token.', ok);
 }
 async function saveDetailStatus(n){
   const e = appData.juz[n];
@@ -885,11 +886,29 @@ async function saveDetailStatus(n){
   if(newStatus !== e.status) pushHistory(e, 'status_change', { from:e.status, to:newStatus });
   e.status = newStatus; e.lastMurajaah = newDate;
   renderDetail(); renderAll();
-  await pushData(); renderSyncBanner();
+  const ok = await pushData(); renderSyncBanner();
+  showToast(ok ? 'Perubahan tersimpan.' : 'Gagal simpan ke server. Cek koneksi/token.', ok);
 }
 async function saveNotes(n){
   appData.juz[n].notes = document.getElementById('notesBox').value;
-  await pushData(); renderSyncBanner();
+  const ok = await pushData(); renderSyncBanner();
+  showToast(ok ? 'Catatan tersimpan.' : 'Gagal simpan ke server. Cek koneksi/token.', ok);
+}
+
+function showToast(msg, ok){
+  let el = document.getElementById('saveToast');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'saveToast';
+    el.style.cssText = 'position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:80;padding:10px 16px;border-radius:10px;font-size:12.5px;font-weight:600;color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.2);max-width:88vw;text-align:center;transition:opacity .25s;';
+    document.body.appendChild(el);
+  }
+  el.style.background = ok ? 'var(--primary)' : 'var(--danger)';
+  el.textContent = msg;
+  el.style.opacity = '1';
+  el.style.display = 'block';
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(()=>{ el.style.opacity='0'; setTimeout(()=> el.style.display='none', 250); }, 2600);
 }
 
 /* ---------- QUICK LOG (FAB) ---------- */
