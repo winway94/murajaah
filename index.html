@@ -242,6 +242,10 @@ const TOTAL_JUZ = 30;
 const OVERDUE_DAYS = 30;
 const LS_PIN = 'hafalan_pin';
 const LS_API_BASE = 'hafalan_api_base';
+// URL Worker sudah pasti (bukan rahasia, aman ditanam di kode).
+// App token TIDAK ditanam di sini karena repo ini publik — tetap harus
+// diisi manual sekali lewat menu "Pengaturan server" untuk keamanan.
+const DEFAULT_API_BASE = 'https://round-truth-3389.murajaah-reminder.workers.dev';
 const LS_APP_TOKEN = 'hafalan_app_token';
 
 let appData = null;
@@ -250,7 +254,7 @@ let pinBuffer = '';
 let editingJuz = null;
 let lastSyncOk = true;
 
-function apiBase(){ return localStorage.getItem(LS_API_BASE) || ''; }
+function apiBase(){ return localStorage.getItem(LS_API_BASE) || DEFAULT_API_BASE; }
 function appToken(){ return localStorage.getItem(LS_APP_TOKEN) || ''; }
 function serverConfigured(){ return !!apiBase() && !!appToken(); }
 
