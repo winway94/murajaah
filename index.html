@@ -524,8 +524,13 @@ async function pushData(){
       body: JSON.stringify(appData)
     });
     lastSyncOk = res.ok;
+    if(!res.ok){
+      let bodyText = '';
+      try{ bodyText = JSON.stringify(await res.json()); }catch(e2){}
+      lastSyncDetail = 'HTTP ' + res.status + (bodyText ? ' — ' + bodyText : '');
+    }else{ lastSyncDetail=''; }
     return res.ok;
-  }catch(e){ console.log('pushData gagal:', e); lastSyncOk = false; return false; }
+  }catch(e){ console.log('pushData gagal:', e); lastSyncOk = false; lastSyncDetail = String(e && e.message || e); return false; }
 }
 function pushHistory(entry, event, extra){
   entry.history = entry.history || [];
@@ -877,7 +882,7 @@ async function markMurajaahToday(n){
   pushHistory(e, 'murajaah', fromStatus!==e.status ? { from:fromStatus, to:e.status } : {});
   renderDetail(); renderAll();
   const ok = await pushData(); renderSyncBanner();
-  showToast(ok ? 'Tersimpan — murajaah hari ini tercatat.' : 'Gagal simpan ke server. Cek koneksi/token.', ok);
+  showToast(ok ? 'Tersimpan — murajaah hari ini tercatat.' : ('Gagal simpan: ' + lastSyncDetail), ok);
 }
 async function saveDetailStatus(n){
   const e = appData.juz[n];
@@ -887,12 +892,12 @@ async function saveDetailStatus(n){
   e.status = newStatus; e.lastMurajaah = newDate;
   renderDetail(); renderAll();
   const ok = await pushData(); renderSyncBanner();
-  showToast(ok ? 'Perubahan tersimpan.' : 'Gagal simpan ke server. Cek koneksi/token.', ok);
+  showToast(ok ? 'Perubahan tersimpan.' : ('Gagal simpan: ' + lastSyncDetail), ok);
 }
 async function saveNotes(n){
   appData.juz[n].notes = document.getElementById('notesBox').value;
   const ok = await pushData(); renderSyncBanner();
-  showToast(ok ? 'Catatan tersimpan.' : 'Gagal simpan ke server. Cek koneksi/token.', ok);
+  showToast(ok ? 'Catatan tersimpan.' : ('Gagal simpan: ' + lastSyncDetail), ok);
 }
 
 function showToast(msg, ok){
