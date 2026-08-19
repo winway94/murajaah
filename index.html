@@ -21,6 +21,7 @@
   --primary:#164A40;
   --primary-600:#1F6A5A;
   --primary-50:#EBF1EE;
+  --primary-text:#164A40;
   --accent:#B99A45;
   --success:#2E7D6B;
   --warning:#F08429;
@@ -45,12 +46,59 @@
   --gray-700:#2C3A36;
   --gray-900:#17201E;
   --white:#FFFFFF;
+  --on-primary:#FFFFFF;
+  --alert-danger-bg:#FBEEEA;
+  --alert-danger-text:#8C4237;
+  --alert-warning-bg:#FDF0E2;
+  --alert-warning-text:#8A5321;
+  --mushaf-tap-bg:#FDECC8;
+  --mushaf-playing-bg:#D9EEE6;
+  --heat-1:#BFE0D6;
+  --heat-2:#7FC2AC;
   --font-sans:'Inter','DM Sans','Segoe UI',sans-serif;
   --radius-sm:8px; --radius-md:12px; --radius-lg:16px; --radius-xl:20px;
   --shadow-sm:0 1px 2px rgba(23,32,30,0.04);
   --shadow-md:0 4px 12px rgba(23,32,30,0.06);
   --shadow-lg:0 12px 24px rgba(23,32,30,0.08);
   --transition:all .2s ease;
+}
+/* ---------- Mode gelap ----------
+   Diaktifkan lewat atribut data-theme="dark" di <html> (lihat applyTheme()
+   di JS). Cukup override token warna di sini — SEMUA komponen lain di app
+   sudah konsisten pakai var(--white)/var(--gray-*)/var(--primary) dkk,
+   jadi tidak perlu sentuh CSS lain satu-satu. */
+[data-theme="dark"]{
+  --primary-text:#4FC5A8;
+  --primary-50:#16241F;
+  --accent:#D4B65F;
+  --success:#45B08F;
+  --warning:#FFA94D;
+  --danger:#E27C72;
+  --status-belum:#5B6B78;
+  --status-dihafal:#38BDF8;
+  --status-murajaah:#FACC15;
+  --status-mutqin:#22C55E;
+  --status-lupa:#E5E9E7;
+  --status-overdue:#FB7185;
+  --gray-50:#121815;
+  --gray-100:#1E2622;
+  --gray-200:#2C3733;
+  --gray-300:#3E4B45;
+  --gray-500:#93A39C;
+  --gray-700:#C7D3CD;
+  --gray-900:#F1F4F2;
+  --white:#1A2220;
+  --alert-danger-bg:#3A2420;
+  --alert-danger-text:#F2B8AC;
+  --alert-warning-bg:#3A2E18;
+  --alert-warning-text:#F5CE8C;
+  --mushaf-tap-bg:#4A3B1A;
+  --mushaf-playing-bg:#1E3A32;
+  --heat-1:#234A3E;
+  --heat-2:#2F7A64;
+  --shadow-sm:0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md:0 4px 12px rgba(0,0,0,0.35);
+  --shadow-lg:0 12px 24px rgba(0,0,0,0.4);
 }
 *{box-sizing:border-box;}
 html,body{height:100%;}
@@ -74,7 +122,7 @@ button{font-family:var(--font-sans);}
   border-radius:50%;background:rgba(255,255,255,0.1);border:1.5px solid rgba(185,154,69,0.55);
   display:flex;align-items:center;justify-content:center;color:var(--accent);z-index:5;}
 .lock-tasbih-fab:active{background:rgba(185,154,69,0.22);}
-.lock-card{width:100%;max-width:320px;text-align:center;color:var(--white);}
+.lock-card{width:100%;max-width:320px;text-align:center;color:var(--on-primary);}
 .lock-eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:0 0 6px;font-weight:600;}
 .lock-title{font-size:26px;font-weight:800;margin:0;}
 .pin-dots{display:flex;justify-content:center;gap:14px;margin-bottom:28px;flex-wrap:wrap;}
@@ -83,7 +131,7 @@ button{font-family:var(--font-sans);}
 .pin-dots.shake{animation:shake .32s;}
 @keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
 .keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:280px;margin:0 auto;}
-.key{font-size:23px;font-weight:600;color:var(--white);
+.key{font-size:23px;font-weight:600;color:var(--on-primary);
   background:rgba(255,255,255,0.09);border:1px solid rgba(185,154,69,0.4);
   border-radius:var(--radius-md);padding:19px 0;cursor:pointer;}
 .key:active{background:rgba(185,154,69,0.25);}
@@ -95,7 +143,7 @@ button{font-family:var(--font-sans);}
 .appbar{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;
   background:var(--white);border-bottom:1px solid var(--gray-200);position:sticky;top:0;z-index:20;}
 .appbar-left{display:flex;align-items:center;gap:12px;}
-.appbar-title{font-size:18px;font-weight:800;margin:0;color:var(--primary);}
+.appbar-title{font-size:18px;font-weight:800;margin:0;color:var(--primary-text);}
 .appbar-sub{font-size:11.5px;color:var(--gray-500);margin:1px 0 0;}
 .icon-btn{background:none;border:none;padding:6px;cursor:pointer;color:var(--gray-700);display:flex;}
 .icon-btn:active{opacity:.6;}
@@ -106,7 +154,7 @@ button{font-family:var(--font-sans);}
 /* ---------- CARDS ---------- */
 .card{background:var(--white);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);border:1px solid var(--gray-200);}
 .progress-card{background:linear-gradient(150deg,var(--primary),var(--primary-600));border-radius:var(--radius-xl);
-  padding:20px;color:var(--white);box-shadow:var(--shadow-lg);margin-bottom:14px;}
+  padding:20px;color:var(--on-primary);box-shadow:var(--shadow-lg);margin-bottom:14px;}
 .progress-eyebrow{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#BFE0D6;font-weight:700;margin:0 0 6px;}
 .progress-top{display:flex;align-items:center;justify-content:space-between;gap:14px;}
 .progress-num{font-size:34px;font-weight:800;line-height:1;}
@@ -120,17 +168,17 @@ button{font-family:var(--font-sans);}
 .pstat-num{font-size:16px;font-weight:800;line-height:1;}
 .pstat-label{font-size:9.5px;color:#CFE7DF;margin-top:3px;}
 
-.alert-card{background:#FBEEEA;border:1px solid var(--danger);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:14px;}
+.alert-card{background:var(--alert-danger-bg);border:1px solid var(--danger);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:14px;}
 .alert-head{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--danger);margin-bottom:2px;}
-.alert-sub{font-size:12px;color:#8C4237;margin:0 0 10px;}
+.alert-sub{font-size:12px;color:var(--alert-danger-text);margin:0 0 10px;}
 .alert-chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
-.chip{font-size:12px;font-weight:600;background:var(--white);border:1px solid var(--danger);color:#8C4237;
+.chip{font-size:12px;font-weight:600;background:var(--white);border:1px solid var(--danger);color:var(--alert-danger-text);
   border-radius:var(--radius-sm);padding:6px 10px;cursor:pointer;}
 .alert-more{font-size:12.5px;font-weight:700;color:var(--danger);background:none;border:none;cursor:pointer;padding:6px 4px;}
-.alert-card.alert-warn{background:#FDF0E2;border-color:var(--warning);}
+.alert-card.alert-warn{background:var(--alert-warning-bg);border-color:var(--warning);}
 .alert-card.alert-warn .alert-head{color:var(--warning);}
-.alert-card.alert-warn .alert-sub{color:#8A5321;}
-.alert-card.alert-warn .chip{border-color:var(--warning);color:#8A5321;}
+.alert-card.alert-warn .alert-sub{color:var(--alert-warning-text);}
+.alert-card.alert-warn .chip{border-color:var(--warning);color:var(--alert-warning-text);}
 .alert-card.alert-warn .alert-more{color:var(--warning);}
 
 .section-head{display:flex;align-items:center;justify-content:space-between;margin:18px 0 10px;}
@@ -167,7 +215,7 @@ button{font-family:var(--font-sans);}
 .page-progress-frac{font-size:12.5px;font-weight:700;color:var(--gray-700);}
 
 .fab{position:fixed;right:calc(50% - 240px + 18px);bottom:82px;width:52px;height:52px;border-radius:50%;
-  background:var(--primary);color:var(--white);border:none;box-shadow:var(--shadow-lg);
+  background:var(--primary);color:var(--on-primary);border:none;box-shadow:var(--shadow-lg);
   display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:25;}
 @media (max-width:480px){ .fab{ right:18px; } }
 
@@ -175,12 +223,12 @@ button{font-family:var(--font-sans);}
   display:flex;justify-content:space-around;padding:8px 0 calc(8px + env(safe-area-inset-bottom));z-index:20;}
 .nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;cursor:pointer;
   color:var(--gray-500);font-size:10.5px;font-weight:600;padding:4px 10px;}
-.nav-item.active{color:var(--primary);}
+.nav-item.active{color:var(--primary-text);}
 .nav-item.active .nav-underline{display:block;}
-.nav-underline{display:none;width:16px;height:2px;background:var(--primary);border-radius:2px;margin-top:1px;}
+.nav-underline{display:none;width:16px;height:2px;background:var(--primary-text);border-radius:2px;margin-top:1px;}
 
 /* ---------- DETAIL PAGE ---------- */
-.detail-hero{border-radius:var(--radius-xl);padding:18px;color:var(--white);box-shadow:var(--shadow-lg);margin-bottom:14px;}
+.detail-hero{border-radius:var(--radius-xl);padding:18px;color:var(--on-primary);box-shadow:var(--shadow-lg);margin-bottom:14px;}
 .hero-safe{background:linear-gradient(150deg,var(--primary),var(--primary-600));}
 .hero-warn{background:linear-gradient(150deg,#8C4237,var(--danger));}
 .hero-eyebrow{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;opacity:.8;font-weight:700;margin:0 0 4px;}
@@ -194,7 +242,7 @@ button{font-family:var(--font-sans);}
 .tabs{display:flex;gap:8px;margin-bottom:14px;}
 .tab-btn{flex:1;padding:10px 0;text-align:center;font-size:12.5px;font-weight:700;border-radius:var(--radius-sm);
   border:1px solid var(--gray-200);background:var(--white);color:var(--gray-500);cursor:pointer;}
-.tab-btn.active{background:var(--primary);border-color:var(--primary);color:var(--white);}
+.tab-btn.active{background:var(--primary);border-color:var(--primary);color:var(--on-primary);}
 
 .donut-row{display:flex;align-items:center;gap:20px;padding:16px;}
 .donut-center{position:relative;width:120px;height:120px;flex-shrink:0;}
@@ -216,12 +264,12 @@ button{font-family:var(--font-sans);}
 .rec-text{font-size:13px;color:var(--gray-700);margin:8px 0 12px;line-height:1.5;}
 .btn-full{width:100%;padding:13px;border-radius:var(--radius-md);border:none;font-weight:700;font-size:13.5px;cursor:pointer;
   display:flex;align-items:center;justify-content:center;gap:8px;}
-.btn-primary{background:var(--primary);color:var(--white);}
+.btn-primary{background:var(--primary);color:var(--on-primary);}
 .btn-outline{background:var(--white);border:1px solid var(--gray-200);color:var(--gray-700);}
 
 .quote-card{background:var(--primary-50);border-radius:var(--radius-lg);padding:16px;margin-top:14px;}
 .quote-text{font-size:13px;color:var(--gray-700);line-height:1.6;font-style:italic;margin:0 0 8px;}
-.quote-src{font-size:11.5px;color:var(--primary);font-weight:700;}
+.quote-src{font-size:11.5px;color:var(--primary-text);font-weight:700;}
 
 .note-box{width:100%;min-height:110px;border:1px solid var(--gray-200);border-radius:var(--radius-md);
   padding:12px;font-family:var(--font-sans);font-size:13.5px;resize:vertical;color:var(--gray-900);}
@@ -234,7 +282,7 @@ button{font-family:var(--font-sans);}
 /* ---------- STATISTIK ---------- */
 .stat-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
 .stat-box{padding:14px;}
-.stat-box-num{font-size:22px;font-weight:800;color:var(--primary);}
+.stat-box-num{font-size:22px;font-weight:800;color:var(--primary-text);}
 .stat-box-label{font-size:11px;color:var(--gray-500);margin-top:3px;}
 .bars{display:flex;align-items:flex-end;gap:5px;height:90px;padding:14px 14px 8px;}
 .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;}
@@ -245,8 +293,8 @@ button{font-family:var(--font-sans);}
 .heatmap-grid{display:grid; grid-auto-flow:column; grid-template-rows:repeat(7,1fr); gap:3px; width:max-content;}
 .heatmap-cell{width:11px;height:11px;border-radius:2.5px;background:var(--gray-200);}
 .heatmap-cell[data-lvl="0"]{background:var(--gray-200);}
-.heatmap-cell[data-lvl="1"]{background:#BFE0D6;}
-.heatmap-cell[data-lvl="2"]{background:#7FC2AC;}
+.heatmap-cell[data-lvl="1"]{background:var(--heat-1);}
+.heatmap-cell[data-lvl="2"]{background:var(--heat-2);}
 .heatmap-cell[data-lvl="3"]{background:var(--success);}
 .heatmap-cell[data-lvl="4"]{background:var(--primary);}
 .heatmap-legend{display:flex;align-items:center;gap:4px;margin-top:10px;font-size:10.5px;color:var(--gray-500);}
@@ -276,29 +324,31 @@ button{font-family:var(--font-sans);}
    diketuk (highlight kuning saat aktif ditekan, highlight hijau saat
    sedang diputar audio-nya). ---- */
 .mushaf-textwrap{padding:18px 16px 22px;}
-.mushaf-surah-banner{text-align:center;font-family:'Amiri Quran',serif;font-size:22px;color:var(--primary);
+.mushaf-surah-banner{text-align:center;font-family:'Amiri Quran',serif;font-size:22px;color:var(--primary-text);
   border:1.5px solid var(--gray-300);border-radius:10px;padding:10px 8px;margin:0 0 16px;background:var(--white);}
 .mushaf-ayat-text{direction:rtl;text-align:justify;font-family:'Amiri Quran',serif;font-size:var(--mushaf-font-size, 26px);line-height:2.35;color:var(--gray-900);}
 .mushaf-ayah{cursor:pointer;border-radius:6px;padding:1px 2px;transition:background-color .15s ease;}
-.mushaf-ayah:active{background:#FDECC8;}
-.mushaf-ayah.ayah-playing{background:#D9EEE6;}
-.mushaf-ayah-num{font-size:15px;color:var(--primary);font-family:'DM Sans',sans-serif;padding:0 2px;}
+.mushaf-ayah:active{background:var(--mushaf-tap-bg);}
+.mushaf-ayah.ayah-playing{background:var(--mushaf-playing-bg);}
+.mushaf-ayah-num{font-size:15px;color:var(--primary-text);font-family:'DM Sans',sans-serif;padding:0 2px;}
 .mushaf-loading,.mushaf-error{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   text-align:center;padding:20px;font-size:12.5px;color:var(--gray-500);}
 .mushaf-tip{font-size:11px;color:var(--gray-500);text-align:center;margin:8px 0 0;}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
 .mushaf-audiobar{margin-top:8px;position:relative;}
 .mushaf-idle-bar{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-lg,16px);padding:10px 12px;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow-sm);}
-.mushaf-idle-play{width:38px;height:38px;border-radius:50%;border:none;background:var(--primary);color:var(--white);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;padding:0;}
+.mushaf-idle-play{width:38px;height:38px;border-radius:50%;border:none;background:var(--primary);color:var(--on-primary);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;padding:0;}
 .mushaf-idle-play svg{width:46%;height:46%;}
 .mushaf-idle-reciter{flex:1;min-width:0;background:none;border:none;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px;cursor:pointer;}
 .mushaf-idle-reciter span{font-size:13.5px;font-weight:700;color:var(--gray-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .mushaf-idle-reciter svg{color:var(--gray-500);flex-shrink:0;}
-.mushaf-reciter-panel{position:absolute;left:0;right:0;top:calc(100% + 6px);background:var(--white);border:1px solid var(--gray-200);border-radius:14px;box-shadow:0 8px 20px rgba(23,32,30,0.14);max-height:280px;overflow-y:auto;z-index:20;}
-.mushaf-reciter-item{padding:12px 16px;font-size:13.5px;color:var(--gray-900);cursor:pointer;display:flex;align-items:center;justify-content:space-between;}
+.reciter-sheet{max-height:82vh;display:flex;flex-direction:column;padding:0;overflow:hidden;}
+.reciter-head{display:flex;align-items:center;gap:10px;padding:16px 16px;border-bottom:1px solid var(--gray-200);flex-shrink:0;}
+.reciter-head h3{font-size:16px;font-weight:700;color:var(--gray-900);margin:0;}
+.reciter-list{overflow-y:auto;flex:1;}
+.mushaf-reciter-item{padding:14px 16px;font-size:14px;color:var(--gray-900);cursor:pointer;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--gray-100,#F0F2F1);}
 .mushaf-reciter-item:active{background:var(--gray-100);}
-.mushaf-reciter-item+.mushaf-reciter-item{border-top:1px solid var(--gray-100,#F0F2F1);}
-.mushaf-reciter-item.active{background:var(--gray-50,#F7F8F6);font-weight:700;}
+.mushaf-reciter-item.active{background:var(--primary-50,#F7FAF8);font-weight:700;}
 /* .mushaf-audiobar di-set display:block lewat JS saat player tampil (lihat
    playCurrentAyah()). Karena itu, .mushaf-player yang jadi satu-satunya
    anak di dalamnya butuh width:100% eksplisit -- kalau tidak, sebagai flex
@@ -315,17 +365,17 @@ button{font-family:var(--font-sans);}
 .mushaf-ctl-btn svg{width:46%;height:46%;}
 .mushaf-ctl-skip{width:42px;height:42px;}
 .mushaf-ctl-skip svg{width:48%;height:48%;}
-.mushaf-ctl-main{width:58px;height:58px;border-radius:50%;border:none;background:var(--primary);color:var(--white);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;}
+.mushaf-ctl-main{width:58px;height:58px;border-radius:50%;border:none;background:var(--primary);color:var(--on-primary);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;}
 .mushaf-ctl-main svg{width:42%;height:42%;}
-.mushaf-ctl-stop{background:var(--danger);color:var(--white);}
-.mushaf-ctl-btn.repeat-active{background:#EBF1EE;color:var(--primary);}
+.mushaf-ctl-stop{background:var(--danger);color:var(--on-primary);}
+.mushaf-ctl-btn.repeat-active{background:var(--primary-50);color:var(--primary-text);}
 .mushaf-repeat-popover{position:absolute;right:8px;bottom:calc(100% + 8px);background:var(--white);border:1px solid var(--gray-200);border-radius:14px;box-shadow:0 8px 20px rgba(23,32,30,0.14);padding:6px;width:220px;z-index:20;}
 .mushaf-repeat-row{display:flex;align-items:center;justify-content:space-between;padding:9px 8px;gap:8px;}
 .mushaf-repeat-row-label{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--gray-900);}
 .mushaf-repeat-row-label svg{width:15px;height:15px;color:var(--gray-500);flex-shrink:0;}
 .mushaf-repeat-divider{height:1px;background:var(--gray-100,#F0F2F1);margin:2px 6px;}
 .mushaf-repeat-chip{background:var(--gray-100);color:var(--gray-700);font-size:11.5px;font-weight:700;border:none;border-radius:999px;padding:5px 11px;cursor:pointer;flex-shrink:0;}
-.mushaf-repeat-chip.active{background:#EBF1EE;color:var(--primary);}
+.mushaf-repeat-chip.active{background:var(--primary-50);color:var(--primary-text);}
 .mushaf-repeat-chip.disabled{opacity:.4;pointer-events:none;}
 .mushaf-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;}
 .sheet h3{font-size:18px;font-weight:800;margin:0 0 4px;color:var(--gray-900);}
@@ -333,18 +383,35 @@ button{font-family:var(--font-sans);}
 .field{margin-bottom:14px;}
 .field label{display:block;font-size:12px;color:var(--gray-500);margin-bottom:5px;font-weight:600;}
 .field select,.field input{width:100%;padding:10px 11px;border-radius:var(--radius-sm);border:1px solid var(--gray-200);
-  font-family:var(--font-sans);font-size:14px;background:#fff;}
+  font-family:var(--font-sans);font-size:14px;background:var(--white);color:var(--gray-900);}
 .modal-actions{display:flex;gap:8px;margin-top:16px;}
 .btn{flex:1;padding:11px;border-radius:var(--radius-md);border:none;font-weight:700;font-size:13.5px;cursor:pointer;}
 .btn-ghost{background:transparent;border:1px solid var(--gray-200);color:var(--gray-700);}
 .sync-banner{font-size:11.5px;padding:9px 14px;border-radius:var(--radius-sm);margin-bottom:12px;font-weight:600;}
 .sync-ok{background:var(--primary-50);color:var(--primary);}
-.sync-err{background:#FBEEEA;color:var(--danger);}
+.sync-err{background:var(--alert-danger-bg);color:var(--danger);}
 .menu-list{display:flex;flex-direction:column;}
 .menu-item{display:flex;align-items:center;gap:12px;padding:14px 4px;border:none;background:none;text-align:left;
   font-size:14px;font-weight:600;color:var(--gray-900);cursor:pointer;border-bottom:1px solid var(--gray-100);}
 .menu-item svg{color:var(--gray-500);flex-shrink:0;}
+.theme-switcher{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.theme-opt{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;border:1.5px solid var(--gray-200);border-radius:var(--radius-md);background:var(--gray-50);color:var(--gray-700);font-size:12px;font-weight:600;cursor:pointer;}
+.theme-opt.active{border-color:var(--primary);background:var(--primary-50);color:var(--primary);}
 </style>
+<script>
+/* Diterapkan sesegera mungkin (sebelum body dirender) supaya tidak ada
+   "flash" tema salah sekilas saat halaman dibuka — terutama penting utk
+   mode gelap (kalau nunggu script utama di bawah baru jalan, akan sempat
+   kelihatan putih terang dulu baru gelap). Logika lengkap (termasuk
+   listener perubahan tema sistem live) ada di applyTheme() nanti. */
+(function(){
+  try{
+    var saved = localStorage.getItem('hafalan_theme') || 'auto';
+    var isDark = saved==='dark' || (saved==='auto' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  }catch(e){}
+})();
+</script>
 </head>
 <body>
 <div class="app">
@@ -496,6 +563,23 @@ button{font-family:var(--font-sans);}
     <!-- PENGATURAN -->
     <div class="screen" id="screenPengaturan">
       <p class="section-title" style="margin-top:4px;">Pengaturan</p>
+      <div class="card" style="margin-top:10px; padding:14px 16px;">
+        <p class="section-title" style="margin:0 0 10px;">🎨 Tampilan</p>
+        <div class="theme-switcher" id="themeSwitcher">
+          <button class="theme-opt" data-theme-value="light">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+            Terang
+          </button>
+          <button class="theme-opt" data-theme-value="dark">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            Gelap
+          </button>
+          <button class="theme-opt" data-theme-value="auto">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+            Perangkat
+          </button>
+        </div>
+      </div>
       <div class="card menu-list" style="margin-top:10px;padding:4px 16px;">
         <button class="menu-item" id="menuPin">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -653,7 +737,6 @@ button{font-family:var(--font-sans);}
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
       </button>
     </div>
-    <div class="mushaf-reciter-panel" id="mushafReciterPanel" style="display:none;"></div>
   </div>
   <div class="mushaf-audiobar" id="mushafAudioBar" style="display:none;">
     <div class="mushaf-player">
@@ -692,6 +775,15 @@ button{font-family:var(--font-sans);}
     <span id="mushafPageNum" style="font-size:12.5px;color:var(--gray-500);"></span>
     <button class="btn btn-ghost" id="mushafNext">Berikutnya ›</button>
   </div>
+</div></div>
+
+<!-- PILIH QORI (layar penuh, bukan dropdown kecil) -->
+<div class="overlay center" id="reciterOverlay"><div class="sheet reciter-sheet">
+  <div class="reciter-head">
+    <button class="icon-btn" id="reciterClose" aria-label="Tutup"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <h3 style="margin:0;">Pilih Qori</h3>
+  </div>
+  <div class="reciter-list" id="reciterFullList"></div>
 </div></div>
 
 <!-- PIN MODAL -->
@@ -776,8 +868,12 @@ const DEFAULT_OVERDUE_DAYS = 30;
    AWAL array CHANGELOG (paling atas = paling baru). Ini murni tampilan
    (tidak memengaruhi cache); yang mengontrol update service worker
    tetap CACHE_VERSION di sw.js. */
-const APP_VERSION = 'v32';
+const APP_VERSION = 'v33';
 const CHANGELOG = [
+  { version:'v33', date:'19 Agustus 2026', changes:[
+    'Panel pilih qori sekarang layar penuh ("Pilih Qori") — bukan dropdown kecil yang gampang kepotong, jadi lebih mudah dipilih.',
+    'Mode tampilan baru: Terang / Gelap / Sesuai perangkat, bisa diatur di Pengaturan. Mode gelap otomatis ikut kalau HP di-set mode malam, dan langsung berubah live kalau setelan sistem berubah saat app terbuka.'
+  ]},
   { version:'v32', date:'19 Agustus 2026', changes:[
     'Pemutar murattal dirombak total mengikuti pola app pembaca Quran populer: saat berhenti, tampil bar "▶ [nama qori]" untuk pilih qori dulu (panel pilih qori sendiri, bukan dropdown bawaan browser lagi); begitu ditap ▶, bar berubah jadi kontrol putar ringkas (berhenti/mundur/putar/maju/ulang) yang tingginya tidak menambah scroll ke tampilan mushaf.',
     'Ulang ayat & ulang 1 halaman digabung jadi 1 tombol dengan panel 2 pilihan, dan sekarang SALING EKSKLUSIF — harus matikan salah satu (balik ke Nonaktif) dulu sebelum bisa mengaktifkan yang lain.'
@@ -1918,38 +2014,33 @@ function updateIdleReciterName(){
   const el = document.getElementById('mushafIdleReciterName');
   if(el) el.textContent = r ? r.name : 'Pilih qori';
 }
-function populateReciterPanel(){
-  const panel = document.getElementById('mushafReciterPanel');
-  if(!panel) return;
+function populateReciterList(){
+  const list = document.getElementById('reciterFullList');
+  if(!list) return;
   const activeId = currentReciter();
-  panel.innerHTML = RECITERS.map(r=>
+  list.innerHTML = RECITERS.map(r=>
     '<div class="mushaf-reciter-item'+(r.id===activeId ? ' active' : '')+'" data-id="'+r.id+'">'+
       '<span>'+r.name+'</span>'+
-      (r.id===activeId ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>' : '')+
+      (r.id===activeId ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>' : '')+
     '</div>'
   ).join('');
-  panel.querySelectorAll('.mushaf-reciter-item').forEach(el=>{
+  list.querySelectorAll('.mushaf-reciter-item').forEach(el=>{
     el.onclick = ()=>{
       setReciter(el.getAttribute('data-id'));
       updateIdleReciterName();
-      panel.style.display = 'none';
+      closeReciterOverlay();
     };
   });
 }
-function toggleReciterPanel(){
-  const panel = document.getElementById('mushafReciterPanel');
-  if(!panel) return;
-  const willOpen = (panel.style.display==='none' || !panel.style.display);
-  if(willOpen) populateReciterPanel();
-  panel.style.display = willOpen ? 'block' : 'none';
+function openReciterOverlay(){
+  populateReciterList();
+  document.getElementById('reciterOverlay').classList.add('open');
 }
-/* tutup panel qori / popover ulang bacaan begitu tap di luar area-nya */
+function closeReciterOverlay(){
+  document.getElementById('reciterOverlay').classList.remove('open');
+}
+/* tutup popover ulang bacaan begitu tap di luar area-nya */
 document.addEventListener('click', (e)=>{
-  const panel = document.getElementById('mushafReciterPanel');
-  const reciterBtn = document.getElementById('mushafIdleReciterBtn');
-  if(panel && panel.style.display==='block' && reciterBtn && !panel.contains(e.target) && e.target!==reciterBtn && !reciterBtn.contains(e.target)){
-    panel.style.display = 'none';
-  }
   const pop = document.getElementById('mushafRepeatPopover');
   const repeatBtn = document.getElementById('mushafRepeatBtn');
   if(pop && pop.style.display==='block' && repeatBtn && !pop.contains(e.target) && e.target!==repeatBtn && !repeatBtn.contains(e.target)){
@@ -2074,8 +2165,7 @@ function playCurrentAyah(){
   updateAyahHighlight();
   const idleBar = document.getElementById('mushafPlayerIdle');
   if(idleBar) idleBar.style.display = 'none';
-  const panel = document.getElementById('mushafReciterPanel');
-  if(panel) panel.style.display = 'none';
+  closeReciterOverlay();
   document.getElementById('mushafAudioBar').style.display = 'block';
   document.getElementById('mushafAudioLabel').textContent = ayahLabel(surah, ayah);
   document.getElementById('mushafPlayToggle').innerHTML = MUSHAF_ICON_PAUSE;
@@ -2553,6 +2643,36 @@ async function saveServerModal(){
 }
 
 /* ---------- INIT ---------- */
+/* ---------- Mode tampilan: Terang / Gelap / Sesuai perangkat ----------
+   Nilai tersimpan: 'light' | 'dark' | 'auto' (default 'auto'). Penerapan
+   AWAL (sebelum body dirender, anti-flash) sudah dilakukan lewat script
+   kecil di <head> — applyTheme() di sini cuma dipanggil ulang saat:
+   (1) pengguna ganti pilihan lewat 3 tombol di Pengaturan,
+   (2) tema sistem berubah live SAAT pilihan sedang 'auto' (mis. HP masuk
+       mode malam otomatis), dilacak lewat matchMedia listener di bawah. */
+const LS_THEME = 'hafalan_theme';
+function currentThemePref(){
+  try{ return localStorage.getItem(LS_THEME) || 'auto'; }catch(e){ return 'auto'; }
+}
+function applyTheme(){
+  const pref = currentThemePref();
+  const isDark = pref==='dark' || (pref==='auto' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  const metaTheme = document.querySelector('meta[name="theme-color"]');
+  if(metaTheme) metaTheme.setAttribute('content', isDark ? '#0F1613' : '#164A40');
+  document.querySelectorAll('.theme-opt').forEach(btn=>{
+    btn.classList.toggle('active', btn.getAttribute('data-theme-value')===pref);
+  });
+}
+function setThemePref(value){
+  try{ localStorage.setItem(LS_THEME, value); }catch(e){}
+  applyTheme();
+}
+if(window.matchMedia){
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ()=>{
+    if(currentThemePref()==='auto') applyTheme();
+  });
+}
 function init(){
   buildKeypad(); renderDotsShell();
   const alreadyUnlocked = pin && sessionStorage.getItem(SS_UNLOCKED)==='1';
@@ -2560,6 +2680,8 @@ function init(){
   else{ showLockScreen(); }
 
   document.getElementById('btnServerSetup').onclick = openServerModal;
+  document.querySelectorAll('.theme-opt').forEach(btn=> btn.onclick = ()=> setThemePref(btn.getAttribute('data-theme-value')));
+  applyTheme();
   document.querySelectorAll('.nav-item').forEach(n=> n.onclick=()=> switchView(n.dataset.view));
   document.getElementById('btnFab').onclick = openQuickLog;
   document.getElementById('quickCancel').onclick = closeQuickLog;
@@ -2585,7 +2707,8 @@ function init(){
   document.getElementById('mushafRepeatAyahChip').onclick = cycleRepeatMode;
   document.getElementById('mushafRepeatPageChip').onclick = cyclePageRepeatMode;
   document.getElementById('mushafIdlePlay').onclick = startMushafPlayback;
-  document.getElementById('mushafIdleReciterBtn').onclick = toggleReciterPanel;
+  document.getElementById('mushafIdleReciterBtn').onclick = openReciterOverlay;
+  document.getElementById('reciterClose').onclick = closeReciterOverlay;
   updateRepeatUI();
   setupMushafSwipe();
 
