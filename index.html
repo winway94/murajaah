@@ -456,6 +456,12 @@ button{font-family:var(--font-sans);}
         <p class="hint" style="margin:8px 0 0; font-size:11px;">Cuma unduh teks ayat (kecil, beberapa MB), bukan audio. Sekali diunduh, halaman bisa dibaca tanpa internet selamanya.</p>
       </div>
       <div class="card" style="margin-top:14px; padding:14px 16px;">
+        <p class="section-title" style="margin:0 0 4px;">Kuota AI Hari Ini</p>
+        <p class="hint" style="margin:0 0 10px;">Sisa jatah gratis Groq (utama) & Cloudflare Workers AI (cadangan) untuk tanggal berjalan (reset otomatis tiap hari) — sekadar info, tidak mengubah apa pun.</p>
+        <button class="btn-full btn-outline" id="btnCheckAiQuota">🔎 Cek Kuota AI Hari Ini</button>
+        <div id="aiQuotaMenuResult" style="display:none; margin-top:12px;"></div>
+      </div>
+      <div class="card" style="margin-top:14px; padding:14px 16px;">
         <p class="section-title" style="margin:0 0 4px;">Ambang waktu overdue murajaah</p>
         <p class="hint" style="margin:0 0 12px;">Halaman berstatus "Sedang murajaah" atau "Stabil" ditandai <b>perlu murajaah (overdue)</b> kalau sudah lebih dari sekian hari sejak terakhir dimurajaah. Berlaku juga untuk pengingat harian di Telegram.</p>
         <div class="field" style="margin-bottom:12px;">
@@ -623,11 +629,19 @@ button{font-family:var(--font-sans);}
   </div>
   <p class="lock-msg" id="serverModalMsg" style="color:var(--danger);"></p>
   <div class="field" id="aiQuotaBox" style="display:none; margin-top:2px;">
-    <label>Kuota AI hari ini (Cloudflare Workers AI, gratis)</label>
+    <label>Kuota AI hari ini (gratis)</label>
     <div style="background:var(--gray-100,#F1F3F2); border-radius:10px; padding:10px 12px; font-size:12.5px; color:var(--gray-700);">
-      <div id="aiQuotaText">Memuat…</div>
-      <div style="background:var(--gray-300); border-radius:99px; height:6px; margin-top:8px; overflow:hidden;">
-        <div id="aiQuotaBar" style="background:var(--primary); height:100%; width:0%; border-radius:99px; transition:width .3s;"></div>
+      <div id="aiQuotaGroqRow" style="display:none;">
+        <div id="aiQuotaGroqText">Memuat…</div>
+        <div style="background:var(--gray-300); border-radius:99px; height:6px; margin-top:6px; overflow:hidden;">
+          <div id="aiQuotaGroqBar" style="background:var(--primary); height:100%; width:0%; border-radius:99px; transition:width .3s;"></div>
+        </div>
+      </div>
+      <div id="aiQuotaWorkersRow" style="margin-top:8px;">
+        <div id="aiQuotaText">Memuat…</div>
+        <div style="background:var(--gray-300); border-radius:99px; height:6px; margin-top:6px; overflow:hidden;">
+          <div id="aiQuotaBar" style="background:var(--primary); height:100%; width:0%; border-radius:99px; transition:width .3s;"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -671,8 +685,11 @@ const DEFAULT_OVERDUE_DAYS = 30;
    AWAL array CHANGELOG (paling atas = paling baru). Ini murni tampilan
    (tidak memengaruhi cache); yang mengontrol update service worker
    tetap CACHE_VERSION di sw.js. */
-const APP_VERSION = 'v28';
+const APP_VERSION = 'v29';
 const CHANGELOG = [
+  { version:'v29', date:'19 Agustus 2026', changes:[
+    'Tambah menu "Kuota AI Hari Ini" di Pengaturan — cek sisa jatah Workers AI hari ini kapan saja (progres bar + status), sumber datanya sama dengan indikator kecil di modal Pengaturan server. Bot Telegram juga bisa dicek lewat ketik "kuota" (atau "ai"/"token").'
+  ]},
   { version:'v28', date:'19 Agustus 2026', changes:[
     'Perbaiki bug navigasi: menutup modal di layar Detail Juz (mis. tombol "Telah dimurajaah hari ini", "Simpan", "Tandai lupa") sekarang tetap di layar Detail Juz yang sama, tidak lagi otomatis terlempar balik ke Dasbor.'
   ]},
@@ -2128,10 +2145,10 @@ function savePinModal(){
   localStorage.setItem(LS_PIN,p1); pin=p1; closePinModal();
 }
 function openServerModal(){ document.getElementById('apiBase').value=apiBase(); document.getElementById('appToken').value=appToken(); document.getElementById('serverModalMsg').textContent=''; pushNavState('server'); document.getElementById('serverOverlay').classList.add('open'); loadAiQuota(); }
-/* Ambil & tampilkan pemakaian kuota Workers AI hari ini dari endpoint
-   /ai-quota Worker (opsional — kalau Worker versi lama belum punya
-   endpoint ini, atau AI/AI_QUOTA belum dikonfigurasi, kotaknya cukup
-   disembunyikan lagi diam-diam, tidak dianggap error). */
+/* Ambil & tampilkan pemakaian kuota AI hari ini (Groq utama + Workers AI
+   cadangan) dari endpoint /ai-quota Worker (opsional — kalau Worker versi
+   lama belum punya endpoint ini, atau kedua provider belum dikonfigurasi,
+   kotaknya cukup disembunyikan lagi diam-diam, tidak dianggap error). */
 async function loadAiQuota(){
   const box = document.getElementById('aiQuotaBox');
   if(!serverConfigured()){ box.style.display='none'; return; }
@@ -2141,15 +2158,108 @@ async function loadAiQuota(){
     const q = await res.json();
     if(!q.aiConfigured){ box.style.display='none'; return; }
     box.style.display='block';
-    const pct = Math.min(100, q.percent||0);
-    document.getElementById('aiQuotaBar').style.width = pct+'%';
-    document.getElementById('aiQuotaBar').style.background = pct>=90 ? 'var(--danger)' : pct>=70 ? 'var(--warning)' : 'var(--primary)';
+
+    // Baris Groq (utama) — cuma ditampilkan kalau GROQ_API_KEY terisi.
+    const groqRow = document.getElementById('aiQuotaGroqRow');
+    if(q.groqConfigured && q.groq){
+      groqRow.style.display='block';
+      const hasBudget = q.groq.budgetTokens!=null;
+      const gPct = hasBudget ? Math.min(100, q.groq.percent||0) : (q.groq.cooldown ? 100 : 0);
+      document.getElementById('aiQuotaGroqBar').style.width = gPct+'%';
+      document.getElementById('aiQuotaGroqBar').style.background = gPct>=90 ? 'var(--danger)' : gPct>=70 ? 'var(--warning)' : 'var(--primary)';
+      document.getElementById('aiQuotaGroqText').textContent = 'Groq (utama): ' +
+        (hasBudget
+          ? q.groq.usedTokens+' / '+q.groq.budgetTokens+' token ('+gPct+'%)'
+          : (q.groq.cooldown ? '\u26A0\uFE0F mendekati limit' : '\u2713 normal'));
+    } else {
+      groqRow.style.display='none';
+    }
+
+    // Baris Workers AI (cadangan) — backward-compatible kalau Worker versi
+    // lama cuma balikin usedNeuron/budgetNeuron/percent di root.
+    const wUsed = q.workersAi ? q.workersAi.usedNeuron : q.usedNeuron;
+    const wBudget = q.workersAi ? q.workersAi.budgetNeuron : q.budgetNeuron;
+    const wPct = Math.min(100, (q.workersAi ? q.workersAi.percent : q.percent) || 0);
+    document.getElementById('aiQuotaBar').style.width = wPct+'%';
+    document.getElementById('aiQuotaBar').style.background = wPct>=90 ? 'var(--danger)' : wPct>=70 ? 'var(--warning)' : 'var(--primary)';
     document.getElementById('aiQuotaText').textContent =
-      q.usedNeuron+' / '+q.budgetNeuron+' Neuron ('+pct+'%)' +
+      (q.groqConfigured ? 'Workers AI (cadangan): ' : '') +
+      wUsed+' / '+wBudget+' Neuron ('+wPct+'%)' +
       (q.quotaTrackingActive ? '' : ' \u2014 pelacakan belum aktif (KV AI_QUOTA belum diisi)');
   }catch(e){
     console.log('loadAiQuota gagal:', e);
     box.style.display='none'; // gagal diam-diam, bukan fitur inti
+  }
+}
+/* ---------- Kartu "Kuota AI Hari Ini" di layar Pengaturan ----------
+   Sumbernya sama persis (endpoint GET /ai-quota) dengan indikator kecil di
+   modal Server di atas — cuma tampilannya lebih lengkap (blok Groq +
+   Workers AI, progres bar + status teks per provider), dan bisa dicek
+   kapan saja tanpa buka modal Server dulu. */
+async function checkAiQuotaMenu(){
+  const btn = document.getElementById('btnCheckAiQuota');
+  const box = document.getElementById('aiQuotaMenuResult');
+  if(!btn || !box) return;
+  if(!serverConfigured()){
+    box.style.display='block';
+    box.innerHTML = '<p class="hint" style="margin:0;color:var(--danger);">Belum tersambung ke server. Isi dulu URL Worker dan token di "Pengaturan server".</p>';
+    return;
+  }
+  btn.disabled = true;
+  box.style.display='block';
+  box.innerHTML = '<p class="hint" style="margin:0;">Memuat kuota AI hari ini…</p>';
+  try{
+    const res = await fetch(apiBase() + '/ai-quota', { headers:{ 'X-App-Token': appToken() } });
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const q = await res.json();
+    if(!q.aiConfigured){
+      box.innerHTML = '<p class="hint" style="margin:0;">Fitur AI belum dikonfigurasi di Worker (GROQ_API_KEY & binding "AI" dua-duanya belum diisi). Sisa fitur lain tetap normal.</p>';
+      return;
+    }
+
+    let html = '<div style="background:var(--gray-100,#F1F3F2); border-radius:10px; padding:10px 12px; font-size:12.5px; color:var(--gray-700);">';
+
+    // Blok Groq (provider utama)
+    if(q.groqConfigured && q.groq){
+      const hasBudget = q.groq.budgetTokens!=null;
+      const gPct = hasBudget ? Math.min(100, q.groq.percent||0) : 0;
+      const gBarColor = gPct>=90 ? 'var(--danger)' : gPct>=70 ? 'var(--warning)' : 'var(--primary)';
+      html += '<div style="font-weight:600;margin-bottom:4px;">Groq (utama)</div>' +
+        '<div>' + (hasBudget
+            ? q.groq.usedTokens+' / '+q.groq.budgetTokens+' token ('+gPct+'%)'
+            : (q.groq.cooldown ? '⚠️ Mendekati limit, sementara dilewati ke Workers AI.' : '✓ Normal.')) +
+        '</div>';
+      if(hasBudget){
+        html += '<div style="background:var(--gray-300,#E4E7E6); border-radius:99px; height:8px; margin-top:6px; overflow:hidden;">' +
+          '<div style="background:'+gBarColor+'; height:100%; width:'+gPct+'%; border-radius:99px; transition:width .3s;"></div></div>';
+      }
+      html += '<div style="margin-top:10px;border-top:1px solid var(--gray-300,#E4E7E6);padding-top:10px;font-weight:600;margin-bottom:4px;">Workers AI (cadangan)</div>';
+    } else {
+      html += '<div style="font-size:12px;color:var(--gray-500,#888);margin-bottom:8px;">Groq (utama): belum dikonfigurasi (GROQ_API_KEY kosong) — langsung pakai Workers AI.</div>' +
+        '<div style="font-weight:600;margin-bottom:4px;">Workers AI (cadangan)</div>';
+    }
+
+    // Blok Workers AI (cadangan) — backward-compatible kalau Worker versi
+    // lama cuma balikin usedNeuron/budgetNeuron/percent di root.
+    const wUsed = q.workersAi ? q.workersAi.usedNeuron : q.usedNeuron;
+    const wBudget = q.workersAi ? q.workersAi.budgetNeuron : q.budgetNeuron;
+    const wPct = Math.min(100, (q.workersAi ? q.workersAi.percent : q.percent) || 0);
+    const wBarColor = wPct>=90 ? 'var(--danger)' : wPct>=70 ? 'var(--warning)' : 'var(--primary)';
+    const statusText = wPct>=90 ? '⚠️ Nyaris habis — fitur AI berhenti otomatis & sopan sampai besok kalau kepakai semua.' : wPct>=70 ? 'Mulai mepet, tapi masih aman.' : 'Masih longgar, aman dipakai.';
+    html +=
+        '<div>'+wUsed+' / '+wBudget+' Neuron ('+wPct+'%)</div>' +
+        '<div style="background:var(--gray-300,#E4E7E6); border-radius:99px; height:8px; margin-top:6px; overflow:hidden;">' +
+          '<div style="background:'+wBarColor+'; height:100%; width:'+wPct+'%; border-radius:99px; transition:width .3s;"></div>' +
+        '</div>' +
+        '<div style="margin-top:8px;">'+statusText+'</div>' +
+        (q.quotaTrackingActive ? '' : '<div style="margin-top:8px;color:var(--warning);">KV "AI_QUOTA" belum diisi — angka Groq & Workers AI di atas belum terlacak sungguhan (fitur AI tetap jalan tapi tanpa pengaman kuota).</div>') +
+      '</div>';
+    box.innerHTML = html;
+  }catch(e){
+    console.log('checkAiQuotaMenu gagal:', e);
+    box.innerHTML = '<p class="hint" style="margin:0;color:var(--danger);">Gagal memuat kuota: '+String((e&&e.message)||e)+'</p>';
+  }finally{
+    btn.disabled = false;
   }
 }
 function closeServerModal(){ document.getElementById('serverOverlay').classList.remove('open'); consumeNavStateIfNeeded(); }
@@ -2211,6 +2321,7 @@ function init(){
   document.getElementById('menuServer').onclick = openServerModal;
   document.getElementById('menuRefresh').onclick = async ()=>{ await fetchData(); renderAll(); };
   document.getElementById('menuLock').onclick = showLockScreen;
+  document.getElementById('btnCheckAiQuota').onclick = checkAiQuotaMenu;
   document.getElementById('btnDownloadOffline').onclick = downloadAllPagesForOffline;
   document.getElementById('btnSaveOverdueDays').onclick = saveOverdueDaysSetting;
   document.getElementById('btnChangelog').onclick = openChangelog;
