@@ -671,8 +671,11 @@ const DEFAULT_OVERDUE_DAYS = 30;
    AWAL array CHANGELOG (paling atas = paling baru). Ini murni tampilan
    (tidak memengaruhi cache); yang mengontrol update service worker
    tetap CACHE_VERSION di sw.js. */
-const APP_VERSION = 'v27';
+const APP_VERSION = 'v28';
 const CHANGELOG = [
+  { version:'v28', date:'19 Agustus 2026', changes:[
+    'Perbaiki bug navigasi: menutup modal di layar Detail Juz (mis. tombol "Telah dimurajaah hari ini", "Simpan", "Tandai lupa") sekarang tetap di layar Detail Juz yang sama, tidak lagi otomatis terlempar balik ke Dasbor.'
+  ]},
   { version:'v27', date:'19 Agustus 2026', changes:[
     'Tambah pengaturan ambang waktu overdue murajaah (bisa diubah sendiri, default 30 hari) — tersimpan di server, ikut dipakai reminder Telegram.',
     'Hapus tombol menu (☰) & titik-tiga (⋮) di header karena fungsinya sudah ada di tab "Pengaturan" pada navigasi bawah.'
@@ -1003,6 +1006,7 @@ let currentView = 'beranda';
    modal/kembalikan tampilan sesuai state SEBELUM back ditekan. */
 let suppressHistoryPush = false;
 let handlingPopstate = false; // true SELAMA proses menutup akibat tombol back ditekan, supaya closeXxx() yg dipanggil dari dalam popstate tidak ikut coba "history.back()" lagi (infinite loop)
+let expectingProgrammaticPop = false; // true SELAMA history.back() yang kita panggil SENDIRI dari consumeNavStateIfNeeded() (mis. abis klik tombol "Simpan"/"Telah dimurajaah hari ini") lagi diproses, supaya popstate listener di bawah tidak salah kira ini tombol back HP beneran lalu ikut nutup layar Detail sekali lagi — modal/state-nya kan sudah kita tutup duluan secara manual sebelum manggil history.back() ini.
 function pushNavState(label){
   if(suppressHistoryPush) return;
   try{ history.pushState({ navMarker: label, t: Date.now() }, ''); }catch(e){ /* abaikan kalau browser tolak (mis. di dalam iframe) */ }
@@ -1015,7 +1019,8 @@ function pushNavState(label){
 function consumeNavStateIfNeeded(){
   if(handlingPopstate) return;
   if(history.state && history.state.navMarker){
-    try{ history.back(); }catch(e){}
+    expectingProgrammaticPop = true;
+    try{ history.back(); }catch(e){ expectingProgrammaticPop = false; }
   }
 }
 /* tutup modal/overlay teratas yang lagi kebuka. Return true kalau ada
@@ -1034,6 +1039,12 @@ function closeTopmostOverlay(){
   return true;
 }
 window.addEventListener('popstate', ()=>{
+  // popstate ini murni akibat history.back() yang KITA panggil sendiri
+  // (bukan user pencet tombol back) buat sinkronkan riwayat browser
+  // setelah modal ditutup lewat tombol Simpan/Batal/dsb — modal & tampilan
+  // sebenarnya SUDAH benar sebelum ini, jadi cukup reset flag-nya, tidak
+  // perlu (dan JANGAN) menutup apa pun lagi di sini.
+  if(expectingProgrammaticPop){ expectingProgrammaticPop = false; return; }
   handlingPopstate = true;
   suppressHistoryPush = true; // supaya switchView/closeDetail di bawah tidak ikut push entry baru
   try{

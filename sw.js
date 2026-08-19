@@ -7,7 +7,7 @@
    Naikkan CACHE_VERSION setiap kali index.html/manifest/ikon diubah,
    supaya pengguna otomatis dapat versi terbaru.
    ============================================================ */
-const CACHE_VERSION = "v27";
+const CACHE_VERSION = "v28";
 const CACHE_NAME = "hafalan-" + CACHE_VERSION;
 // Cache TERPISAH untuk aset statis pihak ketiga (SVG halaman mushaf +
 // audio murottal per-ayat). SENGAJA tidak ikut prefix "hafalan-"/
