@@ -316,6 +316,8 @@ button{font-family:var(--font-sans);}
   border-radius:0; display:flex; flex-direction:column; padding:14px 14px calc(14px + env(safe-area-inset-bottom));}
 #mushafOverlay .mushaf-imgwrap{flex:1 1 auto; max-height:none;}
 .mushaf-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px;}
+.mushaf-mutasyabih-badge{background:var(--alert-warning-bg);border:1px solid var(--warning);border-radius:10px;padding:8px 10px;margin-bottom:10px;font-size:11.5px;color:var(--alert-warning-text);line-height:1.5;}
+.mushaf-mutasyabih-badge b{color:var(--warning);}
 .mushaf-imgwrap{position:relative;background:var(--gray-100,#F0F2F1);border-radius:var(--radius-md,10px);min-height:320px;
   max-height:56vh; overflow-y:auto; touch-action:pan-y;}
 .mushaf-imgwrap img{width:100%;height:auto;display:block;}
@@ -335,7 +337,7 @@ button{font-family:var(--font-sans);}
   text-align:center;padding:20px;font-size:12.5px;color:var(--gray-500);}
 .mushaf-tip{font-size:11px;color:var(--gray-500);text-align:center;margin:8px 0 0;}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
-.mushaf-audiobar{margin-top:8px;position:relative;}
+.mushaf-audiobar{margin-top:8px;position:relative;min-height:104px;display:flex;flex-direction:column;justify-content:center;}
 .mushaf-idle-bar{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-lg,16px);padding:10px 12px;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow-sm);}
 .mushaf-idle-play{width:38px;height:38px;border-radius:50%;border:none;background:var(--primary);color:var(--on-primary);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;padding:0;}
 .mushaf-idle-play svg{width:46%;height:46%;}
@@ -397,6 +399,11 @@ button{font-family:var(--font-sans);}
 .theme-switcher{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
 .theme-opt{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;border:1.5px solid var(--gray-200);border-radius:var(--radius-md);background:var(--gray-50);color:var(--gray-700);font-size:12px;font-weight:600;cursor:pointer;}
 .theme-opt.active{border-color:var(--primary);background:var(--primary-50);color:var(--primary);}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.toggle-switch{position:relative;width:44px;height:26px;flex-shrink:0;border:none;background:var(--gray-300);border-radius:99px;cursor:pointer;padding:0;transition:background .2s;}
+.toggle-switch::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--on-primary);box-shadow:0 1px 3px rgba(0,0,0,0.25);transition:transform .2s;}
+.toggle-switch.on{background:var(--primary);}
+.toggle-switch.on::after{transform:translateX(18px);}
 </style>
 <script>
 /* Diterapkan sesegera mungkin (sebelum body dirender) supaya tidak ada
@@ -622,6 +629,15 @@ button{font-family:var(--font-sans);}
         </div>
         <button class="btn-full btn-primary" id="btnSaveOverdueDays">Simpan ambang batas</button>
       </div>
+      <div class="card" style="margin-top:14px; padding:14px 16px;">
+        <div class="toggle-row">
+          <div style="flex:1; min-width:0;">
+            <p class="section-title" style="margin:0 0 4px;">⚠️ Deteksi ayat mutasyabih</p>
+            <p class="hint" style="margin:0;">Tampilkan badge peringatan kalau halaman yang dibuka mengandung ayat mirip yang sering tertukar. Cuma info tambahan — teks mushaf sendiri TIDAK diubah sama sekali.</p>
+          </div>
+          <button class="toggle-switch" id="toggleMutasyabih" role="switch" aria-label="Deteksi ayat mutasyabih"></button>
+        </div>
+      </div>
       <div class="card" style="margin-top:14px; padding:14px 16px; text-align:center;">
         <p class="section-title" style="margin:0 0 4px; text-align:center;">📱 Hafalan &amp; Muraja'ah</p>
         <p class="hint" style="margin:0 0 14px;">Versi terpasang: <b id="appVersionText">v26</b></p>
@@ -715,6 +731,7 @@ button{font-family:var(--font-sans);}
       <button class="icon-btn" id="mushafClose"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
   </div>
+  <div class="mushaf-mutasyabih-badge" id="mushafMutasyabihBadge" style="display:none;"></div>
   <div class="mushaf-fontsize-row" id="mushafFontSizeRow" style="display:none; align-items:center; gap:8px; margin-bottom:10px;">
     <span style="font-size:12px; color:var(--gray-500);">A</span>
     <input type="range" id="mushafFontSize" min="18" max="36" step="1" value="26" style="flex:1;">
@@ -868,8 +885,24 @@ const DEFAULT_OVERDUE_DAYS = 30;
    AWAL array CHANGELOG (paling atas = paling baru). Ini murni tampilan
    (tidak memengaruhi cache); yang mengontrol update service worker
    tetap CACHE_VERSION di sw.js. */
-const APP_VERSION = 'v33';
+const APP_VERSION = 'v38';
 const CHANGELOG = [
+  { version:'v38', date:'19 Agustus 2026', changes:[
+    'worker.js: tambah retry otomatis (1x, jeda singkat) saat ambil teks ayat dari API Al-Qur\'an gagal — mengurangi kejadian "Gagal ambil teks ayat" yang sebenarnya cuma gangguan sesaat, bukan API benar-benar down. (Sudah diverifikasi format URL yang dipakai memang benar, bukan salah ketik.)'
+  ]},
+  { version:'v37', date:'19 Agustus 2026', changes:[
+    'Kuis baru di bot Telegram: "Kuis Ayat Mutasyabih" — dikasih 1 ayat asli (diambil langsung dari server Al-Qur\'an, bukan dikarang), lalu tebak itu tepatnya ayat yang mana di antara ayat-ayat mirip yang sering tertukar. Ketik "mutasyabihatquiz" atau tap tombol "Kuis mutasyabih" di menu /status.'
+  ]},
+  { version:'v36', date:'19 Agustus 2026', changes:[
+    'Tambah toggle "Deteksi ayat mutasyabih" di Pengaturan — badge peringatan ayat mirip bisa dimatikan kalau tidak diperlukan. Fitur ini murni tambahan visual (badge kecil di luar area teks); teks mushaf sendiri tidak pernah diubah/ditandai sama sekali, jadi mematikannya pun tidak mengubah apa-apa di bacaan.'
+  ]},
+  { version:'v35', date:'19 Agustus 2026', changes:[
+    'Fitur baru: pengecekan "ayat mutasyabih" (ayat mirip yang sering tertukar saat hafalan) — muncul badge peringatan otomatis kalau halaman yang dibuka mengandung ayat dari dataset starter (masih kecil, akan bertambah). Bisa juga dicek lewat bot Telegram: "mutasyabihat al-baqarah".',
+    'Fitur baru: jam pengingat harian sekarang ADAPTIF — otomatis menyesuaikan ke jam kebiasaan Anda murajaah (dihitung dari riwayat 14 hari terakhir), bukan jam tetap terus. Bisa dikunci manual lewat bot: "jampengingat 20". PENTING: perlu ubah jadwal Cron Trigger di Cloudflare Dashboard dari 1x/hari jadi tiap jam supaya fitur ini benar-benar aktif — lihat pesan chat untuk detailnya.'
+  ]},
+  { version:'v34', date:'19 Agustus 2026', changes:[
+    'Fix: area teks mushaf sempat "menciut" & kepotong 1 baris begitu murattal mulai diputar (karena bar kontrol lebih tinggi dari bar qori saat berhenti). Sekarang tinggi wadah player selalu sama persis di kedua kondisi, jadi area baca tidak pernah bergeser/perlu scroll tambahan saat mulai/berhenti putar.'
+  ]},
   { version:'v33', date:'19 Agustus 2026', changes:[
     'Panel pilih qori sekarang layar penuh ("Pilih Qori") — bukan dropdown kecil yang gampang kepotong, jadi lebih mudah dipilih.',
     'Mode tampilan baru: Terang / Gelap / Sesuai perangkat, bisa diatur di Pengaturan. Mode gelap otomatis ikut kalau HP di-set mode malam, dan langsung berubah live kalau setelan sistem berubah saat app terbuka.'
@@ -972,6 +1005,64 @@ const RECITERS = [
   { id: 'Husary_128kbps_Mujawwad', name: 'Al-Hussary (Mujawwad)' },
   { id: 'Ayman_Sowaid_64kbps', name: 'Ayman Suwaid' },
 ];
+/* ---------- Ayat mutasyabih lafzhi (ayat mirip yang sering tertukar) ----------
+   Sama persis dengan dataset di worker.js (dijaga identik) — starter set
+   kecil yang sudah diverifikasi via referensi tahfidz, BUKAN karangan AI.
+   Lihat komentar lebih lengkap di worker.js soal istilah & sumbernya. */
+const MUTASYABIHAT_GROUPS = [
+  {
+    refs: [ { surah: 2, ayah: 21, surahName: 'Al-Baqarah' }, { surah: 2, ayah: 168, surahName: 'Al-Baqarah' } ],
+    note: 'Sama-sama dibuka "Yaa ayyuhan-naas", tapi lanjutannya beda: ayat 21 perintah beribadah, ayat 168 soal makanan halal.',
+  },
+  {
+    refs: [ { surah: 37, ayah: 16, surahName: 'Ash-Shaffat' }, { surah: 37, ayah: 53, surahName: 'Ash-Shaffat' } ],
+    note: 'Sama sampai "a-inna lamab..." — ayat 16 ditutup "lamab\'utsuun", ayat 53 ditutup "lamadinuun".',
+  },
+  {
+    refs: [ { surah: 58, ayah: 3, surahName: 'Al-Mujadalah' }, { surah: 58, ayah: 11, surahName: 'Al-Mujadalah' }, { surah: 58, ayah: 13, surahName: 'Al-Mujadalah' } ],
+    note: 'Ayat 3 & 11 ditutup "...bimaa ta\'maluuna khabiir", ayat 13 urutannya TERTUKAR jadi "...khabiirun bimaa ta\'maluun".',
+  },
+];
+/* cek apakah ada ayat di playlist halaman yang sedang dibuka termasuk
+   salah satu grup mutasyabihat -> dipanggil tiap kali halaman baru dirender */
+const LS_MUTASYABIH_ENABLED = 'hafalan_mutasyabih_enabled';
+function isMutasyabihEnabled(){
+  try{
+    const v = localStorage.getItem(LS_MUTASYABIH_ENABLED);
+    return v === null ? true : v === '1'; // default AKTIF kalau belum pernah diatur
+  }catch(e){ return true; }
+}
+function setMutasyabihEnabled(on){
+  try{ localStorage.setItem(LS_MUTASYABIH_ENABLED, on ? '1' : '0'); }catch(e){}
+  const btn = document.getElementById('toggleMutasyabih');
+  if(btn) btn.classList.toggle('on', on);
+  // begitu dimatikan, badge yang mungkin lagi tampil di halaman yang
+  // sedang dibuka langsung disembunyikan juga (bukan cuma berlaku utk
+  // halaman berikutnya)
+  if(!on){
+    const badge = document.getElementById('mushafMutasyabihBadge');
+    if(badge) badge.style.display = 'none';
+  }else{
+    renderMutasyabihBadge(mushafPlaylist);
+  }
+}
+function findMutasyabihatOnPage(playlist){
+  if(!playlist || !playlist.length) return [];
+  return MUTASYABIHAT_GROUPS.filter(g=>
+    g.refs.some(r=> playlist.some(a=> a.surah===r.surah && a.ayah===r.ayah))
+  );
+}
+function renderMutasyabihBadge(playlist){
+  const badge = document.getElementById('mushafMutasyabihBadge');
+  if(!badge) return;
+  if(!isMutasyabihEnabled()){ badge.style.display = 'none'; return; }
+  const matches = findMutasyabihatOnPage(playlist);
+  if(!matches.length){ badge.style.display = 'none'; return; }
+  badge.innerHTML = matches.map(g=>
+    '<div style="margin-bottom:4px;"><b>\u26A0\uFE0F Ayat mirip:</b> '+g.refs.map(r=>'QS '+r.surahName+':'+r.ayah).join(' \u2194 ')+'<br>'+g.note+'</div>'
+  ).join('');
+  badge.style.display = 'block';
+}
 const LS_RECITER = 'hafalan_reciter_id';
 function currentReciter(){
   try{
@@ -2097,6 +2188,7 @@ function renderMushafViewer(){
   const hasAyahData = meta && meta.ayahs && meta.ayahs.length;
   if(hasAyahData) mushafPlaylist = meta.ayahs.slice();
   renderMushafProgressSegs();
+  renderMutasyabihBadge(mushafPlaylist);
   if(hasAyahData) updateIdleReciterName();
 
   if(mushafViewMode==='text' && hasAyahData){
@@ -2105,7 +2197,7 @@ function renderMushafViewer(){
     textWrap.style.display = 'block';
     tip.style.display = 'block';
     document.getElementById('mushafFontSizeRow').style.display = 'flex';
-    document.getElementById('mushafPlayerIdle').style.display = 'block';
+    document.getElementById('mushafPlayerIdle').style.display = 'flex';
   }else if(mushafViewMode==='text' && !meta && !pageMetaFailed[p]){
     // teks belum ada di cache, masih nunggu fetch info surah/ayat di
     // belakang layar -> tetap tampilkan loading, nanti onPageMetaLoaded()
@@ -2119,7 +2211,7 @@ function renderMushafViewer(){
     imgEl.onload = ()=>{ loading.style.display='none'; imgEl.style.display='block'; };
     imgEl.onerror = ()=>{ loading.style.display='none'; errEl.style.display='flex'; };
     imgEl.src = mushafImageUrl(p);
-    if(hasAyahData) document.getElementById('mushafPlayerIdle').style.display = 'block';
+    if(hasAyahData) document.getElementById('mushafPlayerIdle').style.display = 'flex';
   }
 }
 function mushafPrev(){ if(currentMushafPage>1){ currentMushafPage--; renderMushafViewer(); } }
@@ -2166,7 +2258,7 @@ function playCurrentAyah(){
   const idleBar = document.getElementById('mushafPlayerIdle');
   if(idleBar) idleBar.style.display = 'none';
   closeReciterOverlay();
-  document.getElementById('mushafAudioBar').style.display = 'block';
+  document.getElementById('mushafAudioBar').style.display = 'flex';
   document.getElementById('mushafAudioLabel').textContent = ayahLabel(surah, ayah);
   document.getElementById('mushafPlayToggle').innerHTML = MUSHAF_ICON_PAUSE;
   document.getElementById('mushafAyahPrev').disabled = (mushafPlayIndex<=0);
@@ -2263,7 +2355,7 @@ function stopMushafAudio(){
   const btn = document.getElementById('mushafPlayToggle');
   if(btn) btn.innerHTML = MUSHAF_ICON_PLAY;
   const idleBar = document.getElementById('mushafPlayerIdle');
-  if(idleBar) idleBar.style.display = mushafPlaylist.length ? 'block' : 'none';
+  if(idleBar) idleBar.style.display = mushafPlaylist.length ? 'flex' : 'none';
 }
 /* ---------- Wake Lock: layar tetap menyala selama murattal diputar ----------
    Otomatis dilepas sendiri oleh browser begitu layar dikunci/app diminimize
@@ -2682,6 +2774,8 @@ function init(){
   document.getElementById('btnServerSetup').onclick = openServerModal;
   document.querySelectorAll('.theme-opt').forEach(btn=> btn.onclick = ()=> setThemePref(btn.getAttribute('data-theme-value')));
   applyTheme();
+  document.getElementById('toggleMutasyabih').classList.toggle('on', isMutasyabihEnabled());
+  document.getElementById('toggleMutasyabih').onclick = ()=> setMutasyabihEnabled(!isMutasyabihEnabled());
   document.querySelectorAll('.nav-item').forEach(n=> n.onclick=()=> switchView(n.dataset.view));
   document.getElementById('btnFab').onclick = openQuickLog;
   document.getElementById('quickCancel').onclick = closeQuickLog;
