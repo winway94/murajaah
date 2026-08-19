@@ -264,16 +264,27 @@ button{font-family:var(--font-sans);}
   text-align:center;padding:20px;font-size:12.5px;color:var(--gray-500);}
 .mushaf-tip{font-size:11px;color:var(--gray-500);text-align:center;margin:8px 0 0;}
 .mushaf-audiobar{margin-top:8px;}
-.mushaf-player{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-lg,16px);padding:14px 16px;box-shadow:var(--shadow-sm);}
-.mushaf-player-title{font-size:12.5px;font-weight:700;color:var(--gray-900);margin:0 0 10px;}
-.mushaf-progress-segs{display:flex;gap:3px;margin-bottom:12px;}
-.mushaf-progress-seg{flex:1;height:4px;border-radius:99px;background:var(--gray-200);transition:background .2s;}
+/* .mushaf-audiobar di-set display:flex lewat JS saat player tampil (lihat
+   playCurrentAyah()). Karena itu, .mushaf-player yang jadi satu-satunya
+   anak di dalamnya butuh width:100% eksplisit -- kalau tidak, sebagai flex
+   item ia hanya selebar isinya (shrink-to-fit), BUKAN selebar induknya.
+   Inilah sebab kartu player sebelumnya kelihatan lebih sempit daripada
+   kotak mushaf di atasnya, padahal keduanya sama-sama anak langsung dari
+   #mushafOverlay .sheet (flex column) yang lebarnya sama persis. */
+.mushaf-player{width:100%;box-sizing:border-box;background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-lg,16px);padding:16px 18px;box-shadow:var(--shadow-sm);}
+.mushaf-player-title{font-size:13.5px;font-weight:700;color:var(--gray-900);margin:0 0 12px;}
+.mushaf-progress-segs{display:flex;gap:3px;margin-bottom:14px;}
+.mushaf-progress-seg{flex:1;height:5px;border-radius:99px;background:var(--gray-200);transition:background .2s;}
 .mushaf-progress-seg.active{background:var(--primary);}
 .mushaf-controls-row{display:flex;align-items:center;justify-content:space-between;}
-.mushaf-ctl-btn{width:32px;height:32px;border-radius:50%;border:none;background:var(--gray-100);color:var(--gray-700);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;position:relative;padding:0;}
-.mushaf-ctl-skip{width:34px;height:34px;font-size:16px;}
-.mushaf-ctl-main{width:48px;height:48px;border-radius:50%;border:none;background:var(--primary);color:var(--white);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:19px;padding:0;}
-.mushaf-repeat-badge{position:absolute;bottom:-3px;right:-3px;background:var(--primary);color:var(--white);font-size:8px;font-weight:700;border-radius:99px;min-width:14px;height:14px;display:flex;align-items:center;justify-content:center;padding:0 2px;line-height:1;}
+.mushaf-ctl-btn{width:38px;height:38px;border-radius:50%;border:none;background:var(--gray-100);color:var(--gray-700);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;padding:0;}
+.mushaf-ctl-btn svg{width:46%;height:46%;}
+.mushaf-ctl-skip{width:42px;height:42px;}
+.mushaf-ctl-skip svg{width:48%;height:48%;}
+.mushaf-ctl-main{width:58px;height:58px;border-radius:50%;border:none;background:var(--primary);color:var(--white);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;}
+.mushaf-ctl-main svg{width:42%;height:42%;}
+.mushaf-ctl-stop{background:var(--danger);color:var(--white);}
+.mushaf-repeat-badge{position:absolute;bottom:-3px;right:-3px;background:var(--primary);color:var(--white);font-size:8.5px;font-weight:700;border-radius:99px;min-width:16px;height:16px;display:flex;align-items:center;justify-content:center;padding:0 2px;line-height:1;}
 .mushaf-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;}
 .sheet h3{font-size:18px;font-weight:800;margin:0 0 4px;color:var(--gray-900);}
 .hint{font-size:12.5px;color:var(--gray-500);line-height:1.5;margin:0 0 16px;}
@@ -593,13 +604,13 @@ button{font-family:var(--font-sans);}
       <p class="mushaf-player-title" id="mushafAudioLabel"></p>
       <div class="mushaf-progress-segs" id="mushafProgressSegs"></div>
       <div class="mushaf-controls-row">
-        <button class="mushaf-ctl-btn" id="mushafRepeatMode" title="Ulang bacaan" aria-label="Ulang bacaan">🔁<span class="mushaf-repeat-badge" id="mushafRepeatBadge">1x</span></button>
+        <button class="mushaf-ctl-btn" id="mushafRepeatMode" title="Ulang bacaan" aria-label="Ulang bacaan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg><span class="mushaf-repeat-badge" id="mushafRepeatBadge">1x</span></button>
         <div style="display:flex; align-items:center; gap:14px;">
-          <button class="mushaf-ctl-btn mushaf-ctl-skip" id="mushafAyahPrev" title="Ayat sebelumnya" aria-label="Ayat sebelumnya">⏮</button>
+          <button class="mushaf-ctl-btn mushaf-ctl-skip" id="mushafAyahPrev" title="Ayat sebelumnya" aria-label="Ayat sebelumnya"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zM10 12l8-6v12z"/></svg></button>
           <button class="mushaf-ctl-main" id="mushafPlayToggle" aria-label="Putar/jeda"></button>
-          <button class="mushaf-ctl-btn mushaf-ctl-skip" id="mushafAyahNext" title="Ayat berikutnya" aria-label="Ayat berikutnya">⏭</button>
+          <button class="mushaf-ctl-btn mushaf-ctl-skip" id="mushafAyahNext" title="Ayat berikutnya" aria-label="Ayat berikutnya"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM6 6l8 6-8 6z"/></svg></button>
         </div>
-        <button class="mushaf-ctl-btn" id="mushafStop" title="Berhenti" aria-label="Berhenti">⏹</button>
+        <button class="mushaf-ctl-btn mushaf-ctl-stop" id="mushafStop" title="Berhenti" aria-label="Berhenti"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg></button>
       </div>
     </div>
   </div>
@@ -1899,6 +1910,8 @@ function mushafPrev(){ if(currentMushafPage>1){ currentMushafPage--; renderMusha
 function mushafNext(){ if(currentMushafPage<TOTAL_PAGES){ currentMushafPage++; renderMushafViewer(); } }
 
 /* ---------- Kontrol audio murottal ---------- */
+const MUSHAF_ICON_PLAY = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+const MUSHAF_ICON_PAUSE = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
 function ayahLabel(surah, ayah){
   const meta = getPageMeta(currentMushafPage);
   const seg = meta && meta.segs && meta.segs.find(s=> ayah>=s.from && ayah<=s.to);
@@ -1937,7 +1950,7 @@ function playCurrentAyah(){
   document.getElementById('mushafAudioStart').style.display = 'none';
   document.getElementById('mushafAudioBar').style.display = 'flex';
   document.getElementById('mushafAudioLabel').textContent = ayahLabel(surah, ayah);
-  document.getElementById('mushafPlayToggle').textContent = '\u23F8'; // pause
+  document.getElementById('mushafPlayToggle').innerHTML = MUSHAF_ICON_PAUSE;
   document.getElementById('mushafAyahPrev').disabled = (mushafPlayIndex<=0);
   document.getElementById('mushafAyahNext').disabled = (mushafPlayIndex>=mushafPlaylist.length-1);
 }
@@ -1965,7 +1978,7 @@ function cycleRepeatMode(){
 }
 function toggleMushafPlay(){
   if(!mushafPlaylist.length) return;
-  if(!mushafAudioEl.paused){ mushafAudioEl.pause(); document.getElementById('mushafPlayToggle').textContent = '\u25B6'; releaseMushafWakeLock(); return; }
+  if(!mushafAudioEl.paused){ mushafAudioEl.pause(); document.getElementById('mushafPlayToggle').innerHTML = MUSHAF_ICON_PLAY; releaseMushafWakeLock(); return; }
   if(mushafPlayIndex<0) mushafPlayIndex = 0;
   playCurrentAyah();
 }
@@ -1979,7 +1992,7 @@ function stopMushafAudio(){
   const bar = document.getElementById('mushafAudioBar');
   if(bar) bar.style.display = 'none';
   const btn = document.getElementById('mushafPlayToggle');
-  if(btn) btn.textContent = '\u25B6';
+  if(btn) btn.innerHTML = MUSHAF_ICON_PLAY;
   const startBtn = document.getElementById('mushafAudioStart');
   if(startBtn) startBtn.style.display = mushafPlaylist.length ? 'block' : 'none';
 }
