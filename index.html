@@ -349,6 +349,7 @@ button{font-family:var(--font-sans);}
       <div class="keypad" id="keypad"></div>
       <p class="lock-msg" id="lockMsg"></p>
       <button class="lock-link" id="btnServerSetup">Pengaturan server &amp; bot Telegram</button>
+      <button class="lock-link" id="btnForgotPin">Lupa PIN?</button>
       <p class="lock-footnote">PIN mengunci tampilan di perangkat ini. Data tersimpan di server Anda sendiri.</p>
     </div>
   </div>
@@ -676,9 +677,10 @@ button{font-family:var(--font-sans);}
   <div class="field"><label>URL Worker</label><input type="text" id="apiBase" placeholder="https://nama-worker.xxxx.workers.dev"></div>
   <div class="field"><label>App token</label>
     <div style="display:flex;gap:6px;">
-      <input type="text" id="appToken" placeholder="Token APP_TOKEN" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="flex:1;">
+      <input type="password" id="appToken" placeholder="Token APP_TOKEN" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="flex:1;">
+      <button type="button" class="btn btn-ghost" id="toggleAppToken" style="flex:0 0 auto;padding:0 12px;white-space:nowrap;">Lihat</button>
     </div>
-    <p style="font-size:11px;color:var(--gray-500,#888);margin:6px 0 0;">Ditampilkan langsung (bukan disamarkan) supaya Anda bisa cek persis sama dengan yang di Cloudflare.</p>
+    <p style="font-size:11px;color:var(--gray-500,#888);margin:6px 0 0;">Disamarkan jadi titik-titik supaya tidak mudah terlihat/terlacak orang lain di sekitar Anda. Tekan "Lihat" kalau perlu mengecek persis sama dengan yang di Cloudflare.</p>
   </div>
   <p class="lock-msg" id="serverModalMsg" style="color:var(--danger);"></p>
   <div class="field" id="aiQuotaBox" style="display:none; margin-top:2px;">
@@ -2314,7 +2316,51 @@ function savePinModal(){
   if(p1!==p2){ msg.textContent='PIN tidak sama, coba lagi.'; return; }
   localStorage.setItem(LS_PIN,p1); pin=p1; closePinModal();
 }
-function openServerModal(){ document.getElementById('apiBase').value=apiBase(); document.getElementById('appToken').value=appToken(); document.getElementById('serverModalMsg').textContent=''; pushNavState('server'); document.getElementById('serverOverlay').classList.add('open'); loadAiQuota(); }
+/* "Lupa PIN?" di layar kunci — cek ke server apakah ada permintaan reset
+   yang dikirim lewat command bot Telegram "resetpin". Kalau ada, PIN
+   lokal dihapus (sehingga layar kunci otomatis minta buat PIN baru) dan
+   flag di server di-ack supaya tidak reset ulang lain kali. Butuh Worker
+   URL & App token sudah pernah diisi (lewat "Pengaturan server & bot
+   Telegram" di layar kunci ini juga), dan perangkat online. */
+async function checkForgotPin(){
+  const msgEl = document.getElementById('lockMsg');
+  if(!serverConfigured()){ msgEl.textContent='Isi dulu "Pengaturan server & bot Telegram" di atas sebelum bisa reset PIN.'; return; }
+  msgEl.textContent='Memeriksa permintaan reset PIN...';
+  try{
+    const res = await fetch(apiBase() + '/pin-reset-status', { headers:{ 'X-App-Token': appToken() } });
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const body = await res.json();
+    if(!body.reset){
+      msgEl.textContent='Belum ada permintaan reset. Kirim pesan "resetpin" ke bot Telegram Anda dulu, lalu tekan "Lupa PIN?" lagi di sini.';
+      return;
+    }
+    await fetch(apiBase() + '/pin-reset-ack', { method:'POST', headers:{ 'X-App-Token': appToken() } }).catch(()=>{});
+    localStorage.removeItem(LS_PIN); pin=null;
+    showLockScreen();
+    document.getElementById('lockMsg').textContent='PIN direset lewat Telegram. Buat PIN baru di bawah.';
+  }catch(e){
+    console.log('checkForgotPin gagal:', e);
+    msgEl.textContent='Gagal menghubungi server: '+String((e&&e.message)||e);
+  }
+}
+function openServerModal(){
+  document.getElementById('apiBase').value=apiBase();
+  document.getElementById('appToken').value=appToken();
+  document.getElementById('appToken').type='password';
+  document.getElementById('toggleAppToken').textContent='Lihat';
+  document.getElementById('serverModalMsg').textContent='';
+  pushNavState('server'); document.getElementById('serverOverlay').classList.add('open'); loadAiQuota();
+}
+/* Tampilkan/sembunyikan App token sementara (mis. buat dicocokkan persis
+   dengan yang di Cloudflare) — kembali disamarkan otomatis tiap modal ini
+   dibuka lagi, supaya tidak "ke-reveal" terus kalau lupa disembunyikan. */
+function toggleAppTokenVisibility(){
+  const inp = document.getElementById('appToken');
+  const btn = document.getElementById('toggleAppToken');
+  const showing = inp.type === 'text';
+  inp.type = showing ? 'password' : 'text';
+  btn.textContent = showing ? 'Lihat' : 'Sembunyikan';
+}
 /* Ambil & tampilkan pemakaian kuota AI hari ini (Groq utama + Workers AI
    cadangan) dari endpoint /ai-quota Worker (opsional — kalau Worker versi
    lama belum punya endpoint ini, atau kedua provider belum dikonfigurasi,
@@ -2452,6 +2498,7 @@ function init(){
   else{ showLockScreen(); }
 
   document.getElementById('btnServerSetup').onclick = openServerModal;
+  document.getElementById('btnForgotPin').onclick = checkForgotPin;
   document.querySelectorAll('.nav-item').forEach(n=> n.onclick=()=> switchView(n.dataset.view));
   document.getElementById('btnFab').onclick = openQuickLog;
   document.getElementById('quickCancel').onclick = closeQuickLog;
@@ -2496,6 +2543,7 @@ function init(){
   document.getElementById('pinSave').onclick = savePinModal;
   document.getElementById('serverCancel').onclick = closeServerModal;
   document.getElementById('serverSave').onclick = saveServerModal;
+  document.getElementById('toggleAppToken').onclick = toggleAppTokenVisibility;
 
   registerServiceWorker();
 }
