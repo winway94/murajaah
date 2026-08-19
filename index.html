@@ -168,6 +168,8 @@ button{font-family:var(--font-sans);}
 .pstat-num{font-size:16px;font-weight:800;line-height:1;}
 .pstat-label{font-size:9.5px;color:#CFE7DF;margin-top:3px;}
 
+.last-murajaah-banner{display:flex;align-items:center;gap:8px;background:var(--primary-50);border:1px solid var(--primary);border-radius:var(--radius-md);padding:10px 12px;margin-bottom:14px;font-size:12px;color:var(--primary-text);line-height:1.4;}
+.last-murajaah-banner svg{flex-shrink:0;color:var(--primary-text);}
 .alert-card{background:var(--alert-danger-bg);border:1px solid var(--danger);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:14px;}
 .alert-head{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--danger);margin-bottom:2px;}
 .alert-sub{font-size:12px;color:var(--alert-danger-text);margin:0 0 10px;}
@@ -484,6 +486,11 @@ button{font-family:var(--font-sans);}
             <div class="pstat-num" id="statBelumN">0</div><div class="pstat-label">Belum</div>
           </div>
         </div>
+      </div>
+
+      <div class="last-murajaah-banner" id="lastMurajaahBanner" style="display:none;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
+        <span id="lastMurajaahText"></span>
       </div>
 
       <div class="alert-card" id="overdueCard" style="display:none;">
@@ -885,8 +892,17 @@ const DEFAULT_OVERDUE_DAYS = 30;
    AWAL array CHANGELOG (paling atas = paling baru). Ini murni tampilan
    (tidak memengaruhi cache); yang mengontrol update service worker
    tetap CACHE_VERSION di sw.js. */
-const APP_VERSION = 'v38';
+const APP_VERSION = 'v40';
 const CHANGELOG = [
+  { version:'v40', date:'20 Agustus 2026', changes:[
+    'worker.js: perbaiki bug tersembunyi di retry pengambilan teks ayat (percobaan terakhir bisa diam-diam gagal tanpa pesan error yang jelas). Retry dinaikkan jadi 3x dengan jeda bertahap.',
+    'worker.js: teks ayat yang berhasil diambil sekarang di-cache PERMANEN (teks Al-Qur\'an memang tidak pernah berubah) — halaman/ayat yang sama tidak akan minta ke API luar lagi kedua kalinya, jadi makin lama makin jarang bergantung ke API luar sama sekali untuk kuis/cek-hafalan/dll.'
+  ]},
+  { version:'v39', date:'20 Agustus 2026', changes:[
+    'Fix bug "NaN" di kartu Progress Hafalan & halaman Statistik (sisa rename "stabil"→"mutqin" yang belum lengkap di 2 tempat).',
+    'Banner baru di Beranda: "Terakhir muraja\'ah" — menampilkan juz, halaman dalam juz, nama surah, halaman mushaf keseluruhan, dan kapan terakhir dicatat.',
+    'Bot Telegram: command baru "cek"/"update" — menampilkan info yang sama seperti banner di atas.'
+  ]},
   { version:'v38', date:'19 Agustus 2026', changes:[
     'worker.js: tambah retry otomatis (1x, jeda singkat) saat ambil teks ayat dari API Al-Qur\'an gagal — mengurangi kejadian "Gagal ambil teks ayat" yang sebenarnya cuma gangguan sesaat, bukan API benar-benar down. (Sudah diverifikasi format URL yang dipakai memang benar, bukan salah ketik.)'
   ]},
@@ -951,6 +967,50 @@ const JUZ_RANGES = (()=>{
 })();
 function juzRange(n){ return JUZ_RANGES[n-1]; }
 function juzPageCount(n){ const [s,e]=juzRange(n); return e-s+1; }
+function pageToJuz(page){
+  for(let n=1;n<=TOTAL_JUZ;n++){ const [s,e]=juzRange(n); if(page>=s && page<=e) return n; }
+  return null;
+}
+/* Cari halaman dengan lastMurajaah PALING BARU di antara SEMUA halaman
+   di 30 juz (bukan cuma 1 juz tertentu). lastMurajaah cuma presisi
+   tanggal (bukan jam), jadi kalau ada beberapa halaman "seri" (mis. dari
+   1x aksi "muraja'ah seluruh juz"), diambil nomor halaman TERBESAR di
+   antara yang seri itu sebagai wakil "halaman terakhir". */
+function findLastMurajaahPage(data){
+  let bestDate = null, bestPage = null;
+  for(let j=1;j<=TOTAL_JUZ;j++){
+    const entry = data.juz[j];
+    if(!entry || !entry.pages) continue;
+    Object.keys(entry.pages).forEach(pageStr=>{
+      const pg = entry.pages[pageStr];
+      if(!pg.lastMurajaah) return;
+      const page = Number(pageStr);
+      if(!bestDate || pg.lastMurajaah > bestDate || (pg.lastMurajaah===bestDate && page>bestPage)){
+        bestDate = pg.lastMurajaah;
+        bestPage = page;
+      }
+    });
+  }
+  if(!bestPage) return null;
+  const juzNum = pageToJuz(bestPage);
+  const [start] = juzRange(juzNum);
+  return { page: bestPage, juz: juzNum, pageInJuz: bestPage-start+1, date: bestDate };
+}
+function renderLastMurajaahBanner(){
+  const box = document.getElementById('lastMurajaahBanner');
+  if(!box) return;
+  const info = findLastMurajaahPage(appData);
+  if(!info){ box.style.display = 'none'; return; }
+  box.style.display = 'flex';
+  const meta = getPageMeta(info.page); // null kalau belum ke-cache -> nama surah nyusul via onPageMetaLoaded()
+  const surahLabel = meta && meta.segs && meta.segs.length ? meta.segs[meta.segs.length-1].surah : null;
+  const whenLabel = formatRelativeTime(info.date, true);
+  document.getElementById('lastMurajaahText').innerHTML =
+    'Terakhir muraja\'ah: <b>Juz ' + info.juz + ', halaman ' + info.pageInJuz + '</b>' +
+    (surahLabel ? ' \u2014 <b>QS ' + surahLabel + '</b>' : '') +
+    ', hal. ' + info.page + ' dari mushaf' +
+    (whenLabel ? ' \u2022 ' + whenLabel : '');
+}
 const LS_PIN = 'hafalan_pin';
 const SS_UNLOCKED = 'hafalan_unlocked';
 const LS_API_BASE = 'hafalan_api_base';
@@ -1133,6 +1193,10 @@ function onPageMetaLoaded(p){
      && currentMushafPage===p && !mushafPlaylist.length){
     renderMushafViewer();
   }
+  // kalau banner "terakhir muraja'ah" di Beranda lagi nunggu nama surah
+  // halaman ini juga, perbarui begitu datanya datang.
+  const lastInfo = findLastMurajaahPage(appData);
+  if(lastInfo && lastInfo.page===p && currentView==='beranda') renderLastMurajaahBanner();
 }
 /* ambil metadata halaman dari cache; kalau belum ada, mulai fetch di
    background (non-blocking) dan panggil onPageMetaLoaded() begitu selesai.
@@ -1613,7 +1677,7 @@ function renderSyncBanner(){
 /* ---------- BERANDA ---------- */
 function renderBeranda(){
   const juz = appData.juz;
-  let counts = { belum:0, dihafal:0, murajaah:0, stabil:0, lupa:0 };
+  let counts = { belum:0, dihafal:0, murajaah:0, mutqin:0, lupa:0 };
   let overdueJuz = []; // juz yang punya >=1 halaman overdue
   let overduePageTotal = 0;
   let lupaJuz = []; // juz yang punya >=1 halaman berstatus "lupa"
@@ -1639,6 +1703,8 @@ function renderBeranda(){
   const pct = Math.round(counts.mutqin/TOTAL_PAGES*100);
   document.getElementById('progBarFill').style.width = pct + '%';
   drawRing('progRing', pct, 72, 6, '#B99A45', 'rgba(255,255,255,0.18)');
+
+  renderLastMurajaahBanner();
 
   const overdueCard = document.getElementById('overdueCard');
   if(overdueJuz.length){
@@ -1824,7 +1890,7 @@ function renderStatistik(){
 
   renderHeatmap(all);
 
-  let counts = { belum:0, dihafal:0, murajaah:0, stabil:0 };
+  let counts = { belum:0, dihafal:0, murajaah:0, mutqin:0 };
   for(let i=1;i<=TOTAL_JUZ;i++){ const ps=juzPageStats(juz[i]); counts.belum+=ps.belum; counts.dihafal+=ps.dihafal; counts.murajaah+=ps.murajaah; counts.mutqin+=ps.mutqin; }
   document.getElementById('legStabil').textContent = 'Mutqin: '+counts.mutqin+' hal.';
   document.getElementById('legMurajaah').textContent = 'Muraja\'ah: '+counts.murajaah+' hal.';
