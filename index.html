@@ -892,8 +892,11 @@ const DEFAULT_OVERDUE_DAYS = 30;
    AWAL array CHANGELOG (paling atas = paling baru). Ini murni tampilan
    (tidak memengaruhi cache); yang mengontrol update service worker
    tetap CACHE_VERSION di sw.js. */
-const APP_VERSION = 'v40';
+const APP_VERSION = 'v41';
 const CHANGELOG = [
+  { version:'v41', date:'20 Agustus 2026', changes:[
+    'worker.js: ketemu penyebab pasti "Gagal ambil teks ayat" lewat log Cloudflare — bukan API down, tapi HTTP 404 spesifik utk beberapa nomor halaman saat minta 2 edisi (Arab+terjemahan) sekaligus dalam 1 request. Sekarang kalau kombinasi itu gagal, otomatis dicoba lagi TERPISAH (teks Arab wajib berhasil, terjemahan Indonesia best-effort/boleh kosong) — jauh lebih tahan banting.'
+  ]},
   { version:'v40', date:'20 Agustus 2026', changes:[
     'worker.js: perbaiki bug tersembunyi di retry pengambilan teks ayat (percobaan terakhir bisa diam-diam gagal tanpa pesan error yang jelas). Retry dinaikkan jadi 3x dengan jeda bertahap.',
     'worker.js: teks ayat yang berhasil diambil sekarang di-cache PERMANEN (teks Al-Qur\'an memang tidak pernah berubah) — halaman/ayat yang sama tidak akan minta ke API luar lagi kedua kalinya, jadi makin lama makin jarang bergantung ke API luar sama sekali untuk kuis/cek-hafalan/dll.'
