@@ -7,7 +7,7 @@
    Naikkan CACHE_VERSION setiap kali index.html/manifest/ikon diubah,
    supaya pengguna otomatis dapat versi terbaru.
    ============================================================ */
-const CACHE_VERSION = "v42";
+const CACHE_VERSION = "v32";
 const CACHE_NAME = "hafalan-" + CACHE_VERSION;
 // Cache TERPISAH untuk aset statis pihak ketiga (SVG halaman mushaf +
 // audio murottal per-ayat). SENGAJA tidak ikut prefix "hafalan-"/
@@ -29,7 +29,6 @@ const MUSHAF_CACHEABLE_HOSTS = ["cdn.jsdelivr.net", "everyayah.com", "fonts.goog
 const CORE_ASSETS = [
   "./",
   "./index.html",
-  "./tasbih.html",
   "./manifest.json",
   "./icon-192x192.png",
   "./icon-512x512.png",
