@@ -50,28 +50,28 @@ button{font-family:var(--font-sans);}
   display:flex;flex-direction:column;}
 
 /* ---------- LOCK SCREEN ---------- */
-.lock-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;
+.lock-screen{min-height:100vh;display:flex;flex-direction:column;justify-content:space-between;align-items:center;
   background-color:var(--primary);
   background-image:
     repeating-linear-gradient(45deg, rgba(185,154,69,0.08) 0 1px, transparent 1px 42px),
     repeating-linear-gradient(-45deg, rgba(185,154,69,0.08) 0 1px, transparent 1px 42px);
-  padding:24px;}
+  padding:32px 24px max(28px, env(safe-area-inset-bottom));}
 .lock-card{width:100%;max-width:320px;text-align:center;color:var(--white);}
 .lock-eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:0 0 6px;font-weight:600;}
-.lock-title{font-size:26px;font-weight:800;margin:0 0 26px;}
-.pin-dots{display:flex;justify-content:center;gap:12px;margin-bottom:26px;flex-wrap:wrap;}
-.pin-dot{width:13px;height:13px;border-radius:50%;border:1.5px solid var(--accent);background:transparent;transition:var(--transition);}
+.lock-title{font-size:26px;font-weight:800;margin:0;}
+.pin-dots{display:flex;justify-content:center;gap:14px;margin-bottom:28px;flex-wrap:wrap;}
+.pin-dot{width:15px;height:15px;border-radius:50%;border:1.5px solid var(--accent);background:transparent;transition:var(--transition);}
 .pin-dot.filled{background:var(--accent);}
 .pin-dots.shake{animation:shake .32s;}
 @keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
-.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:250px;margin:0 auto;}
-.key{font-size:19px;font-weight:600;color:var(--white);
-  background:rgba(255,255,255,0.07);border:1px solid rgba(185,154,69,0.35);
-  border-radius:var(--radius-md);padding:15px 0;cursor:pointer;}
+.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:280px;margin:0 auto;}
+.key{font-size:23px;font-weight:600;color:var(--white);
+  background:rgba(255,255,255,0.09);border:1px solid rgba(185,154,69,0.4);
+  border-radius:var(--radius-md);padding:19px 0;cursor:pointer;}
 .key:active{background:rgba(185,154,69,0.25);}
 .lock-msg{font-size:13px;color:#E8D9B0;margin-top:16px;min-height:18px;}
 .lock-link{background:none;border:none;color:var(--accent);font-size:11.5px;text-decoration:underline;cursor:pointer;margin-top:14px;}
-.lock-footnote{font-size:11px;color:rgba(255,255,255,0.5);margin-top:26px;line-height:1.6;}
+.lock-footnote{font-size:11px;color:rgba(255,255,255,0.5);margin-top:18px;line-height:1.6;}
 
 /* ---------- APP SHELL ---------- */
 .appbar{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;
@@ -266,7 +266,7 @@ button{font-family:var(--font-sans);}
 .mushaf-audiobar{display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 10px;background:var(--gray-100,#F0F2F1);border-radius:var(--radius-md,10px);}
 .mushaf-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;}
 .sheet h3{font-size:18px;font-weight:800;margin:0 0 4px;color:var(--gray-900);}
-.sheet p.hint{font-size:12px;color:var(--gray-500);margin:0 0 16px;}
+.hint{font-size:12.5px;color:var(--gray-500);line-height:1.5;margin:0 0 16px;}
 .field{margin-bottom:14px;}
 .field label{display:block;font-size:12px;color:var(--gray-500);margin-bottom:5px;font-weight:600;}
 .field select,.field input{width:100%;padding:10px 11px;border-radius:var(--radius-sm);border:1px solid var(--gray-200);
@@ -291,6 +291,8 @@ button{font-family:var(--font-sans);}
     <div class="lock-card">
       <p class="lock-eyebrow" id="lockEyebrow">Kunci aplikasi</p>
       <h1 class="lock-title" id="lockTitle">Masukkan PIN</h1>
+    </div>
+    <div class="lock-card">
       <div class="pin-dots" id="pinDots"></div>
       <div class="keypad" id="keypad"></div>
       <p class="lock-msg" id="lockMsg"></p>
@@ -447,23 +449,23 @@ button{font-family:var(--font-sans);}
         </button>
       </div>
       <div class="card" style="margin-top:14px; padding:14px 16px;">
-        <p class="section-title" style="margin:0 0 4px;">Unduh mushaf untuk offline</p>
+        <p class="section-title" style="margin:0 0 4px;">📥 Unduh mushaf untuk offline</p>
         <p class="hint" id="offlineDlHint" style="margin:0 0 10px;">Memuat…</p>
         <div style="background:var(--gray-200,#E4E7E6); border-radius:99px; height:8px; overflow:hidden; margin-bottom:12px;">
           <div id="offlineDlBar" style="background:var(--primary); height:100%; width:0%; border-radius:99px; transition:width .2s;"></div>
         </div>
         <button class="btn-full btn-outline" id="btnDownloadOffline">Unduh semua halaman</button>
-        <p class="hint" style="margin:8px 0 0; font-size:11px;">Cuma unduh teks ayat (kecil, beberapa MB), bukan audio. Sekali diunduh, halaman bisa dibaca tanpa internet selamanya.</p>
+        <p class="hint" style="margin:8px 0 0; font-size:11px;">Cuma teks ayat (beberapa MB), bukan audio. Sekali diunduh, bisa dibaca offline selamanya.</p>
       </div>
       <div class="card" style="margin-top:14px; padding:14px 16px;">
-        <p class="section-title" style="margin:0 0 4px;">Kuota AI Hari Ini</p>
-        <p class="hint" style="margin:0 0 10px;">Sisa jatah gratis Groq (utama) & Cloudflare Workers AI (cadangan) untuk tanggal berjalan (reset otomatis tiap hari) — sekadar info, tidak mengubah apa pun.</p>
+        <p class="section-title" style="margin:0 0 4px;">✨ Kuota AI hari ini</p>
+        <p class="hint" style="margin:0 0 10px;">Groq (utama) &amp; Workers AI (cadangan) — reset otomatis tiap hari, sekadar info.</p>
         <button class="btn-full btn-outline" id="btnCheckAiQuota">🔎 Cek Kuota AI Hari Ini</button>
         <div id="aiQuotaMenuResult" style="display:none; margin-top:12px;"></div>
       </div>
       <div class="card" style="margin-top:14px; padding:14px 16px;">
-        <p class="section-title" style="margin:0 0 4px;">Ambang waktu overdue murajaah</p>
-        <p class="hint" style="margin:0 0 12px;">Halaman berstatus "Sedang murajaah" atau "Stabil" ditandai <b>perlu murajaah (overdue)</b> kalau sudah lebih dari sekian hari sejak terakhir dimurajaah. Berlaku juga untuk pengingat harian di Telegram.</p>
+        <p class="section-title" style="margin:0 0 4px;">⏱️ Ambang waktu overdue murajaah</p>
+        <p class="hint" style="margin:0 0 12px;">Halaman "Sedang murajaah"/"Stabil" ditandai <b>perlu murajaah</b> kalau lebih dari sekian hari sejak terakhir dimurajaah. Berlaku juga untuk pengingat Telegram.</p>
         <div class="field" style="margin-bottom:12px;">
           <label>Jumlah hari</label>
           <input type="number" id="overdueDaysInput" min="1" max="365" step="1" inputmode="numeric">
@@ -471,7 +473,7 @@ button{font-family:var(--font-sans);}
         <button class="btn-full btn-primary" id="btnSaveOverdueDays">Simpan ambang batas</button>
       </div>
       <div class="card" style="margin-top:14px; padding:14px 16px; text-align:center;">
-        <p class="section-title" style="margin:0 0 4px; text-align:center;">Hafalan &amp; Murajaah</p>
+        <p class="section-title" style="margin:0 0 4px; text-align:center;">📱 Hafalan &amp; Murajaah</p>
         <p class="hint" style="margin:0 0 14px;">Versi terpasang: <b id="appVersionText">v26</b></p>
         <button class="btn-full btn-outline" id="btnCheckUpdate" style="margin-bottom:8px;">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:5px;"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
@@ -685,8 +687,14 @@ const DEFAULT_OVERDUE_DAYS = 30;
    AWAL array CHANGELOG (paling atas = paling baru). Ini murni tampilan
    (tidak memengaruhi cache); yang mengontrol update service worker
    tetap CACHE_VERSION di sw.js. */
-const APP_VERSION = 'v29';
+const APP_VERSION = 'v30';
 const CHANGELOG = [
+  { version:'v30', date:'19 Agustus 2026', changes:[
+    'AI dua lapis: Groq jadi provider utama (gratis, lebih pintar), Cloudflare Workers AI otomatis jadi cadangan kalau Groq belum dikonfigurasi/kena cooldown/kuota habis. Kartu "Kuota AI Hari Ini" & command Telegram "kuota" kini menampilkan status kedua provider terpisah.',
+    'Pencatatan lewat pesan bebas (mis. "murajaah juz 14 halaman 1 sampai 10") sekarang paham RENTANG halaman, tidak cuma satu halaman.',
+    'Perbaikan tampilan halaman Pengaturan: teks deskripsi kecil di tiap kartu sekarang benar-benar tampil kecil & abu-abu (sebelumnya ada bug CSS bikin teksnya tampil besar/berat), ditambah ikon kecil di judul tiap kartu.',
+    'Layar Masukkan PIN: keypad & titik indikator dipindah ke area bawah layar (dekat jangkauan jempol) dan tombol angka diperbesar, supaya lebih mudah dipakai satu tangan.'
+  ]},
   { version:'v29', date:'19 Agustus 2026', changes:[
     'Tambah menu "Kuota AI Hari Ini" di Pengaturan — cek sisa jatah Workers AI hari ini kapan saja (progres bar + status), sumber datanya sama dengan indikator kecil di modal Pengaturan server. Bot Telegram juga bisa dicek lewat ketik "kuota" (atau "ai"/"token").'
   ]},
