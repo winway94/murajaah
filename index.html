@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Hafalan &amp; Murajaah</title>
+<title>Hafalan &amp; Muraja'ah</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#164A40">
 <meta name="mobile-web-app-capable" content="yes">
@@ -25,6 +25,18 @@
   --success:#2E7D6B;
   --warning:#F08429;
   --danger:#C75B50;
+  /* Warna khusus status hafalan (dot legend + sel grid halaman) — SENGAJA
+     terpisah dari --primary/--accent/--success/--warning/--danger di atas
+     (yang dipakai luas utk tombol/header/alert card), supaya bisa dibuat
+     jauh lebih kontras antar status tanpa mengubah warna brand di tempat
+     lain. Urutan mengikuti progres belajar: netral -> biru -> kuning ->
+     hijau (tujuan akhir) -> oranye/merah (butuh perhatian). */
+  --status-belum:#CBD5E1;
+  --status-dihafal:#0EA5E9;
+  --status-murajaah:#EAB308;
+  --status-mutqin:#16A34A;
+  --status-lupa:#000000;
+  --status-overdue:#E11D48;
   --gray-50:#F7F8F6;
   --gray-100:#F0F2F1;
   --gray-200:#E5E9E7;
@@ -50,12 +62,18 @@ button{font-family:var(--font-sans);}
   display:flex;flex-direction:column;}
 
 /* ---------- LOCK SCREEN ---------- */
-.lock-screen{min-height:100vh;display:flex;flex-direction:column;justify-content:space-between;align-items:center;
+.lock-screen{position:relative;min-height:100vh;display:flex;flex-direction:column;justify-content:space-between;align-items:center;
   background-color:var(--primary);
   background-image:
     repeating-linear-gradient(45deg, rgba(185,154,69,0.08) 0 1px, transparent 1px 42px),
     repeating-linear-gradient(-45deg, rgba(185,154,69,0.08) 0 1px, transparent 1px 42px);
   padding:32px 24px max(28px, env(safe-area-inset-bottom));}
+/* Akses cepat ke Tasbih Digital TANPA perlu buka PIN dulu — fitur ini
+   tidak berisi data hafalan pribadi, jadi aman ditaruh di luar kunci PIN. */
+.lock-tasbih-fab{position:absolute;top:max(18px, env(safe-area-inset-top));right:18px;width:40px;height:40px;
+  border-radius:50%;background:rgba(255,255,255,0.1);border:1.5px solid rgba(185,154,69,0.55);
+  display:flex;align-items:center;justify-content:center;color:var(--accent);z-index:5;}
+.lock-tasbih-fab:active{background:rgba(185,154,69,0.22);}
 .lock-card{width:100%;max-width:320px;text-align:center;color:var(--white);}
 .lock-eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:0 0 6px;font-weight:600;}
 .lock-title{font-size:26px;font-weight:800;margin:0;}
@@ -130,12 +148,17 @@ button{font-family:var(--font-sans);}
 .juz-dot-time{font-size:7.5px;color:var(--gray-500);margin-top:2px;opacity:.8;}
 
 /* ---------- PAGE GRID (per-halaman, di dalam detail juz) ---------- */
-.page-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;padding:14px 16px;}
-.page-cell{aspect-ratio:1;border-radius:8px;border:1.5px solid transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
-  font-size:10.5px;font-weight:700;color:#fff;cursor:pointer;position:relative;}
-.page-cell-mushaf{font-size:7px;font-weight:600;opacity:.8;}
-.page-cell.overdue{border-color:var(--danger);box-shadow:0 0 0 1.5px var(--danger) inset;}
-.page-cell:active{opacity:.75;}
+/* 4 kolom (bukan 6) + warna status dipindah jadi dot kecil di bawah nomor
+   (bukan background sel penuh) supaya sel bisa diperbesar utk tap target
+   yang lebih mudah dijangkau, tapi tampilan tetap tenang/tidak "ramai". */
+.page-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:14px 16px;}
+.page-cell{aspect-ratio:1;border-radius:12px;border:1.5px solid transparent;background:var(--gray-100);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  font-size:18px;font-weight:700;color:var(--gray-900);cursor:pointer;position:relative;}
+.page-cell-mushaf{font-size:9.5px;font-weight:600;color:var(--gray-500);position:absolute;bottom:6px;right:8px;}
+.page-cell-dot{width:8px;height:8px;border-radius:50%;}
+.page-cell.overdue{border-color:var(--status-overdue);box-shadow:0 0 0 1.5px var(--status-overdue) inset;}
+.page-cell:active{background:var(--gray-200);}
 .page-legend{display:flex;flex-wrap:wrap;gap:10px;padding:0 16px 12px;}
 .page-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--gray-500);}
 .page-legend-dot{width:8px;height:8px;border-radius:3px;}
@@ -265,31 +288,43 @@ button{font-family:var(--font-sans);}
 .mushaf-tip{font-size:11px;color:var(--gray-500);text-align:center;margin:8px 0 0;}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
 .mushaf-audiobar{margin-top:8px;position:relative;}
-.mushaf-idle-bar{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-lg,16px);padding:8px 10px;display:flex;align-items:center;gap:8px;box-shadow:var(--shadow-sm);}
-.mushaf-idle-play{width:34px;height:34px;border-radius:50%;border:none;background:var(--primary);color:var(--white);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;padding:0;}
-.mushaf-idle-reciter{flex:1;min-width:0;background:none;border:none;display:flex;align-items:center;justify-content:center;gap:6px;padding:6px;cursor:pointer;}
-.mushaf-idle-reciter span{font-size:13px;font-weight:700;color:var(--gray-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mushaf-idle-bar{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-lg,16px);padding:10px 12px;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow-sm);}
+.mushaf-idle-play{width:38px;height:38px;border-radius:50%;border:none;background:var(--primary);color:var(--white);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;padding:0;}
+.mushaf-idle-play svg{width:46%;height:46%;}
+.mushaf-idle-reciter{flex:1;min-width:0;background:none;border:none;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px;cursor:pointer;}
+.mushaf-idle-reciter span{font-size:13.5px;font-weight:700;color:var(--gray-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .mushaf-idle-reciter svg{color:var(--gray-500);flex-shrink:0;}
-.mushaf-reciter-panel{position:absolute;left:0;right:0;top:calc(100% + 6px);background:var(--white);border:1px solid var(--gray-200);border-radius:14px;box-shadow:0 8px 20px rgba(23,32,30,0.14);max-height:260px;overflow-y:auto;z-index:20;}
-.mushaf-reciter-item{padding:10px 14px;font-size:13px;color:var(--gray-900);cursor:pointer;display:flex;align-items:center;justify-content:space-between;}
+.mushaf-reciter-panel{position:absolute;left:0;right:0;top:calc(100% + 6px);background:var(--white);border:1px solid var(--gray-200);border-radius:14px;box-shadow:0 8px 20px rgba(23,32,30,0.14);max-height:280px;overflow-y:auto;z-index:20;}
+.mushaf-reciter-item{padding:12px 16px;font-size:13.5px;color:var(--gray-900);cursor:pointer;display:flex;align-items:center;justify-content:space-between;}
 .mushaf-reciter-item:active{background:var(--gray-100);}
 .mushaf-reciter-item+.mushaf-reciter-item{border-top:1px solid var(--gray-100,#F0F2F1);}
 .mushaf-reciter-item.active{background:var(--gray-50,#F7F8F6);font-weight:700;}
-.mushaf-player{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-lg,16px);padding:10px 12px;box-shadow:var(--shadow-sm);position:relative;}
-.mushaf-progress-segs{display:flex;gap:3px;margin-bottom:10px;}
-.mushaf-progress-seg{flex:1;height:4px;border-radius:99px;background:var(--gray-200);transition:background .2s;}
+/* .mushaf-audiobar di-set display:block lewat JS saat player tampil (lihat
+   playCurrentAyah()). Karena itu, .mushaf-player yang jadi satu-satunya
+   anak di dalamnya butuh width:100% eksplisit -- kalau tidak, sebagai flex
+   item ia hanya selebar isinya (shrink-to-fit), BUKAN selebar induknya.
+   Inilah sebab kartu player sebelumnya kelihatan lebih sempit daripada
+   kotak mushaf di atasnya, padahal keduanya sama-sama anak langsung dari
+   #mushafOverlay .sheet (flex column) yang lebarnya sama persis. */
+.mushaf-player{width:100%;box-sizing:border-box;background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-lg,16px);padding:12px 14px;box-shadow:var(--shadow-sm);position:relative;}
+.mushaf-progress-segs{display:flex;gap:3px;margin-bottom:12px;}
+.mushaf-progress-seg{flex:1;height:5px;border-radius:99px;background:var(--gray-200);transition:background .2s;}
 .mushaf-progress-seg.active{background:var(--primary);}
 .mushaf-controls-row{display:flex;align-items:center;justify-content:space-between;}
-.mushaf-ctl-btn{width:32px;height:32px;border-radius:50%;border:none;background:var(--gray-100);color:var(--gray-700);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;padding:0;}
-.mushaf-ctl-skip{width:34px;height:34px;}
-.mushaf-ctl-main{width:44px;height:44px;border-radius:50%;border:none;background:var(--primary);color:var(--white);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;}
+.mushaf-ctl-btn{width:38px;height:38px;border-radius:50%;border:none;background:var(--gray-100);color:var(--gray-700);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;padding:0;}
+.mushaf-ctl-btn svg{width:46%;height:46%;}
+.mushaf-ctl-skip{width:42px;height:42px;}
+.mushaf-ctl-skip svg{width:48%;height:48%;}
+.mushaf-ctl-main{width:58px;height:58px;border-radius:50%;border:none;background:var(--primary);color:var(--white);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;}
+.mushaf-ctl-main svg{width:42%;height:42%;}
+.mushaf-ctl-stop{background:var(--danger);color:var(--white);}
 .mushaf-ctl-btn.repeat-active{background:#EBF1EE;color:var(--primary);}
-.mushaf-repeat-popover{position:absolute;right:8px;bottom:calc(100% + 8px);background:var(--white);border:1px solid var(--gray-200);border-radius:14px;box-shadow:0 8px 20px rgba(23,32,30,0.14);padding:6px;width:210px;z-index:20;}
-.mushaf-repeat-row{display:flex;align-items:center;justify-content:space-between;padding:8px 8px;gap:8px;}
-.mushaf-repeat-row-label{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--gray-900);}
-.mushaf-repeat-row-label svg{color:var(--gray-500);flex-shrink:0;}
+.mushaf-repeat-popover{position:absolute;right:8px;bottom:calc(100% + 8px);background:var(--white);border:1px solid var(--gray-200);border-radius:14px;box-shadow:0 8px 20px rgba(23,32,30,0.14);padding:6px;width:220px;z-index:20;}
+.mushaf-repeat-row{display:flex;align-items:center;justify-content:space-between;padding:9px 8px;gap:8px;}
+.mushaf-repeat-row-label{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--gray-900);}
+.mushaf-repeat-row-label svg{width:15px;height:15px;color:var(--gray-500);flex-shrink:0;}
 .mushaf-repeat-divider{height:1px;background:var(--gray-100,#F0F2F1);margin:2px 6px;}
-.mushaf-repeat-chip{background:var(--gray-100);color:var(--gray-700);font-size:11px;font-weight:700;border:none;border-radius:999px;padding:4px 10px;cursor:pointer;flex-shrink:0;}
+.mushaf-repeat-chip{background:var(--gray-100);color:var(--gray-700);font-size:11.5px;font-weight:700;border:none;border-radius:999px;padding:5px 11px;cursor:pointer;flex-shrink:0;}
 .mushaf-repeat-chip.active{background:#EBF1EE;color:var(--primary);}
 .mushaf-repeat-chip.disabled{opacity:.4;pointer-events:none;}
 .mushaf-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;}
@@ -316,6 +351,9 @@ button{font-family:var(--font-sans);}
 
   <!-- LOCK SCREEN -->
   <div class="lock-screen" id="lockScreen">
+    <a class="lock-tasbih-fab" href="tasbih.html" aria-label="Buka Tasbih Digital">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="5" r="2.4" fill="currentColor"/><circle cx="18.5" cy="9" r="2.1" fill="currentColor"/><circle cx="19.5" cy="16" r="2.1" fill="currentColor"/><circle cx="14" cy="20.5" r="2.1" fill="currentColor"/><circle cx="6.5" cy="19" r="2.1" fill="currentColor"/><circle cx="4" cy="12" r="2.1" fill="currentColor"/><circle cx="7.5" cy="6" r="2.1" fill="currentColor"/></svg>
+    </a>
     <div class="lock-card">
       <p class="lock-eyebrow" id="lockEyebrow">Kunci aplikasi</p>
       <h1 class="lock-title" id="lockTitle">Masukkan PIN</h1>
@@ -334,7 +372,7 @@ button{font-family:var(--font-sans);}
     <div class="appbar">
       <div class="appbar-left">
         <div>
-          <p class="appbar-title" id="appbarTitle">Hafalan &amp; Murajaah</p>
+          <p class="appbar-title" id="appbarTitle">Hafalan &amp; Muraja'ah</p>
           <p class="appbar-sub" id="appbarSub"></p>
         </div>
       </div>
@@ -361,7 +399,7 @@ button{font-family:var(--font-sans);}
           </div>
           <div class="pstat">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
-            <div class="pstat-num" id="statMurajaahN">0</div><div class="pstat-label">Murajaah</div>
+            <div class="pstat-num" id="statMurajaahN">0</div><div class="pstat-label">Muraja'ah</div>
           </div>
           <div class="pstat">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>
@@ -398,10 +436,10 @@ button{font-family:var(--font-sans);}
           <option value="semua">Filter: Semua</option>
           <option value="belum">Belum dihafal</option>
           <option value="dihafal">Sedang dihafal</option>
-          <option value="murajaah">Sedang murajaah</option>
-          <option value="stabil">Stabil (mutqin)</option>
+          <option value="murajaah">Sedang muraja'ah</option>
+          <option value="mutqin">Mutqin</option>
           <option value="lupa">Lupa (perlu hafal ulang)</option>
-          <option value="overdue">Perlu murajaah</option>
+          <option value="overdue">Perlu muraja'ah</option>
         </select>
       </div>
       <div class="juz-grid" id="juzGrid"></div>
@@ -417,12 +455,12 @@ button{font-family:var(--font-sans);}
     <div class="screen" id="screenStatistik">
       <p class="section-title" style="margin-top:4px;">Ringkasan</p>
       <div class="stat-grid-2" style="margin-top:10px;">
-        <div class="card stat-box"><div class="stat-box-num" id="statTotalMurajaah">0</div><div class="stat-box-label">Total murajaah tercatat</div></div>
+        <div class="card stat-box"><div class="stat-box-num" id="statTotalMurajaah">0</div><div class="stat-box-label">Total muraja'ah tercatat</div></div>
         <div class="card stat-box"><div class="stat-box-num" id="statRataMinggu">0</div><div class="stat-box-label">Rata-rata / minggu (4 mgg)</div></div>
-        <div class="card stat-box"><div class="stat-box-num" id="statOverdueCount">0</div><div class="stat-box-label">Halaman perlu murajaah sekarang</div></div>
+        <div class="card stat-box"><div class="stat-box-num" id="statOverdueCount">0</div><div class="stat-box-label">Halaman perlu muraja'ah sekarang</div></div>
         <div class="card stat-box"><div class="stat-box-num" id="statPalingLama">-</div><div class="stat-box-label">Paling lama tak disentuh</div></div>
       </div>
-      <p class="section-title">Aktivitas murajaah 14 hari terakhir</p>
+      <p class="section-title">Aktivitas muraja'ah 14 hari terakhir</p>
       <div class="card" style="margin-top:10px;">
         <div class="bars" id="activityBars"></div>
       </div>
@@ -447,8 +485,8 @@ button{font-family:var(--font-sans);}
           <div class="donut-num"><div class="donut-pct" id="statDonutPct">0%</div><div class="donut-caption">mutqin</div></div>
         </div>
         <div class="donut-legend">
-          <div class="legend-row"><span class="legend-dot" style="background:var(--primary)"></span><span id="legStabil">Stabil: 0</span></div>
-          <div class="legend-row"><span class="legend-dot" style="background:var(--success)"></span><span id="legMurajaah">Murajaah: 0</span></div>
+          <div class="legend-row"><span class="legend-dot" style="background:var(--primary)"></span><span id="legStabil">Mutqin: 0</span></div>
+          <div class="legend-row"><span class="legend-dot" style="background:var(--success)"></span><span id="legMurajaah">Muraja'ah: 0</span></div>
           <div class="legend-row"><span class="legend-dot" style="background:var(--accent)"></span><span id="legDihafal">Dihafal: 0</span></div>
           <div class="legend-row"><span class="legend-dot" style="background:var(--gray-300)"></span><span id="legBelum">Belum: 0</span></div>
         </div>
@@ -492,8 +530,8 @@ button{font-family:var(--font-sans);}
         <div id="aiQuotaMenuResult" style="display:none; margin-top:12px;"></div>
       </div>
       <div class="card" style="margin-top:14px; padding:14px 16px;">
-        <p class="section-title" style="margin:0 0 4px;">⏱️ Ambang waktu overdue murajaah</p>
-        <p class="hint" style="margin:0 0 12px;">Halaman "Sedang murajaah"/"Stabil" ditandai <b>perlu murajaah</b> kalau lebih dari sekian hari sejak terakhir dimurajaah. Berlaku juga untuk pengingat Telegram.</p>
+        <p class="section-title" style="margin:0 0 4px;">⏱️ Ambang waktu overdue muraja'ah</p>
+        <p class="hint" style="margin:0 0 12px;">Halaman "Sedang muraja'ah"/"Mutqin" ditandai <b>perlu muraja'ah</b> kalau lebih dari sekian hari sejak terakhir dimuraja'ah. Berlaku juga untuk pengingat Telegram.</p>
         <div class="field" style="margin-bottom:12px;">
           <label>Jumlah hari</label>
           <input type="number" id="overdueDaysInput" min="1" max="365" step="1" inputmode="numeric">
@@ -501,7 +539,7 @@ button{font-family:var(--font-sans);}
         <button class="btn-full btn-primary" id="btnSaveOverdueDays">Simpan ambang batas</button>
       </div>
       <div class="card" style="margin-top:14px; padding:14px 16px; text-align:center;">
-        <p class="section-title" style="margin:0 0 4px; text-align:center;">📱 Hafalan &amp; Murajaah</p>
+        <p class="section-title" style="margin:0 0 4px; text-align:center;">📱 Hafalan &amp; Muraja'ah</p>
         <p class="hint" style="margin:0 0 14px;">Versi terpasang: <b id="appVersionText">v26</b></p>
         <button class="btn-full btn-outline" id="btnCheckUpdate" style="margin-bottom:8px;">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:5px;"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
@@ -541,8 +579,8 @@ button{font-family:var(--font-sans);}
 
 <!-- QUICK LOG -->
 <div class="overlay" id="quickOverlay"><div class="sheet">
-  <h3>Log murajaah cepat</h3>
-  <p class="hint">Catat halaman (atau seluruh juz) yang baru saja Anda murajaah hari ini.</p>
+  <h3>Log muraja'ah cepat</h3>
+  <p class="hint">Catat halaman (atau seluruh juz) yang baru saja Anda muraja'ah hari ini.</p>
   <div class="field"><label>Pilih juz</label>
     <select id="quickJuz"></select>
   </div>
@@ -551,7 +589,7 @@ button{font-family:var(--font-sans);}
   </div>
   <div class="modal-actions">
     <button class="btn btn-ghost" id="quickCancel">Batal</button>
-    <button class="btn btn-primary" id="quickSave">Tandai murajaah hari ini</button>
+    <button class="btn btn-primary" id="quickSave">Tandai muraja'ah hari ini</button>
   </div>
 </div></div>
 
@@ -564,15 +602,15 @@ button{font-family:var(--font-sans);}
     <select id="pageStatus">
       <option value="belum">Belum dihafal</option>
       <option value="dihafal">Sedang dihafal</option>
-      <option value="murajaah">Sedang murajaah</option>
-      <option value="stabil">Stabil (mutqin)</option>
+      <option value="murajaah">Sedang muraja'ah</option>
+      <option value="mutqin">Mutqin</option>
       <option value="lupa">Lupa (perlu hafal ulang)</option>
     </select>
   </div>
-  <div class="field"><label>Tanggal murajaah terakhir</label>
+  <div class="field"><label>Tanggal muraja'ah terakhir</label>
     <input type="date" id="pageDate">
   </div>
-  <button class="btn-full btn-outline" id="pageMarkToday" style="margin-bottom:10px; color:var(--success); border-color:var(--success);">Telah dimurajaah hari ini</button>
+  <button class="btn-full btn-outline" id="pageMarkToday" style="margin-bottom:10px; color:var(--success); border-color:var(--success);">Telah dimuraja'ah hari ini</button>
   <button class="btn-full btn-outline" id="pageMarkLupa" style="margin-bottom:10px; color:var(--warning); border-color:var(--warning);">Tandai lupa (perlu hafal ulang)</button>
   <button class="btn-full btn-outline" id="pageViewMushaf" style="margin-bottom:14px;">📖 Lihat halaman mushaf</button>
   <div class="modal-actions">
@@ -608,7 +646,7 @@ button{font-family:var(--font-sans);}
   <div class="mushaf-audiobar" id="mushafPlayerIdle" style="display:none;">
     <div class="mushaf-idle-bar">
       <button class="mushaf-idle-play" id="mushafIdlePlay" aria-label="Putar">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5v14l11-7z"/></svg>
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5v14l11-7z"/></svg>
       </button>
       <button class="mushaf-idle-reciter" id="mushafIdleReciterBtn">
         <span id="mushafIdleReciterName">Memuat…</span>
@@ -622,32 +660,26 @@ button{font-family:var(--font-sans);}
       <span id="mushafAudioLabel" class="sr-only"></span>
       <div class="mushaf-progress-segs" id="mushafProgressSegs"></div>
       <div class="mushaf-controls-row">
-        <button class="mushaf-ctl-btn" id="mushafStop" title="Berhenti" aria-label="Berhenti">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
-        </button>
-        <button class="mushaf-ctl-btn mushaf-ctl-skip" id="mushafAyahPrev" title="Ayat sebelumnya" aria-label="Ayat sebelumnya">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h2v14H6zM20 5v14l-11-7z" transform="translate(1,0) scale(-1,1) translate(-24,0)"/></svg>
-        </button>
+        <button class="mushaf-ctl-btn mushaf-ctl-stop" id="mushafStop" title="Berhenti" aria-label="Berhenti"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg></button>
+        <button class="mushaf-ctl-btn mushaf-ctl-skip" id="mushafAyahPrev" title="Ayat sebelumnya" aria-label="Ayat sebelumnya"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zM10 12l8-6v12z"/></svg></button>
         <button class="mushaf-ctl-main" id="mushafPlayToggle" aria-label="Putar/jeda"></button>
-        <button class="mushaf-ctl-btn mushaf-ctl-skip" id="mushafAyahNext" title="Ayat berikutnya" aria-label="Ayat berikutnya">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5v14l11-7zM16 5h2v14h-2z"/></svg>
-        </button>
+        <button class="mushaf-ctl-btn mushaf-ctl-skip" id="mushafAyahNext" title="Ayat berikutnya" aria-label="Ayat berikutnya"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM6 6l8 6-8 6z"/></svg></button>
         <button class="mushaf-ctl-btn" id="mushafRepeatBtn" title="Ulang bacaan" aria-label="Pengaturan ulang bacaan">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
         </button>
       </div>
       <div class="mushaf-repeat-popover" id="mushafRepeatPopover" style="display:none;">
         <div class="mushaf-repeat-row">
           <span class="mushaf-repeat-row-label">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
             Ulang ayat ini
           </span>
-          <button class="mushaf-repeat-chip" id="mushafRepeatAyahChip">1x</button>
+          <button class="mushaf-repeat-chip" id="mushafRepeatAyahChip">Nonaktif</button>
         </div>
         <div class="mushaf-repeat-divider"></div>
         <div class="mushaf-repeat-row">
           <span class="mushaf-repeat-row-label">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
             Ulang 1 halaman
           </span>
           <button class="mushaf-repeat-chip" id="mushafRepeatPageChip">Nonaktif</button>
@@ -722,11 +754,11 @@ button{font-family:var(--font-sans);}
 
 <script>
 const STATUS_META = {
-  belum:{label:'Belum dihafal', color:'var(--gray-300)'},
-  dihafal:{label:'Sedang dihafal', color:'var(--accent)'},
-  murajaah:{label:'Sedang murajaah', color:'var(--success)'},
-  stabil:{label:'Stabil (mutqin)', color:'var(--primary)'},
-  lupa:{label:'Lupa (perlu hafal ulang)', color:'var(--warning)'}
+  belum:{label:'Belum dihafal', color:'var(--status-belum)'},
+  dihafal:{label:'Sedang dihafal', color:'var(--status-dihafal)'},
+  murajaah:{label:'Sedang muraja\'ah', color:'var(--status-murajaah)'},
+  mutqin:{label:'Mutqin', color:'var(--status-mutqin)'},
+  lupa:{label:'Lupa (perlu hafal ulang)', color:'var(--status-lupa)'}
 };
 const TOTAL_JUZ = 30;
 const TOTAL_PAGES = 604;
@@ -748,7 +780,7 @@ const APP_VERSION = 'v32';
 const CHANGELOG = [
   { version:'v32', date:'19 Agustus 2026', changes:[
     'Pemutar murattal dirombak total mengikuti pola app pembaca Quran populer: saat berhenti, tampil bar "▶ [nama qori]" untuk pilih qori dulu (panel pilih qori sendiri, bukan dropdown bawaan browser lagi); begitu ditap ▶, bar berubah jadi kontrol putar ringkas (berhenti/mundur/putar/maju/ulang) yang tingginya tidak menambah scroll ke tampilan mushaf.',
-    'Ulang bacaan sekarang jadi 1 tombol dengan 2 pilihan: "ulang ayat ini" (1x-5x/∞) dan "ulang 1 halaman penuh" (nonaktif-5x/∞) — keduanya saling eksklusif, harus matikan salah satu dulu sebelum bisa mengaktifkan yang lain.'
+    'Ulang ayat & ulang 1 halaman digabung jadi 1 tombol dengan panel 2 pilihan, dan sekarang SALING EKSKLUSIF — harus matikan salah satu (balik ke Nonaktif) dulu sebelum bisa mengaktifkan yang lain.'
   ]},
   { version:'v31', date:'19 Agustus 2026', changes:[
     'Desain ulang pemutar murattal di halaman mushaf: kini ada indikator progres per ayat (garis kecil menunjukkan posisi ayat yang sedang diputar dari total ayat di halaman), tombol putar besar di tengah, dan tombol ulang bacaan yang tinggal ditap untuk ganti mode (1x/2x/3x/4x/5x/∞) — tidak perlu dropdown lagi.',
@@ -756,7 +788,7 @@ const CHANGELOG = [
   ]},
   { version:'v30', date:'19 Agustus 2026', changes:[
     'AI dua lapis: Groq jadi provider utama (gratis, lebih pintar), Cloudflare Workers AI otomatis jadi cadangan kalau Groq belum dikonfigurasi/kena cooldown/kuota habis. Kartu "Kuota AI Hari Ini" & command Telegram "kuota" kini menampilkan status kedua provider terpisah.',
-    'Pencatatan lewat pesan bebas (mis. "murajaah juz 14 halaman 1 sampai 10") sekarang paham RENTANG halaman, tidak cuma satu halaman.',
+    'Pencatatan lewat pesan bebas (mis. "muraja\'ah juz 14 halaman 1 sampai 10") sekarang paham RENTANG halaman, tidak cuma satu halaman.',
     'Perbaikan tampilan halaman Pengaturan: teks deskripsi kecil di tiap kartu sekarang benar-benar tampil kecil & abu-abu (sebelumnya ada bug CSS bikin teksnya tampil besar/berat), ditambah ikon kecil di judul tiap kartu.',
     'Layar Masukkan PIN: keypad & titik indikator dipindah ke area bawah layar (dekat jangkauan jempol) dan tombol angka diperbesar, supaya lebih mudah dipakai satu tangan.'
   ]},
@@ -764,10 +796,10 @@ const CHANGELOG = [
     'Tambah menu "Kuota AI Hari Ini" di Pengaturan — cek sisa jatah Workers AI hari ini kapan saja (progres bar + status), sumber datanya sama dengan indikator kecil di modal Pengaturan server. Bot Telegram juga bisa dicek lewat ketik "kuota" (atau "ai"/"token").'
   ]},
   { version:'v28', date:'19 Agustus 2026', changes:[
-    'Perbaiki bug navigasi: menutup modal di layar Detail Juz (mis. tombol "Telah dimurajaah hari ini", "Simpan", "Tandai lupa") sekarang tetap di layar Detail Juz yang sama, tidak lagi otomatis terlempar balik ke Dasbor.'
+    'Perbaiki bug navigasi: menutup modal di layar Detail Juz (mis. tombol "Telah dimuraja\'ah hari ini", "Simpan", "Tandai lupa") sekarang tetap di layar Detail Juz yang sama, tidak lagi otomatis terlempar balik ke Dasbor.'
   ]},
   { version:'v27', date:'19 Agustus 2026', changes:[
-    'Tambah pengaturan ambang waktu overdue murajaah (bisa diubah sendiri, default 30 hari) — tersimpan di server, ikut dipakai reminder Telegram.',
+    'Tambah pengaturan ambang waktu overdue muraja\'ah (bisa diubah sendiri, default 30 hari) — tersimpan di server, ikut dipakai reminder Telegram.',
     'Hapus tombol menu (☰) & titik-tiga (⋮) di header karena fungsinya sudah ada di tab "Pengaturan" pada navigasi bawah.'
   ]},
   { version:'v26', date:'19 Agustus 2026', changes:[
@@ -1025,7 +1057,7 @@ async function downloadAllPagesForOffline(){
    (pakai pendekatan 30 hari/bulan & 365 hari/tahun, bukan kalender presisi
    — cukup akurat buat indikator "kira-kira sudah berapa lama"). */
 function formatRelativeTime(dateStr, short){
-  if(!dateStr) return short ? '\u2014' : 'Belum pernah dimurajaah';
+  if(!dateStr) return short ? '\u2014' : 'Belum pernah dimuraja\'ah';
   const then = new Date(dateStr + 'T00:00:00');
   const now = new Date();
   const days = Math.max(0, Math.floor((now - then) / 86400000));
@@ -1161,6 +1193,16 @@ function serverConfigured(){ return !!apiBase() && !!appToken(); }
    murajaah per HALAMAN (nomor halaman mushaf, 1-604). Data lama (skema v2,
    status per juz) otomatis dimigrasikan: statusnya diterapkan rata ke
    semua halaman juz itu. */
+/* Migrasi nama status "stabil" -> "mutqin" (label tampilan sudah diganti
+   jadi "Mutqin", ini menyamakan key datanya juga). Data LAMA yang sudah
+   tersimpan di server/Worker (dari sebelum migrasi ini) masih memakai
+   key "stabil" — fungsi ini menerjemahkannya begitu data dibaca, supaya
+   halaman yang sudah kamu tandai "Mutqin" dulu tetap terbaca benar,
+   bukan malah kelihatan "belum dihafal". Begitu app melakukan pushData()
+   berikutnya, datanya otomatis tersimpan ulang pakai key baru "mutqin",
+   jadi migrasi ini cukup dijalankan sekali per baca lalu selesai dengan
+   sendirinya secara bertahap. */
+function migrateStatusKey(s){ return s==='stabil' ? 'mutqin' : s; }
 function defaultJuzEntry(n){
   const [s,e] = juzRange(n);
   const pages = {};
@@ -1169,13 +1211,13 @@ function defaultJuzEntry(n){
 }
 function ensureJuzShape(e, n){
   const [s,end] = juzRange(n);
-  const legacyStatus = e && e.status;
+  const legacyStatus = e && migrateStatusKey(e.status);
   const legacyDate = (e && e.lastMurajaah) || null;
   const rawPages = (e && e.pages && typeof e.pages==='object') ? e.pages : null;
   const pages = {};
   for(let p=s;p<=end;p++){
     const rp = rawPages && rawPages[p];
-    if(rp) pages[p] = { status: rp.status||'belum', lastMurajaah: rp.lastMurajaah||null };
+    if(rp) pages[p] = { status: migrateStatusKey(rp.status)||'belum', lastMurajaah: rp.lastMurajaah||null };
     else if(legacyStatus) pages[p] = { status: legacyStatus, lastMurajaah: legacyDate };
     else pages[p] = { status:'belum', lastMurajaah:null };
   }
@@ -1201,17 +1243,17 @@ function normalizeData(raw){
 /* status gabungan sebuah juz, dihitung otomatis dari status semua halamannya */
 function juzAggregateStatus(entry){
   const vals = Object.values(entry.pages).map(p=>p.status);
-  const c = { belum:0, dihafal:0, murajaah:0, stabil:0, lupa:0 };
+  const c = { belum:0, dihafal:0, murajaah:0, mutqin:0, lupa:0 };
   vals.forEach(v=>c[v]++);
   const total = vals.length;
-  if(c.stabil===total) return 'stabil';
+  if(c.mutqin===total) return 'mutqin';
   if(c.belum===total) return 'belum';
   if(c.lupa>0) return 'lupa';
-  if(c.dihafal>0 || (c.belum>0 && (c.murajaah>0||c.stabil>0))) return 'dihafal';
+  if(c.dihafal>0 || (c.belum>0 && (c.murajaah>0||c.mutqin>0))) return 'dihafal';
   return 'murajaah';
 }
 function juzPageStats(entry){
-  const c = { belum:0, dihafal:0, murajaah:0, stabil:0, lupa:0, total:0 };
+  const c = { belum:0, dihafal:0, murajaah:0, mutqin:0, lupa:0, total:0 };
   Object.values(entry.pages).forEach(p=>{ c[p.status]++; c.total++; });
   return c;
 }
@@ -1286,7 +1328,7 @@ function overdueDaysThreshold(){
   const v = appData && appData.settings && appData.settings.overdueDays;
   return (Number.isFinite(v) && v>0) ? v : DEFAULT_OVERDUE_DAYS;
 }
-function isPageOverdue(p){ if(p.status!=='murajaah' && p.status!=='stabil') return false; if(!p.lastMurajaah) return true; return daysSince(p.lastMurajaah) > overdueDaysThreshold(); }
+function isPageOverdue(p){ if(p.status!=='murajaah' && p.status!=='mutqin') return false; if(!p.lastMurajaah) return true; return daysSince(p.lastMurajaah) > overdueDaysThreshold(); }
 function isJuzOverdue(entry){ return Object.values(entry.pages).some(isPageOverdue); }
 function overduePagesInJuz(entry){
   const arr=[];
@@ -1300,13 +1342,13 @@ function lupaPagesInJuz(entry){
   return Object.keys(entry.pages).map(Number).sort((a,b)=>a-b).filter(p=> entry.pages[p].status==='lupa');
 }
 function dotColor(entry){
-  if(isJuzOverdue(entry)) return 'var(--danger)';
+  if(isJuzOverdue(entry)) return 'var(--status-overdue)';
   const agg = juzAggregateStatus(entry);
-  if(agg==='belum') return 'var(--gray-300)';
-  if(agg==='dihafal') return 'var(--accent)';
-  if(agg==='stabil') return 'var(--primary)';
-  if(agg==='lupa') return 'var(--warning)';
-  return 'var(--success)'; // murajaah
+  if(agg==='belum') return 'var(--status-belum)';
+  if(agg==='dihafal') return 'var(--status-dihafal)';
+  if(agg==='mutqin') return 'var(--status-mutqin)';
+  if(agg==='lupa') return 'var(--status-lupa)';
+  return 'var(--status-murajaah)'; // murajaah
 }
 function fmtDate(iso){ if(!iso) return '-'; return new Date(iso).toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'}); }
 function fmtDateShort(iso){ if(!iso) return '-'; return new Date(iso).toLocaleDateString('id-ID',{day:'numeric',month:'short'}); }
@@ -1360,7 +1402,7 @@ function switchView(view){
   document.querySelectorAll('.nav-item').forEach(n=> n.classList.toggle('active', n.dataset.view===view));
   document.getElementById('bottomNav').style.display = view==='detail' ? 'none' : 'flex';
   document.getElementById('btnFab').style.display = view==='beranda' ? 'flex' : 'none';
-  const titles = { beranda:['Hafalan & Murajaah', new Date().toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'})],
+  const titles = { beranda:['Hafalan & Muraja\'ah', new Date().toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'})],
     riwayat:['Riwayat',''], statistik:['Statistik',''], pengaturan:['Pengaturan',''] };
   if(titles[view]){ document.getElementById('appbarTitle').textContent = titles[view][0]; document.getElementById('appbarSub').textContent = titles[view][1]; }
   if(view==='pengaturan'){ renderOfflineProgress(); renderOverdueDaysSetting(); }
@@ -1393,21 +1435,21 @@ function renderBeranda(){
   for(let i=1;i<=TOTAL_JUZ;i++){
     const e = juz[i];
     const ps = juzPageStats(e);
-    counts.belum += ps.belum; counts.dihafal += ps.dihafal; counts.murajaah += ps.murajaah; counts.stabil += ps.stabil; counts.lupa += ps.lupa;
-    if(juzAggregateStatus(e)==='stabil') juzStabilCount++;
+    counts.belum += ps.belum; counts.dihafal += ps.dihafal; counts.murajaah += ps.murajaah; counts.mutqin += ps.mutqin; counts.lupa += ps.lupa;
+    if(juzAggregateStatus(e)==='mutqin') juzStabilCount++;
     const op = overduePagesInJuz(e);
     if(op.length){ overdueJuz.push(i); overduePageTotal += op.length; }
     const lp = lupaPagesInJuz(e);
     if(lp.length){ lupaJuz.push(i); lupaPageTotal += lp.length; }
   }
 
-  document.getElementById('progNum').textContent = counts.stabil + ' / ' + TOTAL_PAGES;
+  document.getElementById('progNum').textContent = counts.mutqin + ' / ' + TOTAL_PAGES;
   document.getElementById('progLabel').textContent = 'Halaman mutqin (' + juzStabilCount + ' juz penuh)';
-  document.getElementById('statStabilN').textContent = counts.stabil;
+  document.getElementById('statStabilN').textContent = counts.mutqin;
   document.getElementById('statMurajaahN').textContent = counts.murajaah;
   document.getElementById('statDihafalN').textContent = counts.dihafal;
   document.getElementById('statBelumN').textContent = counts.belum;
-  const pct = Math.round(counts.stabil/TOTAL_PAGES*100);
+  const pct = Math.round(counts.mutqin/TOTAL_PAGES*100);
   document.getElementById('progBarFill').style.width = pct + '%';
   drawRing('progRing', pct, 72, 6, '#B99A45', 'rgba(255,255,255,0.18)');
 
@@ -1456,9 +1498,9 @@ function renderJuzGrid(){
     const lastDate = juzLastMurajaahDate(e);
     const card = document.createElement('div');
     card.className='juz-dot-card';
-    card.title = 'Terakhir dimurajaah: ' + formatRelativeTime(lastDate, false);
+    card.title = 'Terakhir dimuraja\'ah: ' + formatRelativeTime(lastDate, false);
     card.innerHTML = '<div class="juz-dot-num">'+String(i).padStart(2,'0')+'</div><div class="juz-dot" style="background:'+dotColor(e)+'"></div>'+
-      '<div class="juz-dot-sub">'+ps.stabil+'/'+ps.total+'</div>'+
+      '<div class="juz-dot-sub">'+ps.mutqin+'/'+ps.total+'</div>'+
       '<div class="juz-dot-time">'+formatRelativeTime(lastDate, true)+'</div>';
     card.onclick = ()=> openDetail(i);
     grid.appendChild(card);
@@ -1486,8 +1528,8 @@ function flattenHistory(){
   return all;
 }
 function historyLabel(h){
-  if(h.event==='murajaah') return 'Murajaah Juz ' + String(h.juz).padStart(2,'0') + (h.page ? ' hal.'+h.page : '');
-  if(h.event==='murajaah_bulk') return 'Seluruh Juz ' + String(h.juz).padStart(2,'0') + ' dimurajaah (' + (h.pagesCount||'?') + ' halaman)';
+  if(h.event==='murajaah') return 'Muraja\'ah Juz ' + String(h.juz).padStart(2,'0') + (h.page ? ' hal.'+h.page : '');
+  if(h.event==='murajaah_bulk') return 'Seluruh Juz ' + String(h.juz).padStart(2,'0') + ' dimuraja\'ah (' + (h.pagesCount||'?') + ' halaman)';
   if(h.event==='status_change') return 'Juz '+String(h.juz).padStart(2,'0')+(h.page?' hal.'+h.page:'')+': '+STATUS_META[h.from].label+' \u2192 '+STATUS_META[h.to].label;
   if(h.event==='status_change_bulk') return 'Seluruh Juz '+String(h.juz).padStart(2,'0')+' diubah ke '+STATUS_META[h.to].label+' ('+(h.pagesCount||'?')+' halaman)';
   return 'Juz ' + String(h.juz).padStart(2,'0') + ' diperbarui';
@@ -1495,7 +1537,7 @@ function historyLabel(h){
 function renderRiwayatGlobal(){
   const all = flattenHistory();
   const el = document.getElementById('riwayatList');
-  if(!all.length){ el.innerHTML = '<div class="empty-state">Belum ada riwayat aktivitas.<br>Mulai murajaah untuk mencatatnya di sini.</div>'; return; }
+  if(!all.length){ el.innerHTML = '<div class="empty-state">Belum ada riwayat aktivitas.<br>Mulai muraja\'ah untuk mencatatnya di sini.</div>'; return; }
   el.innerHTML = all.slice(0,100).map(h=>
     '<div class="history-row"><div class="history-dot" style="background:'+ (h.event==='murajaah'?'var(--success)':'var(--accent)') +'"></div>' +
     '<div><div class="history-text">'+historyLabel(h)+'</div><div class="history-date">'+fmtDate(h.at)+'</div></div></div>'
@@ -1567,7 +1609,7 @@ function renderStatistik(){
   for(let i=1;i<=TOTAL_JUZ;i++){
     Object.keys(juz[i].pages).map(Number).forEach(p=>{
       const pg = juz[i].pages[p];
-      if(pg.status==='murajaah' || pg.status==='stabil'){
+      if(pg.status==='murajaah' || pg.status==='mutqin'){
         const d = daysSince(pg.lastMurajaah);
         const dd = d===null ? 99999 : d;
         if(dd > palingDays){ palingDays = dd; paling = i; palingPage = p; }
@@ -1596,12 +1638,12 @@ function renderStatistik(){
   renderHeatmap(all);
 
   let counts = { belum:0, dihafal:0, murajaah:0, stabil:0 };
-  for(let i=1;i<=TOTAL_JUZ;i++){ const ps=juzPageStats(juz[i]); counts.belum+=ps.belum; counts.dihafal+=ps.dihafal; counts.murajaah+=ps.murajaah; counts.stabil+=ps.stabil; }
-  document.getElementById('legStabil').textContent = 'Stabil: '+counts.stabil+' hal.';
-  document.getElementById('legMurajaah').textContent = 'Murajaah: '+counts.murajaah+' hal.';
+  for(let i=1;i<=TOTAL_JUZ;i++){ const ps=juzPageStats(juz[i]); counts.belum+=ps.belum; counts.dihafal+=ps.dihafal; counts.murajaah+=ps.murajaah; counts.mutqin+=ps.mutqin; }
+  document.getElementById('legStabil').textContent = 'Mutqin: '+counts.mutqin+' hal.';
+  document.getElementById('legMurajaah').textContent = 'Muraja\'ah: '+counts.murajaah+' hal.';
   document.getElementById('legDihafal').textContent = 'Dihafal: '+counts.dihafal+' hal.';
   document.getElementById('legBelum').textContent = 'Belum: '+counts.belum+' hal.';
-  const pct = Math.round(counts.stabil/TOTAL_PAGES*100);
+  const pct = Math.round(counts.mutqin/TOTAL_PAGES*100);
   document.getElementById('statDonutPct').textContent = pct+'%';
   drawRing('statDonut', pct, 120, 12, '#164A40', '#E5E9E7');
 }
@@ -1629,13 +1671,13 @@ function renderDetail(){
   let recText = '';
   if(overdue){
     const sample = overduePages.slice(0,4).map(o=>'hal.'+o.page).join(', ');
-    recText = overduePages.length + ' halaman perlu diulang (' + sample + (overduePages.length>4?', ...':'') + '). Mulai murajaah hari ini untuk menjaga hafalan tetap kuat.';
+    recText = overduePages.length + ' halaman perlu diulang (' + sample + (overduePages.length>4?', ...':'') + '). Mulai muraja\'ah hari ini untuk menjaga hafalan tetap kuat.';
   }else if(agg==='belum'){
     recText = 'Juz ini belum mulai dihafal. Tap halaman di bawah untuk menandai "Sedang dihafal" begitu Anda mulai.';
   }else if(agg==='dihafal'){
-    recText = 'Masih ada halaman yang belum selesai dihafal (' + ps.stabil + '/' + ps.total + ' hal. sudah mutqin). Terus lanjutkan.';
+    recText = 'Masih ada halaman yang belum selesai dihafal (' + ps.mutqin + '/' + ps.total + ' hal. sudah mutqin). Terus lanjutkan.';
   }else{
-    recText = 'Kondisi juz ini masih aman (' + ps.stabil + '/' + ps.total + ' hal. mutqin). Pertahankan jadwal murajaah rutin.';
+    recText = 'Kondisi juz ini masih aman (' + ps.mutqin + '/' + ps.total + ' hal. mutqin). Pertahankan jadwal muraja\'ah rutin.';
   }
 
   const el = document.getElementById('screenDetail');
@@ -1651,13 +1693,13 @@ function renderDetail(){
         <div class="hero-row">
           <div>
             <p class="hero-eyebrow">Status</p>
-            <p class="hero-status">${overdue?overduePages.length+' hal. perlu murajaah':STATUS_META[agg].label}</p>
+            <p class="hero-status">${overdue?overduePages.length+' hal. perlu muraja\'ah':STATUS_META[agg].label}</p>
             <p class="hero-meta-label">Progres halaman</p>
-            <p class="hero-meta-val">${ps.stabil}/${ps.total} mutqin \u00b7 hal.${rangeStart}\u2013${rangeStart+ps.total-1}</p>
+            <p class="hero-meta-val">${ps.mutqin}/${ps.total} mutqin \u00b7 hal.${rangeStart}\u2013${rangeStart+ps.total-1}</p>
             <p class="hero-meta-val" style="opacity:.85; margin-top:2px;">${juzSurahRangeLabel(n)}</p>
-            <p class="hero-meta-label" style="margin-top:8px;">Terakhir dimurajaah</p>
+            <p class="hero-meta-label" style="margin-top:8px;">Terakhir dimuraja'ah</p>
             <p class="hero-meta-val">${formatRelativeTime(juzLastMurajaahDate(e), false)}</p>
-            <p class="hero-meta-label" style="margin-top:8px;">Total dimurajaah</p>
+            <p class="hero-meta-label" style="margin-top:8px;">Total dimuraja'ah</p>
             <p class="hero-meta-val">${juzMurajaahCount(e)}x</p>
           </div>
           <div class="hero-badge">
@@ -1688,7 +1730,7 @@ function renderDetail(){
         <p class="rec-text">${recText}</p>
         <button class="btn-full btn-primary" id="btnMulaiMurajaah">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg>
-          Tandai Seluruh Juz Telah Dimurajaah Hari Ini
+          Tandai Seluruh Juz Telah Dimuraja'ah Hari Ini
         </button>
       </div>
       <div class="card" style="margin-top:12px;">
@@ -1696,17 +1738,17 @@ function renderDetail(){
           <p class="section-title">Halaman (tap untuk ubah)</p>
           <div style="display:flex; align-items:center; gap:10px;">
             <button class="icon-btn" id="btnViewMushafJuz" title="Lihat halaman mushaf" style="padding:2px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></button>
-            <span class="page-progress-frac">${ps.stabil}/${ps.total}</span>
+            <span class="page-progress-frac">${ps.mutqin}/${ps.total}</span>
           </div>
         </div>
         <div class="page-grid" id="pageGrid"></div>
         <div class="page-legend">
-          <div class="page-legend-item"><span class="page-legend-dot" style="background:var(--gray-300)"></span>Belum</div>
-          <div class="page-legend-item"><span class="page-legend-dot" style="background:var(--accent)"></span>Dihafal</div>
-          <div class="page-legend-item"><span class="page-legend-dot" style="background:var(--success)"></span>Murajaah</div>
-          <div class="page-legend-item"><span class="page-legend-dot" style="background:var(--primary)"></span>Stabil</div>
-          <div class="page-legend-item"><span class="page-legend-dot" style="background:var(--warning)"></span>Lupa</div>
-          <div class="page-legend-item"><span class="page-legend-dot" style="background:var(--danger)"></span>Overdue</div>
+          <div class="page-legend-item"><span class="page-legend-dot" style="background:var(--status-belum)"></span>Belum</div>
+          <div class="page-legend-item"><span class="page-legend-dot" style="background:var(--status-dihafal)"></span>Dihafal</div>
+          <div class="page-legend-item"><span class="page-legend-dot" style="background:var(--status-murajaah)"></span>Muraja'ah</div>
+          <div class="page-legend-item"><span class="page-legend-dot" style="background:var(--status-mutqin)"></span>Mutqin</div>
+          <div class="page-legend-item"><span class="page-legend-dot" style="background:var(--status-lupa)"></span>Lupa</div>
+          <div class="page-legend-item"><span class="page-legend-dot" style="background:var(--status-overdue)"></span>Overdue</div>
         </div>
       </div>
       <div class="card" style="margin-top:12px;">
@@ -1715,13 +1757,13 @@ function renderDetail(){
           <select id="detailStatus">
             <option value="belum">Belum dihafal</option>
             <option value="dihafal">Sedang dihafal</option>
-            <option value="murajaah">Sedang murajaah</option>
-            <option value="stabil">Stabil (mutqin)</option>
+            <option value="murajaah">Sedang muraja'ah</option>
+            <option value="mutqin">Mutqin</option>
             <option value="lupa">Lupa (perlu hafal ulang)</option>
           </select>
         </div>
         <div class="field" style="padding:4px 16px 14px;">
-          <label>Tanggal murajaah terakhir (untuk semua halaman)</label>
+          <label>Tanggal muraja'ah terakhir (untuk semua halaman)</label>
           <input type="date" id="detailDate">
         </div>
         <div style="padding:0 16px 16px;">
@@ -1769,12 +1811,15 @@ function renderPageGrid(n){
     const overdue = isPageOverdue(pg);
     const cell = document.createElement('div');
     cell.className = 'page-cell' + (overdue?' overdue':'');
-    cell.style.background = STATUS_META[pg.status].color;
-    if(pg.status==='belum') cell.style.color = 'var(--gray-700)';
-    // angka besar = nomor urut dalam juz (1-20), angka kecil di bawahnya
-    // = nomor halaman mushaf asli — supaya keduanya kelihatan sekaligus
+    // sel netral (abu-abu) untuk semua status — warna status dipindah jadi
+    // dot kecil di bawah nomor, bukan background sel penuh, supaya sel bisa
+    // diperbesar (tap target lebih mudah dijangkau) tanpa tampilan jadi ramai.
+    // angka besar = nomor urut dalam juz (1-20), dot = warna status, angka
+    // kecil di pojok = nomor halaman mushaf asli — semua kelihatan sekaligus
     // tanpa perlu tap dulu.
-    cell.innerHTML = '<span>'+(p - start + 1)+'</span><span class="page-cell-mushaf">'+p+'</span>';
+    cell.innerHTML = '<span>'+(p - start + 1)+'</span>'
+      + '<span class="page-cell-dot" style="background:'+STATUS_META[pg.status].color+'"></span>'
+      + '<span class="page-cell-mushaf">'+p+'</span>';
     const meta = getPageMeta(p);
     const cnt = pageMurajaahCount(e, p);
     cell.title = 'Halaman '+p+' (mushaf)' + (meta ? ' \u2014 '+meta.label : '') + ' \u2014 '+STATUS_META[pg.status].label + ' \u2014 '+cnt+'x';
@@ -1794,7 +1839,7 @@ function openPageEditor(n, p){
   document.getElementById('pageStatus').value = pg.status;
   document.getElementById('pageDate').value = pg.lastMurajaah || '';
   const count = pageMurajaahCount(e, p);
-  document.getElementById('pageModalCount').textContent = count+'x dimurajaah';
+  document.getElementById('pageModalCount').textContent = count+'x dimuraja\'ah';
   pushNavState('pageEditor:'+n+':'+p);
   document.getElementById('pageOverlay').classList.add('open');
   refreshPageEditorHint();
@@ -1814,10 +1859,8 @@ let currentMushafPage = null;
 let mushafViewMode = localStorage.getItem('hafalan_mushaf_view_mode') || 'text'; // 'text' | 'image'
 let mushafPlaylist = [];      // [{surah, ayah, text}, ...] urutan baca di halaman ini
 let mushafPlayIndex = -1;     // -1 = tidak sedang memutar apa pun
-let repeatMode = 1;           // 1-5 = ulang berapa kali per ayat, 'inf' = ulang tak terhingga
+let repeatMode = 'off';       // 'off' = tidak diulang (lanjut ke ayat berikutnya), 1-5 = ulang berapa kali per ayat, 'inf' = ulang tak terhingga
 let repeatCounter = 0;        // sudah diulang berapa kali utk ayat yg SEDANG diputar (reset tiap pindah ayat)
-let pageRepeatMode = 0;       // 0 = nonaktif, 1-5 = ulang berapa kali 1 halaman penuh, 'inf' = tak terhingga
-let pageRepeatCounter = 0;    // sudah diulang berapa kali utk halaman ini (reset tiap mulai putar ulang)
 const mushafAudioEl = new Audio();
 
 function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -1866,6 +1909,53 @@ function toggleMushafViewMode(){
   try{ localStorage.setItem('hafalan_mushaf_view_mode', mushafViewMode); }catch(e){}
   renderMushafViewer();
 }
+/* ---------- Panel pilih qori (custom, BUKAN <select> browser) ----------
+   Ditampilkan di dalam mushafPlayerIdle (kondisi berhenti saja) — qori
+   cuma boleh diganti saat tidak sedang memutar, sama seperti pola app
+   pembaca Quran pada umumnya. */
+function updateIdleReciterName(){
+  const r = RECITERS.find(x=> x.id===currentReciter());
+  const el = document.getElementById('mushafIdleReciterName');
+  if(el) el.textContent = r ? r.name : 'Pilih qori';
+}
+function populateReciterPanel(){
+  const panel = document.getElementById('mushafReciterPanel');
+  if(!panel) return;
+  const activeId = currentReciter();
+  panel.innerHTML = RECITERS.map(r=>
+    '<div class="mushaf-reciter-item'+(r.id===activeId ? ' active' : '')+'" data-id="'+r.id+'">'+
+      '<span>'+r.name+'</span>'+
+      (r.id===activeId ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>' : '')+
+    '</div>'
+  ).join('');
+  panel.querySelectorAll('.mushaf-reciter-item').forEach(el=>{
+    el.onclick = ()=>{
+      setReciter(el.getAttribute('data-id'));
+      updateIdleReciterName();
+      panel.style.display = 'none';
+    };
+  });
+}
+function toggleReciterPanel(){
+  const panel = document.getElementById('mushafReciterPanel');
+  if(!panel) return;
+  const willOpen = (panel.style.display==='none' || !panel.style.display);
+  if(willOpen) populateReciterPanel();
+  panel.style.display = willOpen ? 'block' : 'none';
+}
+/* tutup panel qori / popover ulang bacaan begitu tap di luar area-nya */
+document.addEventListener('click', (e)=>{
+  const panel = document.getElementById('mushafReciterPanel');
+  const reciterBtn = document.getElementById('mushafIdleReciterBtn');
+  if(panel && panel.style.display==='block' && reciterBtn && !panel.contains(e.target) && e.target!==reciterBtn && !reciterBtn.contains(e.target)){
+    panel.style.display = 'none';
+  }
+  const pop = document.getElementById('mushafRepeatPopover');
+  const repeatBtn = document.getElementById('mushafRepeatBtn');
+  if(pop && pop.style.display==='block' && repeatBtn && !pop.contains(e.target) && e.target!==repeatBtn && !repeatBtn.contains(e.target)){
+    pop.style.display = 'none';
+  }
+});
 /* ---------- Ukuran teks mushaf (custom, disimpan per-device) ----------
    Diterapkan lewat CSS variable --mushaf-font-size di elemen root, jadi
    1 slider ini otomatis berlaku ke SEMUA halaman (tidak perlu diatur
@@ -1945,6 +2035,8 @@ function mushafPrev(){ if(currentMushafPage>1){ currentMushafPage--; renderMusha
 function mushafNext(){ if(currentMushafPage<TOTAL_PAGES){ currentMushafPage++; renderMushafViewer(); } }
 
 /* ---------- Kontrol audio murottal ---------- */
+const MUSHAF_ICON_PLAY = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+const MUSHAF_ICON_PAUSE = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
 function ayahLabel(surah, ayah){
   const meta = getPageMeta(currentMushafPage);
   const seg = meta && meta.segs && meta.segs.find(s=> ayah>=s.from && ayah<=s.to);
@@ -1973,8 +2065,6 @@ function updateAyahHighlight(){
   const el = document.querySelector('.mushaf-textwrap .mushaf-ayah[data-surah="'+surah+'"][data-ayah="'+ayah+'"]');
   if(el){ el.classList.add('ayah-playing'); el.scrollIntoView({ block:'center', behavior:'smooth' }); }
 }
-const PLAY_ICON_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5v14l11-7z"/></svg>';
-const PAUSE_ICON_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
 function playCurrentAyah(){
   if(mushafPlayIndex<0 || mushafPlayIndex>=mushafPlaylist.length){ stopMushafAudio(); return; }
   const { surah, ayah } = mushafPlaylist[mushafPlayIndex];
@@ -1988,9 +2078,17 @@ function playCurrentAyah(){
   if(panel) panel.style.display = 'none';
   document.getElementById('mushafAudioBar').style.display = 'block';
   document.getElementById('mushafAudioLabel').textContent = ayahLabel(surah, ayah);
-  document.getElementById('mushafPlayToggle').innerHTML = PAUSE_ICON_SVG;
+  document.getElementById('mushafPlayToggle').innerHTML = MUSHAF_ICON_PAUSE;
   document.getElementById('mushafAyahPrev').disabled = (mushafPlayIndex<=0);
   document.getElementById('mushafAyahNext').disabled = (mushafPlayIndex>=mushafPlaylist.length-1);
+}
+/* mulai putar dari ayat pertama halaman — dipanggil dari tombol \u25B6 di
+   mushafPlayerIdle (kondisi berhenti, qori sudah dipilih). */
+function startMushafPlayback(){
+  if(!mushafPlaylist.length) return;
+  mushafPlayIndex = 0;
+  repeatCounter = 0;
+  playCurrentAyah();
 }
 function playAyahFrom(surah, ayah){
   const idx = mushafPlaylist.findIndex(a=> a.surah===surah && a.ayah===ayah);
@@ -2006,23 +2104,17 @@ function mushafAyahPrev(){
 function mushafAyahNext(){
   if(mushafPlayIndex>=0 && mushafPlayIndex<mushafPlaylist.length-1){ mushafPlayIndex++; repeatCounter=0; playCurrentAyah(); }
 }
-/* mulai putar dari ayat pertama halaman — dipanggil dari tombol \u25B6 di
-   mushafPlayerIdle (kondisi berhenti, qori sudah dipilih). */
-function startMushafPlayback(){
-  if(!mushafPlaylist.length) return;
-  mushafPlayIndex = 0;
-  repeatCounter = 0;
-  playCurrentAyah();
-}
 /* ---------- Ulang ayat & ulang 1 halaman penuh ----------
    Keduanya SALING EKSKLUSIF (cuma salah satu yang boleh aktif dalam satu
    waktu) — kalau salah satu diaktifkan, tombol siklus yang satunya otomatis
    dinonaktifkan (pudar, tidak bisa ditap) sampai yang aktif dimatikan
-   (dibalik ke posisi 1x / Nonaktif) dulu. */
-const REPEAT_MODES = [1,2,3,4,5,'inf'];
-const PAGE_REPEAT_MODES = [0,1,2,3,4,5,'inf'];
-function isAyahRepeatActive(){ return repeatMode !== 1; }
-function isPageRepeatActive(){ return pageRepeatMode !== 0; }
+   (dibalik ke posisi 'off') dulu. */
+const REPEAT_MODES = ['off',1,2,3,4,5,'inf'];
+const PAGE_REPEAT_MODES = ['off',1,2,3,4,5,'inf'];
+let pageRepeatMode = 'off';
+let pageRepeatCounter = 0;
+function isAyahRepeatActive(){ return repeatMode !== 'off'; }
+function isPageRepeatActive(){ return pageRepeatMode !== 'off'; }
 function cycleRepeatMode(){
   if(isPageRepeatActive()) return;
   const idx = REPEAT_MODES.indexOf(repeatMode);
@@ -2044,12 +2136,12 @@ function updateRepeatUI(){
   const ayahActive = isAyahRepeatActive();
   const pageActive = isPageRepeatActive();
   if(ayahChip){
-    ayahChip.textContent = repeatMode==='inf' ? '\u221e' : repeatMode+'x';
+    ayahChip.textContent = repeatMode==='off' ? 'Nonaktif' : repeatMode==='inf' ? '\u221e' : repeatMode+'x';
     ayahChip.classList.toggle('active', ayahActive);
     ayahChip.classList.toggle('disabled', pageActive);
   }
   if(pageChip){
-    pageChip.textContent = pageRepeatMode==='inf' ? '\u221e' : (pageRepeatMode===0 ? 'Nonaktif' : pageRepeatMode+'x');
+    pageChip.textContent = pageRepeatMode==='off' ? 'Nonaktif' : pageRepeatMode==='inf' ? '\u221e' : pageRepeatMode+'x';
     pageChip.classList.toggle('active', pageActive);
     pageChip.classList.toggle('disabled', ayahActive);
   }
@@ -2062,7 +2154,7 @@ function toggleRepeatPopover(){
 }
 function toggleMushafPlay(){
   if(!mushafPlaylist.length) return;
-  if(!mushafAudioEl.paused){ mushafAudioEl.pause(); document.getElementById('mushafPlayToggle').innerHTML = PLAY_ICON_SVG; releaseMushafWakeLock(); return; }
+  if(!mushafAudioEl.paused){ mushafAudioEl.pause(); document.getElementById('mushafPlayToggle').innerHTML = MUSHAF_ICON_PLAY; releaseMushafWakeLock(); return; }
   if(mushafPlayIndex<0) mushafPlayIndex = 0;
   playCurrentAyah();
 }
@@ -2079,56 +2171,10 @@ function stopMushafAudio(){
   const pop = document.getElementById('mushafRepeatPopover');
   if(pop) pop.style.display = 'none';
   const btn = document.getElementById('mushafPlayToggle');
-  if(btn) btn.innerHTML = PLAY_ICON_SVG;
+  if(btn) btn.innerHTML = MUSHAF_ICON_PLAY;
   const idleBar = document.getElementById('mushafPlayerIdle');
   if(idleBar) idleBar.style.display = mushafPlaylist.length ? 'block' : 'none';
 }
-/* ---------- Panel pilih qori (custom, BUKAN <select> browser) ----------
-   Ditampilkan di dalam mushafPlayerIdle (kondisi berhenti saja), karena
-   qori memang cuma boleh diganti saat tidak sedang memutar. */
-function updateIdleReciterName(){
-  const r = RECITERS.find(x=> x.id===currentReciter());
-  const el = document.getElementById('mushafIdleReciterName');
-  if(el) el.textContent = r ? r.name : 'Pilih qori';
-}
-function populateReciterPanel(){
-  const panel = document.getElementById('mushafReciterPanel');
-  if(!panel) return;
-  const activeId = currentReciter();
-  panel.innerHTML = RECITERS.map(r=>
-    '<div class="mushaf-reciter-item'+(r.id===activeId ? ' active' : '')+'" data-id="'+r.id+'">'+
-      '<span>'+r.name+'</span>'+
-      (r.id===activeId ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>' : '')+
-    '</div>'
-  ).join('');
-  panel.querySelectorAll('.mushaf-reciter-item').forEach(el=>{
-    el.onclick = ()=>{
-      setReciter(el.getAttribute('data-id'));
-      updateIdleReciterName();
-      panel.style.display = 'none';
-    };
-  });
-}
-function toggleReciterPanel(){
-  const panel = document.getElementById('mushafReciterPanel');
-  if(!panel) return;
-  const willOpen = (panel.style.display==='none' || !panel.style.display);
-  if(willOpen) populateReciterPanel();
-  panel.style.display = willOpen ? 'block' : 'none';
-}
-/* tutup panel qori / popover ulang bacaan begitu tap di luar area-nya */
-document.addEventListener('click', (e)=>{
-  const panel = document.getElementById('mushafReciterPanel');
-  const reciterBtn = document.getElementById('mushafIdleReciterBtn');
-  if(panel && panel.style.display==='block' && !panel.contains(e.target) && e.target!==reciterBtn && !reciterBtn.contains(e.target)){
-    panel.style.display = 'none';
-  }
-  const pop = document.getElementById('mushafRepeatPopover');
-  const repeatBtn = document.getElementById('mushafRepeatBtn');
-  if(pop && pop.style.display==='block' && !pop.contains(e.target) && e.target!==repeatBtn && !repeatBtn.contains(e.target)){
-    pop.style.display = 'none';
-  }
-});
 /* ---------- Wake Lock: layar tetap menyala selama murattal diputar ----------
    Otomatis dilepas sendiri oleh browser begitu layar dikunci/app diminimize
    (perilaku bawaan Wake Lock API) — tidak perlu ditangani manual. Yang perlu
@@ -2169,22 +2215,19 @@ mushafAudioEl.addEventListener('ended', ()=>{
   }
   repeatCounter = 0;
   mushafPlayIndex++;
-  if(mushafPlayIndex < mushafPlaylist.length){
-    playCurrentAyah();
-    return;
-  }
-  // playlist halaman ini sudah habis -> ulang dari ayat pertama kalau
-  // "ulang 1 halaman" aktif (dan belum mencapai target pageRepeatMode),
-  // kalau tidak baru benar-benar berhenti.
-  const shouldRepeatPage = pageRepeatMode !== 0 && (pageRepeatMode==='inf' || pageRepeatCounter < (Number(pageRepeatMode) - 1));
-  if(shouldRepeatPage){
+  if(mushafPlayIndex < mushafPlaylist.length){ playCurrentAyah(); return; }
+  // sudah sampai ayat terakhir di halaman ini -> cek "Ulang 1 halaman"
+  // (sama polanya dengan repeat per-ayat: ulang dari ayat pertama sampai
+  // target pageRepeatMode tercapai, atau tanpa henti kalau 'inf').
+  const shouldRepeatPage = pageRepeatMode==='inf' || pageRepeatCounter < (Number(pageRepeatMode) - 1);
+  if(pageRepeatMode!=='off' && shouldRepeatPage){
     pageRepeatCounter++;
     mushafPlayIndex = 0;
     playCurrentAyah();
-  }else{
-    pageRepeatCounter = 0;
-    stopMushafAudio();
+    return;
   }
+  pageRepeatCounter = 0;
+  stopMushafAudio();
 });
 
 /* ---------- Swipe kiri/kanan buat pindah halaman ---------- */
@@ -2245,7 +2288,7 @@ async function markPageToday(){
   closePageEditor();
   renderDetail(); renderAll();
   const ok = await pushData(); renderSyncBanner();
-  showToast(ok ? 'Halaman '+p+' ditandai telah dimurajaah hari ini.' : ('Gagal simpan: ' + lastSyncDetail), ok);
+  showToast(ok ? 'Halaman '+p+' ditandai telah dimuraja\'ah hari ini.' : ('Gagal simpan: ' + lastSyncDetail), ok);
 }
 /* tandai 1 halaman "lupa" — dipakai saat hafalan yang tadinya sudah
    murajaah/stabil ternyata lupa lagi & perlu dihafal ulang dari awal.
@@ -2281,7 +2324,7 @@ async function markMurajaahToday(n){
   pushHistory(e, 'murajaah_bulk', { pagesCount: count });
   renderDetail(); renderAll();
   const ok = await pushData(); renderSyncBanner();
-  showToast(ok ? 'Tersimpan — seluruh juz ('+count+' hal.) telah dimurajaah hari ini.' : ('Gagal simpan: ' + lastSyncDetail), ok);
+  showToast(ok ? 'Tersimpan — seluruh juz ('+count+' hal.) telah dimuraja\'ah hari ini.' : ('Gagal simpan: ' + lastSyncDetail), ok);
 }
 /* saveDetailStatus: terapkan satu status+tanggal ke SEMUA halaman juz sekaligus */
 async function saveDetailStatus(n){
@@ -2365,7 +2408,7 @@ async function saveQuickLog(){
     pushHistory(e, 'murajaah', fromStatus!==pg.status ? { page:p, from:fromStatus, to:pg.status } : { page:p });
     renderAll();
     const ok = await pushData(); renderSyncBanner();
-    showToast(ok ? 'Halaman '+p+' ditandai murajaah hari ini.' : ('Gagal simpan: ' + lastSyncDetail), ok);
+    showToast(ok ? 'Halaman '+p+' ditandai muraja\'ah hari ini.' : ('Gagal simpan: ' + lastSyncDetail), ok);
   }
 }
 
