@@ -263,7 +263,17 @@ button{font-family:var(--font-sans);}
 .mushaf-loading,.mushaf-error{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   text-align:center;padding:20px;font-size:12.5px;color:var(--gray-500);}
 .mushaf-tip{font-size:11px;color:var(--gray-500);text-align:center;margin:8px 0 0;}
-.mushaf-audiobar{display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 10px;background:var(--gray-100,#F0F2F1);border-radius:var(--radius-md,10px);}
+.mushaf-audiobar{margin-top:8px;}
+.mushaf-player{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-lg,16px);padding:14px 16px;box-shadow:var(--shadow-sm);}
+.mushaf-player-title{font-size:12.5px;font-weight:700;color:var(--gray-900);margin:0 0 10px;}
+.mushaf-progress-segs{display:flex;gap:3px;margin-bottom:12px;}
+.mushaf-progress-seg{flex:1;height:4px;border-radius:99px;background:var(--gray-200);transition:background .2s;}
+.mushaf-progress-seg.active{background:var(--primary);}
+.mushaf-controls-row{display:flex;align-items:center;justify-content:space-between;}
+.mushaf-ctl-btn{width:32px;height:32px;border-radius:50%;border:none;background:var(--gray-100);color:var(--gray-700);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;position:relative;padding:0;}
+.mushaf-ctl-skip{width:34px;height:34px;font-size:16px;}
+.mushaf-ctl-main{width:48px;height:48px;border-radius:50%;border:none;background:var(--primary);color:var(--white);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:19px;padding:0;}
+.mushaf-repeat-badge{position:absolute;bottom:-3px;right:-3px;background:var(--primary);color:var(--white);font-size:8px;font-weight:700;border-radius:99px;min-width:14px;height:14px;display:flex;align-items:center;justify-content:center;padding:0 2px;line-height:1;}
 .mushaf-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;}
 .sheet h3{font-size:18px;font-weight:800;margin:0 0 4px;color:var(--gray-900);}
 .hint{font-size:12.5px;color:var(--gray-500);line-height:1.5;margin:0 0 16px;}
@@ -578,21 +588,19 @@ button{font-family:var(--font-sans);}
     <div class="mushaf-error" id="mushafError" style="display:none;">Halaman ini gagal dimuat sama sekali (perlu koneksi internet). Coba lagi, atau cek nanti saat online.</div>
   </div>
   <p class="mushaf-tip" id="mushafTip" style="display:none;">Ketuk ayat mana pun untuk memutar murottal dari situ.</p>
-  <div class="mushaf-audiobar" id="mushafAudioBar" style="display:none; flex-direction:column; align-items:stretch; gap:8px;">
-    <span id="mushafAudioLabel" style="font-size:12px;color:var(--gray-700);"></span>
-    <div style="display:flex; align-items:center; gap:6px;">
-      <button class="icon-btn" id="mushafAyahPrev" title="Ayat sebelumnya">⏮</button>
-      <button class="icon-btn" id="mushafPlayToggle"></button>
-      <button class="icon-btn" id="mushafAyahNext" title="Ayat berikutnya">⏭</button>
-      <select id="mushafRepeatMode" title="Ulang bacaan" style="font-size:11px; border:1px solid var(--gray-300); border-radius:8px; padding:4px 4px; margin-left:auto; background:var(--white); color:var(--gray-700);">
-        <option value="1">Ulang 1x</option>
-        <option value="2">Ulang 2x</option>
-        <option value="3">Ulang 3x</option>
-        <option value="4">Ulang 4x</option>
-        <option value="5">Ulang 5x</option>
-        <option value="inf">Ulang ∞</option>
-      </select>
-      <button class="btn btn-ghost" id="mushafStop" style="padding:6px 10px;font-size:12px;">Stop</button>
+  <div class="mushaf-audiobar" id="mushafAudioBar" style="display:none;">
+    <div class="mushaf-player">
+      <p class="mushaf-player-title" id="mushafAudioLabel"></p>
+      <div class="mushaf-progress-segs" id="mushafProgressSegs"></div>
+      <div class="mushaf-controls-row">
+        <button class="mushaf-ctl-btn" id="mushafRepeatMode" title="Ulang bacaan" aria-label="Ulang bacaan">🔁<span class="mushaf-repeat-badge" id="mushafRepeatBadge">1x</span></button>
+        <div style="display:flex; align-items:center; gap:14px;">
+          <button class="mushaf-ctl-btn mushaf-ctl-skip" id="mushafAyahPrev" title="Ayat sebelumnya" aria-label="Ayat sebelumnya">⏮</button>
+          <button class="mushaf-ctl-main" id="mushafPlayToggle" aria-label="Putar/jeda"></button>
+          <button class="mushaf-ctl-btn mushaf-ctl-skip" id="mushafAyahNext" title="Ayat berikutnya" aria-label="Ayat berikutnya">⏭</button>
+        </div>
+        <button class="mushaf-ctl-btn" id="mushafStop" title="Berhenti" aria-label="Berhenti">⏹</button>
+      </div>
     </div>
   </div>
   <div class="mushaf-audiobar" id="mushafAudioStart" style="display:none;">
@@ -687,8 +695,12 @@ const DEFAULT_OVERDUE_DAYS = 30;
    AWAL array CHANGELOG (paling atas = paling baru). Ini murni tampilan
    (tidak memengaruhi cache); yang mengontrol update service worker
    tetap CACHE_VERSION di sw.js. */
-const APP_VERSION = 'v30';
+const APP_VERSION = 'v31';
 const CHANGELOG = [
+  { version:'v31', date:'19 Agustus 2026', changes:[
+    'Desain ulang pemutar murattal di halaman mushaf: kini ada indikator progres per ayat (garis kecil menunjukkan posisi ayat yang sedang diputar dari total ayat di halaman), tombol putar besar di tengah, dan tombol ulang bacaan yang tinggal ditap untuk ganti mode (1x/2x/3x/4x/5x/∞) — tidak perlu dropdown lagi.',
+    'Layar HP tidak lagi mati sendiri selama murattal sedang diputar (Wake Lock) — otomatis kembali ke perilaku normal begitu Anda kunci HP atau minimize app sendiri.'
+  ]},
   { version:'v30', date:'19 Agustus 2026', changes:[
     'AI dua lapis: Groq jadi provider utama (gratis, lebih pintar), Cloudflare Workers AI otomatis jadi cadangan kalau Groq belum dikonfigurasi/kena cooldown/kuota habis. Kartu "Kuota AI Hari Ini" & command Telegram "kuota" kini menampilkan status kedua provider terpisah.',
     'Pencatatan lewat pesan bebas (mis. "murajaah juz 14 halaman 1 sampai 10") sekarang paham RENTANG halaman, tidak cuma satu halaman.',
@@ -1858,6 +1870,7 @@ function renderMushafViewer(){
 
   const hasAyahData = meta && meta.ayahs && meta.ayahs.length;
   if(hasAyahData) mushafPlaylist = meta.ayahs.slice();
+  renderMushafProgressSegs();
 
   if(mushafViewMode==='text' && hasAyahData){
     loading.style.display = 'none';
@@ -1891,8 +1904,24 @@ function ayahLabel(surah, ayah){
   const seg = meta && meta.segs && meta.segs.find(s=> ayah>=s.from && ayah<=s.to);
   return 'QS '+(seg ? seg.surah : 'Surah '+surah)+' : '+ayah;
 }
+function renderMushafProgressSegs(){
+  const wrap = document.getElementById('mushafProgressSegs');
+  if(!wrap) return;
+  wrap.innerHTML = '';
+  mushafPlaylist.forEach(()=>{
+    const seg = document.createElement('div');
+    seg.className = 'mushaf-progress-seg';
+    wrap.appendChild(seg);
+  });
+}
+function updateProgressSegHighlight(){
+  document.querySelectorAll('#mushafProgressSegs .mushaf-progress-seg').forEach((el,i)=>{
+    el.classList.toggle('active', i===mushafPlayIndex);
+  });
+}
 function updateAyahHighlight(){
   document.querySelectorAll('.mushaf-textwrap .mushaf-ayah.ayah-playing').forEach(el=> el.classList.remove('ayah-playing'));
+  updateProgressSegHighlight();
   if(mushafPlayIndex<0 || mushafPlayIndex>=mushafPlaylist.length) return;
   const { surah, ayah } = mushafPlaylist[mushafPlayIndex];
   const el = document.querySelector('.mushaf-textwrap .mushaf-ayah[data-surah="'+surah+'"][data-ayah="'+ayah+'"]');
@@ -1903,11 +1932,11 @@ function playCurrentAyah(){
   const { surah, ayah } = mushafPlaylist[mushafPlayIndex];
   mushafAudioEl.src = ayahAudioUrl(surah, ayah);
   mushafAudioEl.play().catch(e=> console.log('audio gagal diputar:', e));
+  requestMushafWakeLock();
   updateAyahHighlight();
   document.getElementById('mushafAudioStart').style.display = 'none';
   document.getElementById('mushafAudioBar').style.display = 'flex';
-  const repeatInfo = repeatMode==='inf' ? ' \u2014 ulang \u221e' : (repeatMode>1 ? ' \u2014 ulang '+(repeatCounter+1)+'/'+repeatMode : '');
-  document.getElementById('mushafAudioLabel').textContent = 'Memutar \u2014 '+ayahLabel(surah, ayah)+repeatInfo;
+  document.getElementById('mushafAudioLabel').textContent = ayahLabel(surah, ayah);
   document.getElementById('mushafPlayToggle').textContent = '\u23F8'; // pause
   document.getElementById('mushafAyahPrev').disabled = (mushafPlayIndex<=0);
   document.getElementById('mushafAyahNext').disabled = (mushafPlayIndex>=mushafPlaylist.length-1);
@@ -1926,9 +1955,17 @@ function mushafAyahPrev(){
 function mushafAyahNext(){
   if(mushafPlayIndex>=0 && mushafPlayIndex<mushafPlaylist.length-1){ mushafPlayIndex++; repeatCounter=0; playCurrentAyah(); }
 }
+const REPEAT_MODES = [1,2,3,4,5,'inf'];
+function cycleRepeatMode(){
+  const idx = REPEAT_MODES.indexOf(repeatMode);
+  repeatMode = REPEAT_MODES[(idx+1) % REPEAT_MODES.length];
+  repeatCounter = 0;
+  const badge = document.getElementById('mushafRepeatBadge');
+  if(badge) badge.textContent = repeatMode==='inf' ? '\u221e' : repeatMode+'x';
+}
 function toggleMushafPlay(){
   if(!mushafPlaylist.length) return;
-  if(!mushafAudioEl.paused){ mushafAudioEl.pause(); document.getElementById('mushafPlayToggle').textContent = '\u25B6'; return; }
+  if(!mushafAudioEl.paused){ mushafAudioEl.pause(); document.getElementById('mushafPlayToggle').textContent = '\u25B6'; releaseMushafWakeLock(); return; }
   if(mushafPlayIndex<0) mushafPlayIndex = 0;
   playCurrentAyah();
 }
@@ -1937,6 +1974,7 @@ function stopMushafAudio(){
   mushafAudioEl.removeAttribute('src');
   mushafPlayIndex = -1;
   repeatCounter = 0;
+  releaseMushafWakeLock();
   updateAyahHighlight();
   const bar = document.getElementById('mushafAudioBar');
   if(bar) bar.style.display = 'none';
@@ -1945,6 +1983,35 @@ function stopMushafAudio(){
   const startBtn = document.getElementById('mushafAudioStart');
   if(startBtn) startBtn.style.display = mushafPlaylist.length ? 'block' : 'none';
 }
+/* ---------- Wake Lock: layar tetap menyala selama murattal diputar ----------
+   Otomatis dilepas sendiri oleh browser begitu layar dikunci/app diminimize
+   (perilaku bawaan Wake Lock API) — tidak perlu ditangani manual. Yang perlu
+   ditangani manual cuma: minta lagi saat mulai/lanjut putar, lepas saat jeda/
+   stop, dan minta ULANG saat pengguna balik ke app sementara masih playing
+   (biar layar tetap menyala lagi, bukan cuma sekali di awal). Browser lama/
+   yang tidak dukung Wake Lock API (mis. Firefox desktop) tetap jalan normal,
+   cuma tanpa proteksi layar-mati ini (bukan error, cuma diam-diam dilewati). */
+let mushafWakeLock = null;
+async function requestMushafWakeLock(){
+  if(!('wakeLock' in navigator)) return;
+  try{
+    mushafWakeLock = await navigator.wakeLock.request('screen');
+    mushafWakeLock.addEventListener('release', ()=>{ mushafWakeLock = null; });
+  }catch(e){
+    console.log('Wake lock gagal diminta:', e && e.message || e);
+  }
+}
+async function releaseMushafWakeLock(){
+  if(mushafWakeLock){
+    try{ await mushafWakeLock.release(); }catch(e){}
+    mushafWakeLock = null;
+  }
+}
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState==='visible' && !mushafAudioEl.paused){
+    requestMushafWakeLock();
+  }
+});
 mushafAudioEl.addEventListener('ended', ()=>{
   // ulang ayat yang sama dulu kalau belum mencapai target repeatMode
   // (atau selamanya kalau repeatMode==='inf'), baru lanjut ke ayat berikutnya.
@@ -2312,16 +2379,7 @@ function init(){
   document.getElementById('mushafStop').onclick = stopMushafAudio;
   document.getElementById('mushafAyahPrev').onclick = mushafAyahPrev;
   document.getElementById('mushafAyahNext').onclick = mushafAyahNext;
-  document.getElementById('mushafRepeatMode').onchange = (e)=>{
-    repeatMode = (e.target.value==='inf') ? 'inf' : Number(e.target.value);
-    repeatCounter = 0;
-    // update teks label saja (jangan restart audio yang sedang jalan)
-    if(mushafPlayIndex>=0 && mushafPlayIndex<mushafPlaylist.length){
-      const { surah, ayah } = mushafPlaylist[mushafPlayIndex];
-      const repeatInfo = repeatMode==='inf' ? ' \u2014 ulang \u221e' : (repeatMode>1 ? ' \u2014 ulang 1/'+repeatMode : '');
-      document.getElementById('mushafAudioLabel').textContent = 'Memutar \u2014 '+ayahLabel(surah, ayah)+repeatInfo;
-    }
-  };
+  document.getElementById('mushafRepeatMode').onclick = cycleRepeatMode;
   document.getElementById('mushafPlayAll').onclick = ()=>{ mushafPlayIndex = 0; repeatCounter = 0; playCurrentAyah(); };
   setupMushafSwipe();
 
