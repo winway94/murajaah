@@ -127,11 +127,13 @@ button{font-family:var(--font-sans);}
 .juz-dot-num{font-size:14px;font-weight:700;color:var(--gray-900);}
 .juz-dot{width:7px;height:7px;border-radius:50%;margin:6px auto 0;}
 .juz-dot-sub{font-size:8.5px;color:var(--gray-500);margin-top:4px;font-weight:600;}
+.juz-dot-time{font-size:7.5px;color:var(--gray-500);margin-top:2px;opacity:.8;}
 
 /* ---------- PAGE GRID (per-halaman, di dalam detail juz) ---------- */
 .page-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;padding:14px 16px;}
-.page-cell{aspect-ratio:1;border-radius:8px;border:1.5px solid transparent;display:flex;align-items:center;justify-content:center;
+.page-cell{aspect-ratio:1;border-radius:8px;border:1.5px solid transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
   font-size:10.5px;font-weight:700;color:#fff;cursor:pointer;position:relative;}
+.page-cell-mushaf{font-size:7px;font-weight:600;opacity:.8;}
 .page-cell.overdue{border-color:var(--danger);box-shadow:0 0 0 1.5px var(--danger) inset;}
 .page-cell:active{opacity:.75;}
 .page-legend{display:flex;flex-wrap:wrap;gap:10px;padding:0 16px 12px;}
@@ -235,6 +237,13 @@ button{font-family:var(--font-sans);}
   width:100%;max-width:480px;max-height:85vh;overflow:auto;}
 .overlay.center .sheet{border-radius:var(--radius-lg);max-height:90vh;}
 .mushaf-sheet{padding:16px 16px calc(16px + env(safe-area-inset-bottom));}
+/* mushafOverlay dibuat FULLSCREEN (bukan sheet mengambang di tengah
+   seperti modal lain) — supaya area baca teks Arab-nya maksimal, tanpa
+   sudut membulat/padding besar di sekeliling yang makan tempat layar. */
+#mushafOverlay.overlay.center{padding:0; align-items:stretch;}
+#mushafOverlay .sheet{max-width:100%; max-height:100%; height:100%; width:100%;
+  border-radius:0; display:flex; flex-direction:column; padding:14px 14px calc(14px + env(safe-area-inset-bottom));}
+#mushafOverlay .mushaf-imgwrap{flex:1 1 auto; max-height:none;}
 .mushaf-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px;}
 .mushaf-imgwrap{position:relative;background:var(--gray-100,#F0F2F1);border-radius:var(--radius-md,10px);min-height:320px;
   max-height:56vh; overflow-y:auto; touch-action:pan-y;}
@@ -246,7 +255,7 @@ button{font-family:var(--font-sans);}
 .mushaf-textwrap{padding:18px 16px 22px;}
 .mushaf-surah-banner{text-align:center;font-family:'Amiri Quran',serif;font-size:22px;color:var(--primary);
   border:1.5px solid var(--gray-300);border-radius:10px;padding:10px 8px;margin:0 0 16px;background:var(--white);}
-.mushaf-ayat-text{direction:rtl;text-align:justify;font-family:'Amiri Quran',serif;font-size:26px;line-height:2.35;color:var(--gray-900);}
+.mushaf-ayat-text{direction:rtl;text-align:justify;font-family:'Amiri Quran',serif;font-size:var(--mushaf-font-size, 26px);line-height:2.35;color:var(--gray-900);}
 .mushaf-ayah{cursor:pointer;border-radius:6px;padding:1px 2px;transition:background-color .15s ease;}
 .mushaf-ayah:active{background:#FDECC8;}
 .mushaf-ayah.ayah-playing{background:#D9EEE6;}
@@ -294,17 +303,11 @@ button{font-family:var(--font-sans);}
   <div id="mainApp" style="display:none;">
     <div class="appbar">
       <div class="appbar-left">
-        <button class="icon-btn" id="btnMenu">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-        </button>
         <div>
           <p class="appbar-title" id="appbarTitle">Hafalan &amp; Murajaah</p>
           <p class="appbar-sub" id="appbarSub"></p>
         </div>
       </div>
-      <button class="icon-btn" id="btnKebab">
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg>
-      </button>
     </div>
 
     <!-- BERANDA -->
@@ -452,6 +455,24 @@ button{font-family:var(--font-sans);}
         <button class="btn-full btn-outline" id="btnDownloadOffline">Unduh semua halaman</button>
         <p class="hint" style="margin:8px 0 0; font-size:11px;">Cuma unduh teks ayat (kecil, beberapa MB), bukan audio. Sekali diunduh, halaman bisa dibaca tanpa internet selamanya.</p>
       </div>
+      <div class="card" style="margin-top:14px; padding:14px 16px;">
+        <p class="section-title" style="margin:0 0 4px;">Ambang waktu overdue murajaah</p>
+        <p class="hint" style="margin:0 0 12px;">Halaman berstatus "Sedang murajaah" atau "Stabil" ditandai <b>perlu murajaah (overdue)</b> kalau sudah lebih dari sekian hari sejak terakhir dimurajaah. Berlaku juga untuk pengingat harian di Telegram.</p>
+        <div class="field" style="margin-bottom:12px;">
+          <label>Jumlah hari</label>
+          <input type="number" id="overdueDaysInput" min="1" max="365" step="1" inputmode="numeric">
+        </div>
+        <button class="btn-full btn-primary" id="btnSaveOverdueDays">Simpan ambang batas</button>
+      </div>
+      <div class="card" style="margin-top:14px; padding:14px 16px; text-align:center;">
+        <p class="section-title" style="margin:0 0 4px; text-align:center;">Hafalan &amp; Murajaah</p>
+        <p class="hint" style="margin:0 0 14px;">Versi terpasang: <b id="appVersionText">v26</b></p>
+        <button class="btn-full btn-outline" id="btnCheckUpdate" style="margin-bottom:8px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:5px;"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
+          Cek pembaruan
+        </button>
+        <button class="btn-full btn-outline" id="btnChangelog">Lihat changelog</button>
+      </div>
     </div>
 
     <!-- DETAIL JUZ -->
@@ -502,6 +523,7 @@ button{font-family:var(--font-sans);}
 <div class="overlay center" id="pageOverlay"><div class="sheet">
   <h3 id="pageModalTitle">Halaman</h3>
   <p class="hint" id="pageModalHint"></p>
+  <p class="hint" id="pageModalCount" style="margin-top:-6px; color:var(--gray-500);"></p>
   <div class="field"><label>Status</label>
     <select id="pageStatus">
       <option value="belum">Belum dihafal</option>
@@ -514,7 +536,7 @@ button{font-family:var(--font-sans);}
   <div class="field"><label>Tanggal murajaah terakhir</label>
     <input type="date" id="pageDate">
   </div>
-  <button class="btn-full btn-outline" id="pageMarkToday" style="margin-bottom:10px;">Tandai direview hari ini</button>
+  <button class="btn-full btn-outline" id="pageMarkToday" style="margin-bottom:10px; color:var(--success); border-color:var(--success);">Telah dimurajaah hari ini</button>
   <button class="btn-full btn-outline" id="pageMarkLupa" style="margin-bottom:10px; color:var(--warning); border-color:var(--warning);">Tandai lupa (perlu hafal ulang)</button>
   <button class="btn-full btn-outline" id="pageViewMushaf" style="margin-bottom:14px;">📖 Lihat halaman mushaf</button>
   <div class="modal-actions">
@@ -531,9 +553,15 @@ button{font-family:var(--font-sans);}
       <p class="hint" id="mushafHint" style="margin:2px 0 0;"></p>
     </div>
     <div style="display:flex; align-items:center; gap:6px;">
+      <select id="mushafReciter" title="Pilih qori" style="font-size:11.5px; border:1px solid var(--gray-300); border-radius:8px; padding:4px 6px; background:var(--white); color:var(--gray-700); max-width:108px;"></select>
       <button class="icon-btn" id="mushafToggleMode" title="Ganti tampilan (teks/gambar)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></button>
       <button class="icon-btn" id="mushafClose"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
+  </div>
+  <div class="mushaf-fontsize-row" id="mushafFontSizeRow" style="display:none; align-items:center; gap:8px; margin-bottom:10px;">
+    <span style="font-size:12px; color:var(--gray-500);">A</span>
+    <input type="range" id="mushafFontSize" min="18" max="36" step="1" value="26" style="flex:1;">
+    <span style="font-size:18px; color:var(--gray-500);">A</span>
   </div>
   <div class="mushaf-imgwrap" id="mushafImgWrap">
     <div class="mushaf-textwrap" id="mushafTextWrap" style="display:none;"></div>
@@ -542,10 +570,22 @@ button{font-family:var(--font-sans);}
     <div class="mushaf-error" id="mushafError" style="display:none;">Halaman ini gagal dimuat sama sekali (perlu koneksi internet). Coba lagi, atau cek nanti saat online.</div>
   </div>
   <p class="mushaf-tip" id="mushafTip" style="display:none;">Ketuk ayat mana pun untuk memutar murottal dari situ.</p>
-  <div class="mushaf-audiobar" id="mushafAudioBar" style="display:none;">
-    <button class="icon-btn" id="mushafPlayToggle"></button>
-    <span id="mushafAudioLabel" style="font-size:12px;color:var(--gray-700);flex:1;"></span>
-    <button class="btn btn-ghost" id="mushafStop" style="padding:6px 10px;font-size:12px;">Stop</button>
+  <div class="mushaf-audiobar" id="mushafAudioBar" style="display:none; flex-direction:column; align-items:stretch; gap:8px;">
+    <span id="mushafAudioLabel" style="font-size:12px;color:var(--gray-700);"></span>
+    <div style="display:flex; align-items:center; gap:6px;">
+      <button class="icon-btn" id="mushafAyahPrev" title="Ayat sebelumnya">⏮</button>
+      <button class="icon-btn" id="mushafPlayToggle"></button>
+      <button class="icon-btn" id="mushafAyahNext" title="Ayat berikutnya">⏭</button>
+      <select id="mushafRepeatMode" title="Ulang bacaan" style="font-size:11px; border:1px solid var(--gray-300); border-radius:8px; padding:4px 4px; margin-left:auto; background:var(--white); color:var(--gray-700);">
+        <option value="1">Ulang 1x</option>
+        <option value="2">Ulang 2x</option>
+        <option value="3">Ulang 3x</option>
+        <option value="4">Ulang 4x</option>
+        <option value="5">Ulang 5x</option>
+        <option value="inf">Ulang ∞</option>
+      </select>
+      <button class="btn btn-ghost" id="mushafStop" style="padding:6px 10px;font-size:12px;">Stop</button>
+    </div>
   </div>
   <div class="mushaf-audiobar" id="mushafAudioStart" style="display:none;">
     <button class="btn-full btn-outline" id="mushafPlayAll">▶ Putar murottal halaman ini</button>
@@ -597,6 +637,16 @@ button{font-family:var(--font-sans);}
   </div>
 </div></div>
 
+<!-- CHANGELOG MODAL -->
+<div class="overlay center" id="changelogOverlay"><div class="sheet" style="max-width:420px;">
+  <h3>Changelog</h3>
+  <p class="hint" id="changelogVersionHint">Versi terpasang saat ini: —</p>
+  <div id="changelogList" style="max-height:52vh; overflow-y:auto; margin:-4px 0 4px;"></div>
+  <div class="modal-actions">
+    <button class="btn btn-primary" id="changelogClose" style="width:100%;">Tutup</button>
+  </div>
+</div></div>
+
 <script>
 const STATUS_META = {
   belum:{label:'Belum dihafal', color:'var(--gray-300)'},
@@ -607,7 +657,33 @@ const STATUS_META = {
 };
 const TOTAL_JUZ = 30;
 const TOTAL_PAGES = 604;
-const OVERDUE_DAYS = 30;
+/* Nilai default/fallback kalau appData.settings.overdueDays belum diisi
+   atau tidak valid. Nilai AKTUAL yang dipakai bisa diubah pengguna lewat
+   menu Pengaturan > "Ambang waktu overdue" — tersimpan di server (bukan
+   cuma localStorage), supaya reminder Telegram (worker.js) ikut pakai
+   angka yang sama. Baca lewat overdueDaysThreshold(), jangan pakai
+   konstanta ini langsung di logika overdue. */
+const DEFAULT_OVERDUE_DAYS = 30;
+
+/* ---------- Versi aplikasi & changelog ----------
+   PENTING: naikkan APP_VERSION di sini SETIAP KALI deploy versi baru,
+   samakan juga dengan CACHE_VERSION di sw.js. Tambahkan entri baru di
+   AWAL array CHANGELOG (paling atas = paling baru). Ini murni tampilan
+   (tidak memengaruhi cache); yang mengontrol update service worker
+   tetap CACHE_VERSION di sw.js. */
+const APP_VERSION = 'v27';
+const CHANGELOG = [
+  { version:'v27', date:'19 Agustus 2026', changes:[
+    'Tambah pengaturan ambang waktu overdue murajaah (bisa diubah sendiri, default 30 hari) — tersimpan di server, ikut dipakai reminder Telegram.',
+    'Hapus tombol menu (☰) & titik-tiga (⋮) di header karena fungsinya sudah ada di tab "Pengaturan" pada navigasi bawah.'
+  ]},
+  { version:'v26', date:'19 Agustus 2026', changes:[
+    'Tambah bagian "Tentang aplikasi" di halaman Pengaturan: nomor versi, changelog, dan tombol cek pembaruan manual.'
+  ]},
+  { version:'Sebelum v26', date:'', changes:[
+    'Riwayat perubahan versi-versi sebelumnya belum tercatat di changelog ini.'
+  ]}
+];
 /* ---------- pembagian halaman per juz (skema mushaf Madinah, 604 hal.) ---------- */
 const JUZ_RANGES = (()=>{
   const arr = [];
@@ -652,12 +728,42 @@ const PAGE_META_EDITION = 'quran-simple';
    persis fisik mushaf — tapi bukan lagi jalur utama/wajib. */
 const MUSHAF_IMAGE_BASE = 'https://cdn.jsdelivr.net/gh/tarekeldeeb/madina_images@w1024/w1024_page';
 function mushafImageUrl(page){ return MUSHAF_IMAGE_BASE + String(page).padStart(3,'0') + '.png'; }
-/* ---------- Audio murottal per-ayat ----------
-   Sumber: everyayah.com (gratis, tanpa API key), reciter Alafasy 128kbps.
-   Nama file: {surah 3 digit}{ayat 3 digit}.mp3, mis. 002005.mp3 = QS 2:5. */
-const AUDIO_RECITER = 'Alafasy_128kbps';
+/* ---------- Audio murottal per-ayat, dengan pilihan qori ----------
+   Sumber: everyayah.com (gratis, tanpa API key). Nama folder di bawah
+   ini SUDAH diverifikasi persis sesuai struktur asli server (bukan
+   tebakan) — jangan diubah sembarangan, kalau nama folder salah,
+   audio qori itu gagal diputar (gagal senyap, tidak merusak app).
+   Nama file per-ayat: {surah 3 digit}{ayat 3 digit}.mp3. */
+const RECITERS = [
+  { id: 'Alafasy_128kbps', name: 'Mishari Alafasy' },
+  { id: 'Abdul_Basit_Murattal_192kbps', name: 'Abdul Basit (Murattal)' },
+  { id: 'Husary_128kbps', name: 'Al-Hussary' },
+  { id: 'Abdurrahmaan_As-Sudais_192kbps', name: 'As-Sudais' },
+  { id: 'Minshawy_Murattal_128kbps', name: 'Al-Minshawi (Murattal)' },
+  { id: 'Abu_Bakr_Ash-Shaatree_128kbps', name: 'Abu Bakr Ash-Shaatree' },
+  { id: 'Hudhaify_128kbps', name: 'Al-Hudhaify' },
+  { id: 'Maher_AlMuaiqly_64kbps', name: 'Maher Al-Muaiqly' },
+  { id: 'Ghamadi_40kbps', name: 'Saad Al-Ghamdi' },
+  { id: 'Abdullah_Basfar_192kbps', name: 'Abdullah Basfar' },
+  { id: 'Muhammad_Ayyoub_128kbps', name: 'Muhammad Ayyoub' },
+  { id: 'Hani_Rifai_192kbps', name: 'Hani Ar-Rifai' },
+  { id: 'Muhammad_Jibreel_64kbps', name: 'Muhammad Jibreel' },
+  { id: 'Husary_128kbps_Mujawwad', name: 'Al-Hussary (Mujawwad)' },
+  { id: 'Ayman_Sowaid_64kbps', name: 'Ayman Suwaid' },
+];
+const LS_RECITER = 'hafalan_reciter_id';
+function currentReciter(){
+  try{
+    const saved = localStorage.getItem(LS_RECITER);
+    if(saved && RECITERS.some(r=>r.id===saved)) return saved;
+  }catch(e){}
+  return RECITERS[0].id;
+}
+function setReciter(id){
+  try{ localStorage.setItem(LS_RECITER, id); }catch(e){}
+}
 function ayahAudioUrl(surah, ayah){
-  return 'https://everyayah.com/data/'+AUDIO_RECITER+'/'+String(surah).padStart(3,'0')+String(ayah).padStart(3,'0')+'.mp3';
+  return 'https://everyayah.com/data/'+currentReciter()+'/'+String(surah).padStart(3,'0')+String(ayah).padStart(3,'0')+'.mp3';
 }
 let pageMetaCache = null;
 const pageMetaInFlight = {};
@@ -767,6 +873,23 @@ function offlineDownloadedCount(){
   for(let p=1;p<=TOTAL_PAGES;p++) if(cache[p]) n++;
   return n;
 }
+
+/* ---------- Pengaturan: ambang waktu overdue ---------- */
+function renderOverdueDaysSetting(){
+  const el = document.getElementById('overdueDaysInput');
+  if(el) el.value = overdueDaysThreshold();
+}
+async function saveOverdueDaysSetting(){
+  const el = document.getElementById('overdueDaysInput');
+  const v = Math.round(Number(el.value));
+  if(!Number.isFinite(v) || v<1 || v>365){ showToast('Isi jumlah hari yang valid (1-365).', false); return; }
+  appData.settings = appData.settings || {};
+  appData.settings.overdueDays = v;
+  renderAll();
+  const ok = await pushData();
+  showToast(ok ? ('Ambang overdue disimpan: '+v+' hari.') : ('Gagal simpan: '+lastSyncDetail), ok);
+  if(!ok) renderOverdueDaysSetting(); // gagal simpan -> tampilkan lagi nilai yang tersimpan di server
+}
 function renderOfflineProgress(){
   const hint = document.getElementById('offlineDlHint');
   const bar = document.getElementById('offlineDlBar');
@@ -804,6 +927,40 @@ async function downloadAllPagesForOffline(){
   else if(failed) showToast(failed+' halaman gagal diunduh (coba lagi nanti).', false);
   else showToast('Semua halaman berhasil diunduh untuk offline!', true);
 }
+/* ---------- Indikator "terakhir dimurajaah" per-juz (waktu relatif) ----------
+   Format makin kasar makin lama jaraknya: hari -> bulan+hari -> tahun+bulan
+   (pakai pendekatan 30 hari/bulan & 365 hari/tahun, bukan kalender presisi
+   — cukup akurat buat indikator "kira-kira sudah berapa lama"). */
+function formatRelativeTime(dateStr, short){
+  if(!dateStr) return short ? '\u2014' : 'Belum pernah dimurajaah';
+  const then = new Date(dateStr + 'T00:00:00');
+  const now = new Date();
+  const days = Math.max(0, Math.floor((now - then) / 86400000));
+  if(days < 30){
+    if(days===0) return 'Hari ini';
+    if(days===1) return 'Kemarin';
+    return short ? (days+'h lalu') : (days+' hari yang lalu');
+  }
+  if(days < 365){
+    const months = Math.floor(days/30);
+    const remDays = days % 30;
+    if(short) return months+'bl'+(remDays? ' '+remDays+'h' : '')+' lalu';
+    return remDays>0 ? (months+' bulan '+remDays+' hari yang lalu') : (months+' bulan yang lalu');
+  }
+  const years = Math.floor(days/365);
+  const remMonths = Math.floor((days%365)/30);
+  if(short) return years+'th'+(remMonths? ' '+remMonths+'bl' : '')+' lalu';
+  return remMonths>0 ? (years+' tahun lebih '+remMonths+' bulan yang lalu') : (years+' tahun yang lalu');
+}
+/* tanggal murajaah PALING BARU di antara semua halaman 1 juz (null kalau
+   belum ada satu pun halaman yang pernah dicatat murajaah-nya). */
+function juzLastMurajaahDate(entry){
+  let max = null;
+  Object.values(entry.pages).forEach(pg=>{
+    if(pg.lastMurajaah && (!max || pg.lastMurajaah > max)) max = pg.lastMurajaah;
+  });
+  return max;
+}
 /* label singkat rentang surah utk 1 juz, mis. "QS Al-Kahf 75 \u2013 QS Maryam 40" */
 function juzSurahRangeLabel(n){
   const [s,end] = juzRange(n);
@@ -827,6 +984,68 @@ let pinBuffer = '';
 let lastSyncOk = true;
 let lastSyncDetail = '';
 let currentView = 'beranda';
+
+/* ============================================================
+   NAVIGASI TOMBOL "KEMBALI" HP (History API)
+   Defaultnya, PWA tidak punya riwayat navigasi sama sekali — jadi
+   tombol back Android/browser langsung menutup/keluar dari app,
+   walau lagi ada modal/halaman detail yang kebuka. Modul ini bikin
+   tombol back mundur SELANGKAH DEMI SELANGKAH secara wajar:
+     1) kalau ada modal/overlay yang lagi kebuka -> tutup modal itu dulu
+     2) kalau lagi di halaman detail juz -> balik ke Beranda
+     3) kalau sudah di layar dasar (Beranda/Riwayat/Statistik/
+        Pengaturan) tanpa apa pun yang kebuka -> baru biarkan
+        browser/OS yang urus (biasanya app di-minimize/ditutup —
+        ini best-effort, bukan bisa benar2 "kunci" tombol back).
+   Caranya: tiap kali buka modal atau halaman detail, kita pushState
+   1 entry riwayat baru. Saat back ditekan (event popstate), entry itu
+   otomatis "dimakan" browser duluan, lalu handler ini yang tutup
+   modal/kembalikan tampilan sesuai state SEBELUM back ditekan. */
+let suppressHistoryPush = false;
+let handlingPopstate = false; // true SELAMA proses menutup akibat tombol back ditekan, supaya closeXxx() yg dipanggil dari dalam popstate tidak ikut coba "history.back()" lagi (infinite loop)
+function pushNavState(label){
+  if(suppressHistoryPush) return;
+  try{ history.pushState({ navMarker: label, t: Date.now() }, ''); }catch(e){ /* abaikan kalau browser tolak (mis. di dalam iframe) */ }
+}
+/* dipanggil di UJUNG setiap fungsi closeXxx()/closeDetail() — supaya riwayat
+   browser TETAP SINKRON entah modal itu ditutup lewat tombol X/Batal/Simpan
+   ATAU lewat tombol back HP. Kalau lagi diproses akibat popstate sendiri,
+   tidak perlu history.back() lagi (entry-nya sudah otomatis "dimakan"
+   browser duluan sebelum event popstate ini muncul). */
+function consumeNavStateIfNeeded(){
+  if(handlingPopstate) return;
+  if(history.state && history.state.navMarker){
+    try{ history.back(); }catch(e){}
+  }
+}
+/* tutup modal/overlay teratas yang lagi kebuka. Return true kalau ada
+   yang berhasil ditutup, false kalau memang tidak ada apa-apa yang kebuka. */
+function closeTopmostOverlay(){
+  const openOverlay = document.querySelector('.overlay.open');
+  if(!openOverlay) return false;
+  switch(openOverlay.id){
+    case 'mushafOverlay': closeMushafViewer(); break;
+    case 'pageOverlay': closePageEditor(); break;
+    case 'quickOverlay': closeQuickLog(); break;
+    case 'serverOverlay': closeServerModal(); break;
+    case 'changelogOverlay': closeChangelog(); break;
+    default: openOverlay.classList.remove('open');
+  }
+  return true;
+}
+window.addEventListener('popstate', ()=>{
+  handlingPopstate = true;
+  suppressHistoryPush = true; // supaya switchView/closeDetail di bawah tidak ikut push entry baru
+  try{
+    if(closeTopmostOverlay()){ /* cukup sampai sini, 1 langkah mundur = tutup 1 modal */ }
+    else if(currentView==='detail'){ closeDetail(); }
+    /* else: sudah di layar dasar tanpa modal -> tidak melakukan apa-apa
+       di sini, biar browser/OS yang urus langkah selanjutnya. */
+  } finally {
+    suppressHistoryPush = false;
+    handlingPopstate = false;
+  }
+});
 let currentDetailJuz = null;
 let currentDetailTab = 'ringkasan';
 let gridFilter = 'semua';
@@ -868,13 +1087,15 @@ function ensureJuzShape(e, n){
 function defaultData(){
   const juz = {};
   for(let i=1;i<=TOTAL_JUZ;i++) juz[i] = defaultJuzEntry(i);
-  return { juz };
+  return { juz, settings:{ overdueDays: DEFAULT_OVERDUE_DAYS } };
 }
 function normalizeData(raw){
   const src = (raw && raw.juz) ? raw.juz : {};
   const juz = {};
   for(let i=1;i<=TOTAL_JUZ;i++) juz[i] = ensureJuzShape(src[i], i);
-  return { juz };
+  const rawOverdueDays = raw && raw.settings && raw.settings.overdueDays;
+  const overdueDays = (Number.isFinite(rawOverdueDays) && rawOverdueDays>0) ? Math.round(rawOverdueDays) : DEFAULT_OVERDUE_DAYS;
+  return { juz, settings:{ overdueDays } };
 }
 /* status gabungan sebuah juz, dihitung otomatis dari status semua halamannya */
 function juzAggregateStatus(entry){
@@ -936,7 +1157,35 @@ function pushHistory(entry, event, extra){
 }
 
 function daysSince(dateStr){ if(!dateStr) return null; return Math.floor((new Date() - new Date(dateStr)) / 86400000); }
-function isPageOverdue(p){ if(p.status!=='murajaah' && p.status!=='stabil') return false; if(!p.lastMurajaah) return true; return daysSince(p.lastMurajaah) > OVERDUE_DAYS; }
+/* ---------- Hitung berapa kali sudah dimurajaah ----------
+   Dihitung langsung dari riwayat (history) — TIDAK butuh field data baru.
+   1 halaman terhitung "dimurajaah" tiap kali ada event 'murajaah' yang
+   nunjuk ke halaman itu SATU-SATU, ATAU tiap kali ada 'murajaah_bulk'
+   (tandai seluruh juz sekaligus) di juz itu, karena bulk mencakup semua
+   halamannya termasuk ini. Catatan: riwayat per-juz dibatasi 200 entri
+   terakhir (lihat pushHistory) — jadi utk juz yang SANGAT aktif,
+   hitungan ini adalah batas bawah (minimal segini), bukan pasti presisi. */
+function pageMurajaahCount(entry, page){
+  let count = 0;
+  (entry.history||[]).forEach(h=>{
+    if(h.event==='murajaah' && h.page===page) count++;
+    else if(h.event==='murajaah_bulk') count++;
+  });
+  return count;
+}
+/* total akumulasi murajaah SELURUH halaman dalam 1 juz (jumlah dari
+   pageMurajaahCount tiap halamannya) — bukan "juz direview N kali",
+   tapi "total aktivitas murajaah" di juz itu. */
+function juzMurajaahCount(entry){
+  let total = 0;
+  Object.keys(entry.pages).map(Number).forEach(p=> total += pageMurajaahCount(entry, p));
+  return total;
+}
+function overdueDaysThreshold(){
+  const v = appData && appData.settings && appData.settings.overdueDays;
+  return (Number.isFinite(v) && v>0) ? v : DEFAULT_OVERDUE_DAYS;
+}
+function isPageOverdue(p){ if(p.status!=='murajaah' && p.status!=='stabil') return false; if(!p.lastMurajaah) return true; return daysSince(p.lastMurajaah) > overdueDaysThreshold(); }
 function isJuzOverdue(entry){ return Object.values(entry.pages).some(isPageOverdue); }
 function overduePagesInJuz(entry){
   const arr=[];
@@ -1013,8 +1262,7 @@ function switchView(view){
   const titles = { beranda:['Hafalan & Murajaah', new Date().toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'})],
     riwayat:['Riwayat',''], statistik:['Statistik',''], pengaturan:['Pengaturan',''] };
   if(titles[view]){ document.getElementById('appbarTitle').textContent = titles[view][0]; document.getElementById('appbarSub').textContent = titles[view][1]; }
-  document.getElementById('btnKebab').style.visibility = view==='detail' ? 'hidden' : 'visible';
-  if(view==='pengaturan') renderOfflineProgress();
+  if(view==='pengaturan'){ renderOfflineProgress(); renderOverdueDaysSetting(); }
   window.scrollTo(0,0);
 }
 
@@ -1104,10 +1352,13 @@ function renderJuzGrid(){
       if(gridFilter!=='overdue' && agg!==gridFilter) continue;
     }
     const ps = juzPageStats(e);
+    const lastDate = juzLastMurajaahDate(e);
     const card = document.createElement('div');
     card.className='juz-dot-card';
+    card.title = 'Terakhir dimurajaah: ' + formatRelativeTime(lastDate, false);
     card.innerHTML = '<div class="juz-dot-num">'+String(i).padStart(2,'0')+'</div><div class="juz-dot" style="background:'+dotColor(e)+'"></div>'+
-      '<div class="juz-dot-sub">'+ps.stabil+'/'+ps.total+'</div>';
+      '<div class="juz-dot-sub">'+ps.stabil+'/'+ps.total+'</div>'+
+      '<div class="juz-dot-time">'+formatRelativeTime(lastDate, true)+'</div>';
     card.onclick = ()=> openDetail(i);
     grid.appendChild(card);
   }
@@ -1135,7 +1386,7 @@ function flattenHistory(){
 }
 function historyLabel(h){
   if(h.event==='murajaah') return 'Murajaah Juz ' + String(h.juz).padStart(2,'0') + (h.page ? ' hal.'+h.page : '');
-  if(h.event==='murajaah_bulk') return 'Seluruh Juz ' + String(h.juz).padStart(2,'0') + ' direview (' + (h.pagesCount||'?') + ' halaman)';
+  if(h.event==='murajaah_bulk') return 'Seluruh Juz ' + String(h.juz).padStart(2,'0') + ' dimurajaah (' + (h.pagesCount||'?') + ' halaman)';
   if(h.event==='status_change') return 'Juz '+String(h.juz).padStart(2,'0')+(h.page?' hal.'+h.page:'')+': '+STATUS_META[h.from].label+' \u2192 '+STATUS_META[h.to].label;
   if(h.event==='status_change_bulk') return 'Seluruh Juz '+String(h.juz).padStart(2,'0')+' diubah ke '+STATUS_META[h.to].label+' ('+(h.pagesCount||'?')+' halaman)';
   return 'Juz ' + String(h.juz).padStart(2,'0') + ' diperbarui';
@@ -1258,10 +1509,11 @@ function renderStatistik(){
 function openDetail(n){
   currentDetailJuz = n;
   currentDetailTab = 'ringkasan';
+  pushNavState('detail:'+n);
   switchView('detail');
   renderDetail();
 }
-function closeDetail(){ currentDetailJuz=null; switchView('beranda'); }
+function closeDetail(){ currentDetailJuz=null; switchView('beranda'); consumeNavStateIfNeeded(); }
 
 function renderDetail(){
   const n = currentDetailJuz;
@@ -1302,6 +1554,10 @@ function renderDetail(){
             <p class="hero-meta-label">Progres halaman</p>
             <p class="hero-meta-val">${ps.stabil}/${ps.total} mutqin \u00b7 hal.${rangeStart}\u2013${rangeStart+ps.total-1}</p>
             <p class="hero-meta-val" style="opacity:.85; margin-top:2px;">${juzSurahRangeLabel(n)}</p>
+            <p class="hero-meta-label" style="margin-top:8px;">Terakhir dimurajaah</p>
+            <p class="hero-meta-val">${formatRelativeTime(juzLastMurajaahDate(e), false)}</p>
+            <p class="hero-meta-label" style="margin-top:8px;">Total dimurajaah</p>
+            <p class="hero-meta-val">${juzMurajaahCount(e)}x</p>
           </div>
           <div class="hero-badge">
             ${overdue
@@ -1331,7 +1587,7 @@ function renderDetail(){
         <p class="rec-text">${recText}</p>
         <button class="btn-full btn-primary" id="btnMulaiMurajaah">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg>
-          Tandai Seluruh Juz Direview Hari Ini
+          Tandai Seluruh Juz Telah Dimurajaah Hari Ini
         </button>
       </div>
       <div class="card" style="margin-top:12px;">
@@ -1414,9 +1670,13 @@ function renderPageGrid(n){
     cell.className = 'page-cell' + (overdue?' overdue':'');
     cell.style.background = STATUS_META[pg.status].color;
     if(pg.status==='belum') cell.style.color = 'var(--gray-700)';
-    cell.textContent = p - start + 1;
+    // angka besar = nomor urut dalam juz (1-20), angka kecil di bawahnya
+    // = nomor halaman mushaf asli — supaya keduanya kelihatan sekaligus
+    // tanpa perlu tap dulu.
+    cell.innerHTML = '<span>'+(p - start + 1)+'</span><span class="page-cell-mushaf">'+p+'</span>';
     const meta = getPageMeta(p);
-    cell.title = 'Halaman '+p+' (mushaf)' + (meta ? ' \u2014 '+meta.label : '') + ' \u2014 '+STATUS_META[pg.status].label;
+    const cnt = pageMurajaahCount(e, p);
+    cell.title = 'Halaman '+p+' (mushaf)' + (meta ? ' \u2014 '+meta.label : '') + ' \u2014 '+STATUS_META[pg.status].label + ' \u2014 '+cnt+'x';
     cell.onclick = ()=> openPageEditor(n, p);
     grid.appendChild(cell);
   }
@@ -1432,6 +1692,9 @@ function openPageEditor(n, p){
   document.getElementById('pageModalTitle').textContent = 'Juz '+n+' \u2014 Halaman '+rel;
   document.getElementById('pageStatus').value = pg.status;
   document.getElementById('pageDate').value = pg.lastMurajaah || '';
+  const count = pageMurajaahCount(e, p);
+  document.getElementById('pageModalCount').textContent = count+'x dimurajaah';
+  pushNavState('pageEditor:'+n+':'+p);
   document.getElementById('pageOverlay').classList.add('open');
   refreshPageEditorHint();
 }
@@ -1450,6 +1713,8 @@ let currentMushafPage = null;
 let mushafViewMode = localStorage.getItem('hafalan_mushaf_view_mode') || 'text'; // 'text' | 'image'
 let mushafPlaylist = [];      // [{surah, ayah, text}, ...] urutan baca di halaman ini
 let mushafPlayIndex = -1;     // -1 = tidak sedang memutar apa pun
+let repeatMode = 1;           // 1-5 = ulang berapa kali per ayat, 'inf' = ulang tak terhingga
+let repeatCounter = 0;        // sudah diulang berapa kali utk ayat yg SEDANG diputar (reset tiap pindah ayat)
 const mushafAudioEl = new Audio();
 
 function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -1484,17 +1749,53 @@ function buildMushafTextHtml(meta){
 
 function openMushafViewer(page){
   currentMushafPage = Math.min(TOTAL_PAGES, Math.max(1, page));
+  pushNavState('mushaf:'+currentMushafPage);
   document.getElementById('mushafOverlay').classList.add('open');
   renderMushafViewer();
 }
 function closeMushafViewer(){
   stopMushafAudio();
   document.getElementById('mushafOverlay').classList.remove('open');
+  consumeNavStateIfNeeded();
 }
 function toggleMushafViewMode(){
   mushafViewMode = (mushafViewMode==='text') ? 'image' : 'text';
   try{ localStorage.setItem('hafalan_mushaf_view_mode', mushafViewMode); }catch(e){}
   renderMushafViewer();
+}
+/* isi dropdown pilihan qori sekali di init(), lalu simpan pilihan ke
+   localStorage tiap kali diganti — dipakai ayahAudioUrl() saat memutar
+   audio berikutnya (tidak menghentikan audio yang sedang jalan). */
+function populateReciterSelect(){
+  const sel = document.getElementById('mushafReciter');
+  if(!sel) return;
+  sel.innerHTML = RECITERS.map(r=> '<option value="'+r.id+'">'+r.name+'</option>').join('');
+  sel.value = currentReciter();
+  sel.onchange = ()=> setReciter(sel.value);
+}
+/* ---------- Ukuran teks mushaf (custom, disimpan per-device) ----------
+   Diterapkan lewat CSS variable --mushaf-font-size di elemen root, jadi
+   1 slider ini otomatis berlaku ke SEMUA halaman (tidak perlu diatur
+   ulang tiap pindah halaman). Default 26px = sama seperti sebelumnya,
+   tidak berubah kalau slider tidak pernah disentuh. */
+const LS_MUSHAF_FONT_SIZE = 'hafalan_mushaf_font_size';
+function currentMushafFontSize(){
+  try{
+    const saved = Number(localStorage.getItem(LS_MUSHAF_FONT_SIZE));
+    if(saved && saved>=18 && saved<=36) return saved;
+  }catch(e){}
+  return 26;
+}
+function applyMushafFontSize(px){
+  document.documentElement.style.setProperty('--mushaf-font-size', px+'px');
+  try{ localStorage.setItem(LS_MUSHAF_FONT_SIZE, String(px)); }catch(e){}
+}
+function setupMushafFontSizeSlider(){
+  const slider = document.getElementById('mushafFontSize');
+  if(!slider) return;
+  slider.value = currentMushafFontSize();
+  applyMushafFontSize(Number(slider.value));
+  slider.oninput = ()=> applyMushafFontSize(Number(slider.value));
 }
 function renderMushafViewer(){
   const p = currentMushafPage;
@@ -1527,6 +1828,7 @@ function renderMushafViewer(){
     textWrap.innerHTML = buildMushafTextHtml(meta);
     textWrap.style.display = 'block';
     tip.style.display = 'block';
+    document.getElementById('mushafFontSizeRow').style.display = 'flex';
     document.getElementById('mushafAudioStart').style.display = 'block';
   }else if(mushafViewMode==='text' && !meta && !pageMetaFailed[p]){
     // teks belum ada di cache, masih nunggu fetch info surah/ayat di
@@ -1537,6 +1839,7 @@ function renderMushafViewer(){
     // mode gambar (baik karena dipilih user, atau otomatis jadi cadangan
     // kalau mode teks gagal ambil data) — sumber PNG yang sudah terbukti
     // reliable, dipakai sebagai jaring pengaman terakhir.
+    document.getElementById('mushafFontSizeRow').style.display = 'none';
     imgEl.onload = ()=>{ loading.style.display='none'; imgEl.style.display='block'; };
     imgEl.onerror = ()=>{ loading.style.display='none'; errEl.style.display='flex'; };
     imgEl.src = mushafImageUrl(p);
@@ -1567,13 +1870,25 @@ function playCurrentAyah(){
   updateAyahHighlight();
   document.getElementById('mushafAudioStart').style.display = 'none';
   document.getElementById('mushafAudioBar').style.display = 'flex';
-  document.getElementById('mushafAudioLabel').textContent = 'Memutar \u2014 '+ayahLabel(surah, ayah);
+  const repeatInfo = repeatMode==='inf' ? ' \u2014 ulang \u221e' : (repeatMode>1 ? ' \u2014 ulang '+(repeatCounter+1)+'/'+repeatMode : '');
+  document.getElementById('mushafAudioLabel').textContent = 'Memutar \u2014 '+ayahLabel(surah, ayah)+repeatInfo;
   document.getElementById('mushafPlayToggle').textContent = '\u23F8'; // pause
+  document.getElementById('mushafAyahPrev').disabled = (mushafPlayIndex<=0);
+  document.getElementById('mushafAyahNext').disabled = (mushafPlayIndex>=mushafPlaylist.length-1);
 }
 function playAyahFrom(surah, ayah){
   const idx = mushafPlaylist.findIndex(a=> a.surah===surah && a.ayah===ayah);
   mushafPlayIndex = idx>=0 ? idx : 0;
+  repeatCounter = 0;
   playCurrentAyah();
+}
+/* pindah ke ayat sebelumnya/berikutnya DALAM playlist halaman ini
+   (bukan pindah halaman) — dipanggil dari tombol \u23EE/\u23ED di audio bar. */
+function mushafAyahPrev(){
+  if(mushafPlayIndex>0){ mushafPlayIndex--; repeatCounter=0; playCurrentAyah(); }
+}
+function mushafAyahNext(){
+  if(mushafPlayIndex>=0 && mushafPlayIndex<mushafPlaylist.length-1){ mushafPlayIndex++; repeatCounter=0; playCurrentAyah(); }
 }
 function toggleMushafPlay(){
   if(!mushafPlaylist.length) return;
@@ -1585,6 +1900,7 @@ function stopMushafAudio(){
   mushafAudioEl.pause();
   mushafAudioEl.removeAttribute('src');
   mushafPlayIndex = -1;
+  repeatCounter = 0;
   updateAyahHighlight();
   const bar = document.getElementById('mushafAudioBar');
   if(bar) bar.style.display = 'none';
@@ -1594,6 +1910,15 @@ function stopMushafAudio(){
   if(startBtn) startBtn.style.display = mushafPlaylist.length ? 'block' : 'none';
 }
 mushafAudioEl.addEventListener('ended', ()=>{
+  // ulang ayat yang sama dulu kalau belum mencapai target repeatMode
+  // (atau selamanya kalau repeatMode==='inf'), baru lanjut ke ayat berikutnya.
+  const shouldRepeat = repeatMode==='inf' || repeatCounter < (Number(repeatMode) - 1);
+  if(shouldRepeat){
+    repeatCounter++;
+    playCurrentAyah();
+    return;
+  }
+  repeatCounter = 0;
   mushafPlayIndex++;
   if(mushafPlayIndex < mushafPlaylist.length) playCurrentAyah();
   else stopMushafAudio();
@@ -1625,7 +1950,7 @@ function setupMushafSwipe(){
   });
 }
 
-function closePageEditor(){ document.getElementById('pageOverlay').classList.remove('open'); currentEditJuz=null; currentEditPage=null; }
+function closePageEditor(){ document.getElementById('pageOverlay').classList.remove('open'); currentEditJuz=null; currentEditPage=null; consumeNavStateIfNeeded(); }
 async function savePageEditor(){
   const n = currentEditJuz, p = currentEditPage;
   if(!n || !p) return;
@@ -1646,7 +1971,10 @@ async function markPageToday(){
   const e = appData.juz[n];
   const pg = e.pages[p];
   const fromStatus = pg.status;
-  if(pg.status==='belum' || pg.status==='dihafal') pg.status='murajaah';
+  // "belum"/"dihafal"/"lupa" -> begitu direview hari ini, otomatis naik
+  // jadi "murajaah" (termasuk "lupa": kalau baru saja dimurajaah lagi,
+  // logisnya statusnya sudah tidak "lupa" lagi, bukan tetap nyangkut).
+  if(pg.status==='belum' || pg.status==='dihafal' || pg.status==='lupa') pg.status='murajaah';
   pg.lastMurajaah = new Date().toISOString().slice(0,10);
   document.getElementById('pageStatus').value = pg.status;
   document.getElementById('pageDate').value = pg.lastMurajaah;
@@ -1654,7 +1982,7 @@ async function markPageToday(){
   closePageEditor();
   renderDetail(); renderAll();
   const ok = await pushData(); renderSyncBanner();
-  showToast(ok ? 'Halaman '+p+' ditandai direview hari ini.' : ('Gagal simpan: ' + lastSyncDetail), ok);
+  showToast(ok ? 'Halaman '+p+' ditandai telah dimurajaah hari ini.' : ('Gagal simpan: ' + lastSyncDetail), ok);
 }
 /* tandai 1 halaman "lupa" — dipakai saat hafalan yang tadinya sudah
    murajaah/stabil ternyata lupa lagi & perlu dihafal ulang dari awal.
@@ -1675,20 +2003,22 @@ async function markPageLupa(){
   showToast(ok ? 'Halaman '+p+' ditandai lupa \u2014 perlu dihafal ulang.' : ('Gagal simpan: ' + lastSyncDetail), ok);
 }
 
-/* markMurajaahToday: tandai SELURUH juz (semua halamannya) direview hari ini */
+/* markMurajaahToday: tandai SELURUH juz (semua halamannya) telah dimurajaah hari ini */
 async function markMurajaahToday(n){
   const e = appData.juz[n];
   const today = new Date().toISOString().slice(0,10);
   let count = 0;
   Object.values(e.pages).forEach(pg=>{
-    if(pg.status==='belum' || pg.status==='dihafal') pg.status='murajaah';
+    // sama seperti markPageToday(): "lupa" ikut naik jadi "murajaah" juga,
+    // bukan tetap nyangkut di status lupa walau tanggalnya sudah ter-update.
+    if(pg.status==='belum' || pg.status==='dihafal' || pg.status==='lupa') pg.status='murajaah';
     pg.lastMurajaah = today;
     count++;
   });
   pushHistory(e, 'murajaah_bulk', { pagesCount: count });
   renderDetail(); renderAll();
   const ok = await pushData(); renderSyncBanner();
-  showToast(ok ? 'Tersimpan — seluruh juz ('+count+' hal.) murajaah hari ini tercatat.' : ('Gagal simpan: ' + lastSyncDetail), ok);
+  showToast(ok ? 'Tersimpan — seluruh juz ('+count+' hal.) telah dimurajaah hari ini.' : ('Gagal simpan: ' + lastSyncDetail), ok);
 }
 /* saveDetailStatus: terapkan satu status+tanggal ke SEMUA halaman juz sekaligus */
 async function saveDetailStatus(n){
@@ -1734,6 +2064,7 @@ function openQuickLog(){
     sel.appendChild(opt);
   }
   populateQuickPages();
+  pushNavState('quickLog');
   document.getElementById('quickOverlay').classList.add('open');
 }
 function populateQuickPages(){
@@ -1754,7 +2085,7 @@ function populateQuickPages(){
   }
   if(prevVal && [...sel.options].some(o=>o.value===prevVal)) sel.value = prevVal;
 }
-function closeQuickLog(){ document.getElementById('quickOverlay').classList.remove('open'); }
+function closeQuickLog(){ document.getElementById('quickOverlay').classList.remove('open'); consumeNavStateIfNeeded(); }
 async function saveQuickLog(){
   const n = Number(document.getElementById('quickJuz').value);
   const pageVal = document.getElementById('quickPage').value;
@@ -1785,7 +2116,7 @@ function savePinModal(){
   if(p1!==p2){ msg.textContent='PIN tidak sama, coba lagi.'; return; }
   localStorage.setItem(LS_PIN,p1); pin=p1; closePinModal();
 }
-function openServerModal(){ document.getElementById('apiBase').value=apiBase(); document.getElementById('appToken').value=appToken(); document.getElementById('serverModalMsg').textContent=''; document.getElementById('serverOverlay').classList.add('open'); loadAiQuota(); }
+function openServerModal(){ document.getElementById('apiBase').value=apiBase(); document.getElementById('appToken').value=appToken(); document.getElementById('serverModalMsg').textContent=''; pushNavState('server'); document.getElementById('serverOverlay').classList.add('open'); loadAiQuota(); }
 /* Ambil & tampilkan pemakaian kuota Workers AI hari ini dari endpoint
    /ai-quota Worker (opsional — kalau Worker versi lama belum punya
    endpoint ini, atau AI/AI_QUOTA belum dikonfigurasi, kotaknya cukup
@@ -1810,7 +2141,7 @@ async function loadAiQuota(){
     box.style.display='none'; // gagal diam-diam, bukan fitur inti
   }
 }
-function closeServerModal(){ document.getElementById('serverOverlay').classList.remove('open'); }
+function closeServerModal(){ document.getElementById('serverOverlay').classList.remove('open'); consumeNavStateIfNeeded(); }
 async function saveServerModal(){
   const base=document.getElementById('apiBase').value.trim().replace(/\/$/,'');
   const token=document.getElementById('appToken').value.trim();
@@ -1831,8 +2162,6 @@ function init(){
 
   document.getElementById('btnServerSetup').onclick = openServerModal;
   document.querySelectorAll('.nav-item').forEach(n=> n.onclick=()=> switchView(n.dataset.view));
-  document.getElementById('btnMenu').onclick = ()=> switchView('pengaturan');
-  document.getElementById('btnKebab').onclick = ()=> switchView('pengaturan');
   document.getElementById('btnFab').onclick = openQuickLog;
   document.getElementById('quickCancel').onclick = closeQuickLog;
   document.getElementById('quickSave').onclick = saveQuickLog;
@@ -1846,11 +2175,25 @@ function init(){
   document.getElementById('pageViewMushaf').onclick = ()=>{ if(currentEditPage!=null) openMushafViewer(currentEditPage); };
   document.getElementById('mushafClose').onclick = closeMushafViewer;
   document.getElementById('mushafToggleMode').onclick = toggleMushafViewMode;
+  populateReciterSelect();
+  setupMushafFontSizeSlider();
   document.getElementById('mushafPrev').onclick = mushafPrev;
   document.getElementById('mushafNext').onclick = mushafNext;
   document.getElementById('mushafPlayToggle').onclick = toggleMushafPlay;
   document.getElementById('mushafStop').onclick = stopMushafAudio;
-  document.getElementById('mushafPlayAll').onclick = ()=>{ mushafPlayIndex = 0; playCurrentAyah(); };
+  document.getElementById('mushafAyahPrev').onclick = mushafAyahPrev;
+  document.getElementById('mushafAyahNext').onclick = mushafAyahNext;
+  document.getElementById('mushafRepeatMode').onchange = (e)=>{
+    repeatMode = (e.target.value==='inf') ? 'inf' : Number(e.target.value);
+    repeatCounter = 0;
+    // update teks label saja (jangan restart audio yang sedang jalan)
+    if(mushafPlayIndex>=0 && mushafPlayIndex<mushafPlaylist.length){
+      const { surah, ayah } = mushafPlaylist[mushafPlayIndex];
+      const repeatInfo = repeatMode==='inf' ? ' \u2014 ulang \u221e' : (repeatMode>1 ? ' \u2014 ulang 1/'+repeatMode : '');
+      document.getElementById('mushafAudioLabel').textContent = 'Memutar \u2014 '+ayahLabel(surah, ayah)+repeatInfo;
+    }
+  };
+  document.getElementById('mushafPlayAll').onclick = ()=>{ mushafPlayIndex = 0; repeatCounter = 0; playCurrentAyah(); };
   setupMushafSwipe();
 
   document.getElementById('menuPin').onclick = openPinModal;
@@ -1858,6 +2201,11 @@ function init(){
   document.getElementById('menuRefresh').onclick = async ()=>{ await fetchData(); renderAll(); };
   document.getElementById('menuLock').onclick = showLockScreen;
   document.getElementById('btnDownloadOffline').onclick = downloadAllPagesForOffline;
+  document.getElementById('btnSaveOverdueDays').onclick = saveOverdueDaysSetting;
+  document.getElementById('btnChangelog').onclick = openChangelog;
+  document.getElementById('changelogClose').onclick = closeChangelog;
+  document.getElementById('btnCheckUpdate').onclick = checkForUpdate;
+  document.getElementById('appVersionText').textContent = APP_VERSION;
 
   document.getElementById('pinCancel').onclick = closePinModal;
   document.getElementById('pinSave').onclick = savePinModal;
@@ -1873,6 +2221,56 @@ function registerServiceWorker(){
   navigator.serviceWorker.register('./sw.js').catch((e)=> console.log('SW register gagal:', e));
   let refreshed=false;
   navigator.serviceWorker.addEventListener('controllerchange', ()=>{ if(refreshed) return; refreshed=true; window.location.reload(); });
+}
+
+/* ---------- Changelog modal ---------- */
+function renderChangelog(){
+  document.getElementById('changelogVersionHint').textContent = 'Versi terpasang saat ini: ' + APP_VERSION;
+  document.getElementById('changelogList').innerHTML = CHANGELOG.map((entry)=>
+    '<div style="padding:12px 0;border-bottom:1px solid var(--gray-200,#E4E7E6);">' +
+      '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px;">' +
+        '<span style="font-weight:800;font-size:14px;color:var(--gray-900);">'+entry.version+'</span>' +
+        (entry.date ? '<span style="font-size:11px;color:var(--gray-500);white-space:nowrap;">'+entry.date+'</span>' : '') +
+      '</div>' +
+      '<ul style="margin:0;padding-left:18px;font-size:12.5px;color:var(--gray-700);line-height:1.55;">' +
+        entry.changes.map((c)=> '<li>'+c+'</li>').join('') +
+      '</ul>' +
+    '</div>'
+  ).join('');
+}
+function openChangelog(){ renderChangelog(); pushNavState('changelog'); document.getElementById('changelogOverlay').classList.add('open'); }
+function closeChangelog(){ document.getElementById('changelogOverlay').classList.remove('open'); consumeNavStateIfNeeded(); }
+
+/* ---------- Cek pembaruan manual ----------
+   Memaksa browser mengecek ulang sw.js ke server (bypass cache 24 jam
+   bawaan browser). Kalau ada versi baru: worker baru otomatis skipWaiting
+   + reload sendiri (lihat registerServiceWorker & sw.js), jadi di sini
+   cukup kasih tahu prosesnya lewat toast. Kalau tidak ada versi baru:
+   kasih tahu sudah paling baru. */
+async function checkForUpdate(){
+  if(!('serviceWorker' in navigator)){ showToast('Browser ini tidak mendukung service worker.', false); return; }
+  const btn = document.getElementById('btnCheckUpdate');
+  if(btn) btn.disabled = true;
+  showToast('Memeriksa pembaruan…', true);
+  try{
+    const reg = await navigator.serviceWorker.getRegistration();
+    if(!reg){ showToast('Service worker belum terpasang. Coba muat ulang halaman.', false); return; }
+    let found = false;
+    const onUpdateFound = ()=>{ found = true; };
+    reg.addEventListener('updatefound', onUpdateFound);
+    await reg.update();
+    // 'updatefound' terpicu async, beri jeda sedikit sebelum menyimpulkan
+    setTimeout(()=>{
+      reg.removeEventListener('updatefound', onUpdateFound);
+      if(!found) showToast('Sudah versi terbaru ('+APP_VERSION+').', true);
+      // kalau found: worker baru akan skipWaiting+reload otomatis sendiri
+      if(btn) btn.disabled = false;
+    }, 1500);
+  }catch(e){
+    console.log('checkForUpdate error:', e);
+    showToast('Gagal memeriksa pembaruan. Coba lagi.', false);
+    if(btn) btn.disabled = false;
+  }
 }
 </script>
 </body>
