@@ -130,12 +130,17 @@ button{font-family:var(--font-sans);}
 .juz-dot-time{font-size:7.5px;color:var(--gray-500);margin-top:2px;opacity:.8;}
 
 /* ---------- PAGE GRID (per-halaman, di dalam detail juz) ---------- */
-.page-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;padding:14px 16px;}
-.page-cell{aspect-ratio:1;border-radius:8px;border:1.5px solid transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
-  font-size:10.5px;font-weight:700;color:#fff;cursor:pointer;position:relative;}
-.page-cell-mushaf{font-size:7px;font-weight:600;opacity:.8;}
+/* 4 kolom (bukan 6) + warna status dipindah jadi dot kecil di bawah nomor
+   (bukan background sel penuh) supaya sel bisa diperbesar utk tap target
+   yang lebih mudah dijangkau, tapi tampilan tetap tenang/tidak "ramai". */
+.page-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:14px 16px;}
+.page-cell{aspect-ratio:1;border-radius:12px;border:1.5px solid transparent;background:var(--gray-100);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  font-size:18px;font-weight:700;color:var(--gray-900);cursor:pointer;position:relative;}
+.page-cell-mushaf{font-size:9.5px;font-weight:600;color:var(--gray-500);position:absolute;bottom:6px;right:8px;}
+.page-cell-dot{width:8px;height:8px;border-radius:50%;}
 .page-cell.overdue{border-color:var(--danger);box-shadow:0 0 0 1.5px var(--danger) inset;}
-.page-cell:active{opacity:.75;}
+.page-cell:active{background:var(--gray-200);}
 .page-legend{display:flex;flex-wrap:wrap;gap:10px;padding:0 16px 12px;}
 .page-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--gray-500);}
 .page-legend-dot{width:8px;height:8px;border-radius:3px;}
@@ -284,7 +289,12 @@ button{font-family:var(--font-sans);}
 .mushaf-ctl-main{width:58px;height:58px;border-radius:50%;border:none;background:var(--primary);color:var(--white);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;}
 .mushaf-ctl-main svg{width:42%;height:42%;}
 .mushaf-ctl-stop{background:var(--danger);color:var(--white);}
-.mushaf-repeat-badge{position:absolute;bottom:-3px;right:-3px;background:var(--primary);color:var(--white);font-size:8.5px;font-weight:700;border-radius:99px;min-width:16px;height:16px;display:flex;align-items:center;justify-content:center;padding:0 2px;line-height:1;}
+.mushaf-repeat-badge{position:absolute;bottom:-3px;right:-3px;background:var(--primary);color:var(--white);font-size:8.5px;font-weight:700;border-radius:99px;min-width:16px;height:16px;display:flex;align-items:center;justify-content:center;padding:0 3px;line-height:1;}
+.mushaf-ctl-inactive .mushaf-repeat-badge{background:var(--gray-400,#9AA3A0);}
+/* Pill "Ulang 1 halaman" — abu-abu nonaktif, hijau begitu mode != off (1x..5x/\u221e) */
+.mushaf-page-repeat-pill{width:100%;box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:8px;border:none;border-radius:99px;padding:10px 14px;margin-bottom:14px;font-size:13.5px;font-weight:700;cursor:pointer;background:var(--gray-100);color:var(--gray-700);}
+.mushaf-page-repeat-pill svg{width:16px;height:16px;flex:none;}
+.mushaf-page-repeat-pill.active{background:var(--primary);color:var(--white);}
 .mushaf-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;}
 .sheet h3{font-size:18px;font-weight:800;margin:0 0 4px;color:var(--gray-900);}
 .hint{font-size:12.5px;color:var(--gray-500);line-height:1.5;margin:0 0 16px;}
@@ -603,8 +613,9 @@ button{font-family:var(--font-sans);}
     <div class="mushaf-player">
       <p class="mushaf-player-title" id="mushafAudioLabel"></p>
       <div class="mushaf-progress-segs" id="mushafProgressSegs"></div>
+      <button class="mushaf-page-repeat-pill" id="mushafPageRepeat" title="Ulang 1 halaman" aria-label="Ulang 1 halaman"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg><span id="mushafPageRepeatLabel">Ulang 1 halaman: nonaktif</span></button>
       <div class="mushaf-controls-row">
-        <button class="mushaf-ctl-btn" id="mushafRepeatMode" title="Ulang bacaan" aria-label="Ulang bacaan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg><span class="mushaf-repeat-badge" id="mushafRepeatBadge">1x</span></button>
+        <button class="mushaf-ctl-btn mushaf-ctl-inactive" id="mushafRepeatMode" title="Ulang bacaan" aria-label="Ulang bacaan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg><span class="mushaf-repeat-badge" id="mushafRepeatBadge">Off</span></button>
         <div style="display:flex; align-items:center; gap:14px;">
           <button class="mushaf-ctl-btn mushaf-ctl-skip" id="mushafAyahPrev" title="Ayat sebelumnya" aria-label="Ayat sebelumnya"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zM10 12l8-6v12z"/></svg></button>
           <button class="mushaf-ctl-main" id="mushafPlayToggle" aria-label="Putar/jeda"></button>
@@ -1727,12 +1738,15 @@ function renderPageGrid(n){
     const overdue = isPageOverdue(pg);
     const cell = document.createElement('div');
     cell.className = 'page-cell' + (overdue?' overdue':'');
-    cell.style.background = STATUS_META[pg.status].color;
-    if(pg.status==='belum') cell.style.color = 'var(--gray-700)';
-    // angka besar = nomor urut dalam juz (1-20), angka kecil di bawahnya
-    // = nomor halaman mushaf asli — supaya keduanya kelihatan sekaligus
+    // sel netral (abu-abu) untuk semua status — warna status dipindah jadi
+    // dot kecil di bawah nomor, bukan background sel penuh, supaya sel bisa
+    // diperbesar (tap target lebih mudah dijangkau) tanpa tampilan jadi ramai.
+    // angka besar = nomor urut dalam juz (1-20), dot = warna status, angka
+    // kecil di pojok = nomor halaman mushaf asli — semua kelihatan sekaligus
     // tanpa perlu tap dulu.
-    cell.innerHTML = '<span>'+(p - start + 1)+'</span><span class="page-cell-mushaf">'+p+'</span>';
+    cell.innerHTML = '<span>'+(p - start + 1)+'</span>'
+      + '<span class="page-cell-dot" style="background:'+STATUS_META[pg.status].color+'"></span>'
+      + '<span class="page-cell-mushaf">'+p+'</span>';
     const meta = getPageMeta(p);
     const cnt = pageMurajaahCount(e, p);
     cell.title = 'Halaman '+p+' (mushaf)' + (meta ? ' \u2014 '+meta.label : '') + ' \u2014 '+STATUS_META[pg.status].label + ' \u2014 '+cnt+'x';
@@ -1772,7 +1786,7 @@ let currentMushafPage = null;
 let mushafViewMode = localStorage.getItem('hafalan_mushaf_view_mode') || 'text'; // 'text' | 'image'
 let mushafPlaylist = [];      // [{surah, ayah, text}, ...] urutan baca di halaman ini
 let mushafPlayIndex = -1;     // -1 = tidak sedang memutar apa pun
-let repeatMode = 1;           // 1-5 = ulang berapa kali per ayat, 'inf' = ulang tak terhingga
+let repeatMode = 'off';       // 'off' = tidak diulang (lanjut ke ayat berikutnya), 1-5 = ulang berapa kali per ayat, 'inf' = ulang tak terhingga
 let repeatCounter = 0;        // sudah diulang berapa kali utk ayat yg SEDANG diputar (reset tiap pindah ayat)
 const mushafAudioEl = new Audio();
 
@@ -1968,13 +1982,38 @@ function mushafAyahPrev(){
 function mushafAyahNext(){
   if(mushafPlayIndex>=0 && mushafPlayIndex<mushafPlaylist.length-1){ mushafPlayIndex++; repeatCounter=0; playCurrentAyah(); }
 }
-const REPEAT_MODES = [1,2,3,4,5,'inf'];
+const REPEAT_MODES = ['off',1,2,3,4,5,'inf'];
 function cycleRepeatMode(){
   const idx = REPEAT_MODES.indexOf(repeatMode);
   repeatMode = REPEAT_MODES[(idx+1) % REPEAT_MODES.length];
   repeatCounter = 0;
   const badge = document.getElementById('mushafRepeatBadge');
-  if(badge) badge.textContent = repeatMode==='inf' ? '\u221e' : repeatMode+'x';
+  const btn = document.getElementById('mushafRepeatMode');
+  if(badge) badge.textContent = repeatMode==='off' ? 'Off' : repeatMode==='inf' ? '\u221e' : repeatMode+'x';
+  if(btn) btn.classList.toggle('mushaf-ctl-inactive', repeatMode==='off');
+}
+/* ---------- Ulang 1 halaman penuh ----------
+   Sama seperti repeat per-ayat di atas: siklus off -> 1x -> 2x -> 3x ->
+   4x -> 5x -> \u221e -> off. pageRepeatCounter menghitung sudah berapa kali
+   halaman ini diulang dari awal (reset tiap kali halaman berpindah/dibuka,
+   TAPI pageRepeatMode sendiri sengaja tidak direset supaya pilihan
+   pengguna tetap berlaku walau ganti halaman). */
+let pageRepeatMode = 'off';
+let pageRepeatCounter = 0;
+const PAGE_REPEAT_MODES = ['off',1,2,3,4,5,'inf'];
+function updatePageRepeatUI(){
+  const pill = document.getElementById('mushafPageRepeat');
+  const label = document.getElementById('mushafPageRepeatLabel');
+  if(!pill) return;
+  const txt = pageRepeatMode==='off' ? 'nonaktif' : pageRepeatMode==='inf' ? '\u221e' : pageRepeatMode+'x';
+  if(label) label.textContent = 'Ulang 1 halaman: '+txt;
+  pill.classList.toggle('active', pageRepeatMode!=='off');
+}
+function cyclePageRepeatMode(){
+  const idx = PAGE_REPEAT_MODES.indexOf(pageRepeatMode);
+  pageRepeatMode = PAGE_REPEAT_MODES[(idx+1) % PAGE_REPEAT_MODES.length];
+  pageRepeatCounter = 0;
+  updatePageRepeatUI();
 }
 function toggleMushafPlay(){
   if(!mushafPlaylist.length) return;
@@ -1987,6 +2026,7 @@ function stopMushafAudio(){
   mushafAudioEl.removeAttribute('src');
   mushafPlayIndex = -1;
   repeatCounter = 0;
+  pageRepeatCounter = 0;
   releaseMushafWakeLock();
   updateAyahHighlight();
   const bar = document.getElementById('mushafAudioBar');
@@ -2036,8 +2076,19 @@ mushafAudioEl.addEventListener('ended', ()=>{
   }
   repeatCounter = 0;
   mushafPlayIndex++;
-  if(mushafPlayIndex < mushafPlaylist.length) playCurrentAyah();
-  else stopMushafAudio();
+  if(mushafPlayIndex < mushafPlaylist.length){ playCurrentAyah(); return; }
+  // sudah sampai ayat terakhir di halaman ini -> cek "Ulang 1 halaman"
+  // (sama polanya dengan repeat per-ayat: ulang dari ayat pertama sampai
+  // target pageRepeatMode tercapai, atau tanpa henti kalau 'inf').
+  const shouldRepeatPage = pageRepeatMode==='inf' || pageRepeatCounter < (Number(pageRepeatMode) - 1);
+  if(pageRepeatMode!=='off' && shouldRepeatPage){
+    pageRepeatCounter++;
+    mushafPlayIndex = 0;
+    playCurrentAyah();
+    return;
+  }
+  pageRepeatCounter = 0;
+  stopMushafAudio();
 });
 
 /* ---------- Swipe kiri/kanan buat pindah halaman ---------- */
@@ -2386,6 +2437,7 @@ function init(){
   document.getElementById('mushafToggleMode').onclick = toggleMushafViewMode;
   populateReciterSelect();
   setupMushafFontSizeSlider();
+  updatePageRepeatUI();
   document.getElementById('mushafPrev').onclick = mushafPrev;
   document.getElementById('mushafNext').onclick = mushafNext;
   document.getElementById('mushafPlayToggle').onclick = toggleMushafPlay;
@@ -2393,6 +2445,7 @@ function init(){
   document.getElementById('mushafAyahPrev').onclick = mushafAyahPrev;
   document.getElementById('mushafAyahNext').onclick = mushafAyahNext;
   document.getElementById('mushafRepeatMode').onclick = cycleRepeatMode;
+  document.getElementById('mushafPageRepeat').onclick = cyclePageRepeatMode;
   document.getElementById('mushafPlayAll').onclick = ()=>{ mushafPlayIndex = 0; repeatCounter = 0; playCurrentAyah(); };
   setupMushafSwipe();
 
