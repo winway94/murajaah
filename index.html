@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Hafalan &amp; Murajaah</title>
+<title>Hafalan &amp; Muraja'ah</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#164A40">
 <meta name="mobile-web-app-capable" content="yes">
@@ -349,7 +349,7 @@ button{font-family:var(--font-sans);}
     <div class="appbar">
       <div class="appbar-left">
         <div>
-          <p class="appbar-title" id="appbarTitle">Hafalan &amp; Murajaah</p>
+          <p class="appbar-title" id="appbarTitle">Hafalan &amp; Muraja'ah</p>
           <p class="appbar-sub" id="appbarSub"></p>
         </div>
       </div>
@@ -376,7 +376,7 @@ button{font-family:var(--font-sans);}
           </div>
           <div class="pstat">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
-            <div class="pstat-num" id="statMurajaahN">0</div><div class="pstat-label">Murajaah</div>
+            <div class="pstat-num" id="statMurajaahN">0</div><div class="pstat-label">Muraja'ah</div>
           </div>
           <div class="pstat">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>
@@ -413,10 +413,10 @@ button{font-family:var(--font-sans);}
           <option value="semua">Filter: Semua</option>
           <option value="belum">Belum dihafal</option>
           <option value="dihafal">Sedang dihafal</option>
-          <option value="murajaah">Sedang murajaah</option>
+          <option value="murajaah">Sedang muraja'ah</option>
           <option value="mutqin">Mutqin</option>
           <option value="lupa">Lupa (perlu hafal ulang)</option>
-          <option value="overdue">Perlu murajaah</option>
+          <option value="overdue">Perlu muraja'ah</option>
         </select>
       </div>
       <div class="juz-grid" id="juzGrid"></div>
@@ -432,12 +432,12 @@ button{font-family:var(--font-sans);}
     <div class="screen" id="screenStatistik">
       <p class="section-title" style="margin-top:4px;">Ringkasan</p>
       <div class="stat-grid-2" style="margin-top:10px;">
-        <div class="card stat-box"><div class="stat-box-num" id="statTotalMurajaah">0</div><div class="stat-box-label">Total murajaah tercatat</div></div>
+        <div class="card stat-box"><div class="stat-box-num" id="statTotalMurajaah">0</div><div class="stat-box-label">Total muraja'ah tercatat</div></div>
         <div class="card stat-box"><div class="stat-box-num" id="statRataMinggu">0</div><div class="stat-box-label">Rata-rata / minggu (4 mgg)</div></div>
-        <div class="card stat-box"><div class="stat-box-num" id="statOverdueCount">0</div><div class="stat-box-label">Halaman perlu murajaah sekarang</div></div>
+        <div class="card stat-box"><div class="stat-box-num" id="statOverdueCount">0</div><div class="stat-box-label">Halaman perlu muraja'ah sekarang</div></div>
         <div class="card stat-box"><div class="stat-box-num" id="statPalingLama">-</div><div class="stat-box-label">Paling lama tak disentuh</div></div>
       </div>
-      <p class="section-title">Aktivitas murajaah 14 hari terakhir</p>
+      <p class="section-title">Aktivitas muraja'ah 14 hari terakhir</p>
       <div class="card" style="margin-top:10px;">
         <div class="bars" id="activityBars"></div>
       </div>
@@ -463,7 +463,7 @@ button{font-family:var(--font-sans);}
         </div>
         <div class="donut-legend">
           <div class="legend-row"><span class="legend-dot" style="background:var(--primary)"></span><span id="legStabil">Mutqin: 0</span></div>
-          <div class="legend-row"><span class="legend-dot" style="background:var(--success)"></span><span id="legMurajaah">Murajaah: 0</span></div>
+          <div class="legend-row"><span class="legend-dot" style="background:var(--success)"></span><span id="legMurajaah">Muraja'ah: 0</span></div>
           <div class="legend-row"><span class="legend-dot" style="background:var(--accent)"></span><span id="legDihafal">Dihafal: 0</span></div>
           <div class="legend-row"><span class="legend-dot" style="background:var(--gray-300)"></span><span id="legBelum">Belum: 0</span></div>
         </div>
@@ -507,8 +507,8 @@ button{font-family:var(--font-sans);}
         <div id="aiQuotaMenuResult" style="display:none; margin-top:12px;"></div>
       </div>
       <div class="card" style="margin-top:14px; padding:14px 16px;">
-        <p class="section-title" style="margin:0 0 4px;">⏱️ Ambang waktu overdue murajaah</p>
-        <p class="hint" style="margin:0 0 12px;">Halaman "Sedang murajaah"/"Mutqin" ditandai <b>perlu murajaah</b> kalau lebih dari sekian hari sejak terakhir dimurajaah. Berlaku juga untuk pengingat Telegram.</p>
+        <p class="section-title" style="margin:0 0 4px;">⏱️ Ambang waktu overdue muraja'ah</p>
+        <p class="hint" style="margin:0 0 12px;">Halaman "Sedang muraja'ah"/"Mutqin" ditandai <b>perlu muraja'ah</b> kalau lebih dari sekian hari sejak terakhir dimuraja'ah. Berlaku juga untuk pengingat Telegram.</p>
         <div class="field" style="margin-bottom:12px;">
           <label>Jumlah hari</label>
           <input type="number" id="overdueDaysInput" min="1" max="365" step="1" inputmode="numeric">
@@ -516,7 +516,7 @@ button{font-family:var(--font-sans);}
         <button class="btn-full btn-primary" id="btnSaveOverdueDays">Simpan ambang batas</button>
       </div>
       <div class="card" style="margin-top:14px; padding:14px 16px; text-align:center;">
-        <p class="section-title" style="margin:0 0 4px; text-align:center;">📱 Hafalan &amp; Murajaah</p>
+        <p class="section-title" style="margin:0 0 4px; text-align:center;">📱 Hafalan &amp; Muraja'ah</p>
         <p class="hint" style="margin:0 0 14px;">Versi terpasang: <b id="appVersionText">v26</b></p>
         <button class="btn-full btn-outline" id="btnCheckUpdate" style="margin-bottom:8px;">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:5px;"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
@@ -556,8 +556,8 @@ button{font-family:var(--font-sans);}
 
 <!-- QUICK LOG -->
 <div class="overlay" id="quickOverlay"><div class="sheet">
-  <h3>Log murajaah cepat</h3>
-  <p class="hint">Catat halaman (atau seluruh juz) yang baru saja Anda murajaah hari ini.</p>
+  <h3>Log muraja'ah cepat</h3>
+  <p class="hint">Catat halaman (atau seluruh juz) yang baru saja Anda muraja'ah hari ini.</p>
   <div class="field"><label>Pilih juz</label>
     <select id="quickJuz"></select>
   </div>
@@ -566,7 +566,7 @@ button{font-family:var(--font-sans);}
   </div>
   <div class="modal-actions">
     <button class="btn btn-ghost" id="quickCancel">Batal</button>
-    <button class="btn btn-primary" id="quickSave">Tandai murajaah hari ini</button>
+    <button class="btn btn-primary" id="quickSave">Tandai muraja'ah hari ini</button>
   </div>
 </div></div>
 
@@ -579,15 +579,15 @@ button{font-family:var(--font-sans);}
     <select id="pageStatus">
       <option value="belum">Belum dihafal</option>
       <option value="dihafal">Sedang dihafal</option>
-      <option value="murajaah">Sedang murajaah</option>
+      <option value="murajaah">Sedang muraja'ah</option>
       <option value="mutqin">Mutqin</option>
       <option value="lupa">Lupa (perlu hafal ulang)</option>
     </select>
   </div>
-  <div class="field"><label>Tanggal murajaah terakhir</label>
+  <div class="field"><label>Tanggal muraja'ah terakhir</label>
     <input type="date" id="pageDate">
   </div>
-  <button class="btn-full btn-outline" id="pageMarkToday" style="margin-bottom:10px; color:var(--success); border-color:var(--success);">Telah dimurajaah hari ini</button>
+  <button class="btn-full btn-outline" id="pageMarkToday" style="margin-bottom:10px; color:var(--success); border-color:var(--success);">Telah dimuraja'ah hari ini</button>
   <button class="btn-full btn-outline" id="pageMarkLupa" style="margin-bottom:10px; color:var(--warning); border-color:var(--warning);">Tandai lupa (perlu hafal ulang)</button>
   <button class="btn-full btn-outline" id="pageViewMushaf" style="margin-bottom:14px;">📖 Lihat halaman mushaf</button>
   <div class="modal-actions">
@@ -709,7 +709,7 @@ button{font-family:var(--font-sans);}
 const STATUS_META = {
   belum:{label:'Belum dihafal', color:'var(--status-belum)'},
   dihafal:{label:'Sedang dihafal', color:'var(--status-dihafal)'},
-  murajaah:{label:'Sedang murajaah', color:'var(--status-murajaah)'},
+  murajaah:{label:'Sedang muraja\'ah', color:'var(--status-murajaah)'},
   mutqin:{label:'Mutqin', color:'var(--status-mutqin)'},
   lupa:{label:'Lupa (perlu hafal ulang)', color:'var(--status-lupa)'}
 };
@@ -737,7 +737,7 @@ const CHANGELOG = [
   ]},
   { version:'v30', date:'19 Agustus 2026', changes:[
     'AI dua lapis: Groq jadi provider utama (gratis, lebih pintar), Cloudflare Workers AI otomatis jadi cadangan kalau Groq belum dikonfigurasi/kena cooldown/kuota habis. Kartu "Kuota AI Hari Ini" & command Telegram "kuota" kini menampilkan status kedua provider terpisah.',
-    'Pencatatan lewat pesan bebas (mis. "murajaah juz 14 halaman 1 sampai 10") sekarang paham RENTANG halaman, tidak cuma satu halaman.',
+    'Pencatatan lewat pesan bebas (mis. "muraja\'ah juz 14 halaman 1 sampai 10") sekarang paham RENTANG halaman, tidak cuma satu halaman.',
     'Perbaikan tampilan halaman Pengaturan: teks deskripsi kecil di tiap kartu sekarang benar-benar tampil kecil & abu-abu (sebelumnya ada bug CSS bikin teksnya tampil besar/berat), ditambah ikon kecil di judul tiap kartu.',
     'Layar Masukkan PIN: keypad & titik indikator dipindah ke area bawah layar (dekat jangkauan jempol) dan tombol angka diperbesar, supaya lebih mudah dipakai satu tangan.'
   ]},
@@ -745,10 +745,10 @@ const CHANGELOG = [
     'Tambah menu "Kuota AI Hari Ini" di Pengaturan — cek sisa jatah Workers AI hari ini kapan saja (progres bar + status), sumber datanya sama dengan indikator kecil di modal Pengaturan server. Bot Telegram juga bisa dicek lewat ketik "kuota" (atau "ai"/"token").'
   ]},
   { version:'v28', date:'19 Agustus 2026', changes:[
-    'Perbaiki bug navigasi: menutup modal di layar Detail Juz (mis. tombol "Telah dimurajaah hari ini", "Simpan", "Tandai lupa") sekarang tetap di layar Detail Juz yang sama, tidak lagi otomatis terlempar balik ke Dasbor.'
+    'Perbaiki bug navigasi: menutup modal di layar Detail Juz (mis. tombol "Telah dimuraja\'ah hari ini", "Simpan", "Tandai lupa") sekarang tetap di layar Detail Juz yang sama, tidak lagi otomatis terlempar balik ke Dasbor.'
   ]},
   { version:'v27', date:'19 Agustus 2026', changes:[
-    'Tambah pengaturan ambang waktu overdue murajaah (bisa diubah sendiri, default 30 hari) — tersimpan di server, ikut dipakai reminder Telegram.',
+    'Tambah pengaturan ambang waktu overdue muraja\'ah (bisa diubah sendiri, default 30 hari) — tersimpan di server, ikut dipakai reminder Telegram.',
     'Hapus tombol menu (☰) & titik-tiga (⋮) di header karena fungsinya sudah ada di tab "Pengaturan" pada navigasi bawah.'
   ]},
   { version:'v26', date:'19 Agustus 2026', changes:[
@@ -1006,7 +1006,7 @@ async function downloadAllPagesForOffline(){
    (pakai pendekatan 30 hari/bulan & 365 hari/tahun, bukan kalender presisi
    — cukup akurat buat indikator "kira-kira sudah berapa lama"). */
 function formatRelativeTime(dateStr, short){
-  if(!dateStr) return short ? '\u2014' : 'Belum pernah dimurajaah';
+  if(!dateStr) return short ? '\u2014' : 'Belum pernah dimuraja\'ah';
   const then = new Date(dateStr + 'T00:00:00');
   const now = new Date();
   const days = Math.max(0, Math.floor((now - then) / 86400000));
@@ -1351,7 +1351,7 @@ function switchView(view){
   document.querySelectorAll('.nav-item').forEach(n=> n.classList.toggle('active', n.dataset.view===view));
   document.getElementById('bottomNav').style.display = view==='detail' ? 'none' : 'flex';
   document.getElementById('btnFab').style.display = view==='beranda' ? 'flex' : 'none';
-  const titles = { beranda:['Hafalan & Murajaah', new Date().toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'})],
+  const titles = { beranda:['Hafalan & Muraja\'ah', new Date().toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'})],
     riwayat:['Riwayat',''], statistik:['Statistik',''], pengaturan:['Pengaturan',''] };
   if(titles[view]){ document.getElementById('appbarTitle').textContent = titles[view][0]; document.getElementById('appbarSub').textContent = titles[view][1]; }
   if(view==='pengaturan'){ renderOfflineProgress(); renderOverdueDaysSetting(); }
@@ -1447,7 +1447,7 @@ function renderJuzGrid(){
     const lastDate = juzLastMurajaahDate(e);
     const card = document.createElement('div');
     card.className='juz-dot-card';
-    card.title = 'Terakhir dimurajaah: ' + formatRelativeTime(lastDate, false);
+    card.title = 'Terakhir dimuraja\'ah: ' + formatRelativeTime(lastDate, false);
     card.innerHTML = '<div class="juz-dot-num">'+String(i).padStart(2,'0')+'</div><div class="juz-dot" style="background:'+dotColor(e)+'"></div>'+
       '<div class="juz-dot-sub">'+ps.mutqin+'/'+ps.total+'</div>'+
       '<div class="juz-dot-time">'+formatRelativeTime(lastDate, true)+'</div>';
@@ -1477,8 +1477,8 @@ function flattenHistory(){
   return all;
 }
 function historyLabel(h){
-  if(h.event==='murajaah') return 'Murajaah Juz ' + String(h.juz).padStart(2,'0') + (h.page ? ' hal.'+h.page : '');
-  if(h.event==='murajaah_bulk') return 'Seluruh Juz ' + String(h.juz).padStart(2,'0') + ' dimurajaah (' + (h.pagesCount||'?') + ' halaman)';
+  if(h.event==='murajaah') return 'Muraja\'ah Juz ' + String(h.juz).padStart(2,'0') + (h.page ? ' hal.'+h.page : '');
+  if(h.event==='murajaah_bulk') return 'Seluruh Juz ' + String(h.juz).padStart(2,'0') + ' dimuraja\'ah (' + (h.pagesCount||'?') + ' halaman)';
   if(h.event==='status_change') return 'Juz '+String(h.juz).padStart(2,'0')+(h.page?' hal.'+h.page:'')+': '+STATUS_META[h.from].label+' \u2192 '+STATUS_META[h.to].label;
   if(h.event==='status_change_bulk') return 'Seluruh Juz '+String(h.juz).padStart(2,'0')+' diubah ke '+STATUS_META[h.to].label+' ('+(h.pagesCount||'?')+' halaman)';
   return 'Juz ' + String(h.juz).padStart(2,'0') + ' diperbarui';
@@ -1486,7 +1486,7 @@ function historyLabel(h){
 function renderRiwayatGlobal(){
   const all = flattenHistory();
   const el = document.getElementById('riwayatList');
-  if(!all.length){ el.innerHTML = '<div class="empty-state">Belum ada riwayat aktivitas.<br>Mulai murajaah untuk mencatatnya di sini.</div>'; return; }
+  if(!all.length){ el.innerHTML = '<div class="empty-state">Belum ada riwayat aktivitas.<br>Mulai muraja\'ah untuk mencatatnya di sini.</div>'; return; }
   el.innerHTML = all.slice(0,100).map(h=>
     '<div class="history-row"><div class="history-dot" style="background:'+ (h.event==='murajaah'?'var(--success)':'var(--accent)') +'"></div>' +
     '<div><div class="history-text">'+historyLabel(h)+'</div><div class="history-date">'+fmtDate(h.at)+'</div></div></div>'
@@ -1589,7 +1589,7 @@ function renderStatistik(){
   let counts = { belum:0, dihafal:0, murajaah:0, stabil:0 };
   for(let i=1;i<=TOTAL_JUZ;i++){ const ps=juzPageStats(juz[i]); counts.belum+=ps.belum; counts.dihafal+=ps.dihafal; counts.murajaah+=ps.murajaah; counts.mutqin+=ps.mutqin; }
   document.getElementById('legStabil').textContent = 'Mutqin: '+counts.mutqin+' hal.';
-  document.getElementById('legMurajaah').textContent = 'Murajaah: '+counts.murajaah+' hal.';
+  document.getElementById('legMurajaah').textContent = 'Muraja\'ah: '+counts.murajaah+' hal.';
   document.getElementById('legDihafal').textContent = 'Dihafal: '+counts.dihafal+' hal.';
   document.getElementById('legBelum').textContent = 'Belum: '+counts.belum+' hal.';
   const pct = Math.round(counts.mutqin/TOTAL_PAGES*100);
@@ -1620,13 +1620,13 @@ function renderDetail(){
   let recText = '';
   if(overdue){
     const sample = overduePages.slice(0,4).map(o=>'hal.'+o.page).join(', ');
-    recText = overduePages.length + ' halaman perlu diulang (' + sample + (overduePages.length>4?', ...':'') + '). Mulai murajaah hari ini untuk menjaga hafalan tetap kuat.';
+    recText = overduePages.length + ' halaman perlu diulang (' + sample + (overduePages.length>4?', ...':'') + '). Mulai muraja\'ah hari ini untuk menjaga hafalan tetap kuat.';
   }else if(agg==='belum'){
     recText = 'Juz ini belum mulai dihafal. Tap halaman di bawah untuk menandai "Sedang dihafal" begitu Anda mulai.';
   }else if(agg==='dihafal'){
     recText = 'Masih ada halaman yang belum selesai dihafal (' + ps.mutqin + '/' + ps.total + ' hal. sudah mutqin). Terus lanjutkan.';
   }else{
-    recText = 'Kondisi juz ini masih aman (' + ps.mutqin + '/' + ps.total + ' hal. mutqin). Pertahankan jadwal murajaah rutin.';
+    recText = 'Kondisi juz ini masih aman (' + ps.mutqin + '/' + ps.total + ' hal. mutqin). Pertahankan jadwal muraja\'ah rutin.';
   }
 
   const el = document.getElementById('screenDetail');
@@ -1642,13 +1642,13 @@ function renderDetail(){
         <div class="hero-row">
           <div>
             <p class="hero-eyebrow">Status</p>
-            <p class="hero-status">${overdue?overduePages.length+' hal. perlu murajaah':STATUS_META[agg].label}</p>
+            <p class="hero-status">${overdue?overduePages.length+' hal. perlu muraja\'ah':STATUS_META[agg].label}</p>
             <p class="hero-meta-label">Progres halaman</p>
             <p class="hero-meta-val">${ps.mutqin}/${ps.total} mutqin \u00b7 hal.${rangeStart}\u2013${rangeStart+ps.total-1}</p>
             <p class="hero-meta-val" style="opacity:.85; margin-top:2px;">${juzSurahRangeLabel(n)}</p>
-            <p class="hero-meta-label" style="margin-top:8px;">Terakhir dimurajaah</p>
+            <p class="hero-meta-label" style="margin-top:8px;">Terakhir dimuraja'ah</p>
             <p class="hero-meta-val">${formatRelativeTime(juzLastMurajaahDate(e), false)}</p>
-            <p class="hero-meta-label" style="margin-top:8px;">Total dimurajaah</p>
+            <p class="hero-meta-label" style="margin-top:8px;">Total dimuraja'ah</p>
             <p class="hero-meta-val">${juzMurajaahCount(e)}x</p>
           </div>
           <div class="hero-badge">
@@ -1679,7 +1679,7 @@ function renderDetail(){
         <p class="rec-text">${recText}</p>
         <button class="btn-full btn-primary" id="btnMulaiMurajaah">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg>
-          Tandai Seluruh Juz Telah Dimurajaah Hari Ini
+          Tandai Seluruh Juz Telah Dimuraja'ah Hari Ini
         </button>
       </div>
       <div class="card" style="margin-top:12px;">
@@ -1694,7 +1694,7 @@ function renderDetail(){
         <div class="page-legend">
           <div class="page-legend-item"><span class="page-legend-dot" style="background:var(--status-belum)"></span>Belum</div>
           <div class="page-legend-item"><span class="page-legend-dot" style="background:var(--status-dihafal)"></span>Dihafal</div>
-          <div class="page-legend-item"><span class="page-legend-dot" style="background:var(--status-murajaah)"></span>Murajaah</div>
+          <div class="page-legend-item"><span class="page-legend-dot" style="background:var(--status-murajaah)"></span>Muraja'ah</div>
           <div class="page-legend-item"><span class="page-legend-dot" style="background:var(--status-mutqin)"></span>Mutqin</div>
           <div class="page-legend-item"><span class="page-legend-dot" style="background:var(--status-lupa)"></span>Lupa</div>
           <div class="page-legend-item"><span class="page-legend-dot" style="background:var(--status-overdue)"></span>Overdue</div>
@@ -1706,13 +1706,13 @@ function renderDetail(){
           <select id="detailStatus">
             <option value="belum">Belum dihafal</option>
             <option value="dihafal">Sedang dihafal</option>
-            <option value="murajaah">Sedang murajaah</option>
+            <option value="murajaah">Sedang muraja'ah</option>
             <option value="mutqin">Mutqin</option>
             <option value="lupa">Lupa (perlu hafal ulang)</option>
           </select>
         </div>
         <div class="field" style="padding:4px 16px 14px;">
-          <label>Tanggal murajaah terakhir (untuk semua halaman)</label>
+          <label>Tanggal muraja'ah terakhir (untuk semua halaman)</label>
           <input type="date" id="detailDate">
         </div>
         <div style="padding:0 16px 16px;">
@@ -1788,7 +1788,7 @@ function openPageEditor(n, p){
   document.getElementById('pageStatus').value = pg.status;
   document.getElementById('pageDate').value = pg.lastMurajaah || '';
   const count = pageMurajaahCount(e, p);
-  document.getElementById('pageModalCount').textContent = count+'x dimurajaah';
+  document.getElementById('pageModalCount').textContent = count+'x dimuraja\'ah';
   pushNavState('pageEditor:'+n+':'+p);
   document.getElementById('pageOverlay').classList.add('open');
   refreshPageEditorHint();
@@ -2171,7 +2171,7 @@ async function markPageToday(){
   closePageEditor();
   renderDetail(); renderAll();
   const ok = await pushData(); renderSyncBanner();
-  showToast(ok ? 'Halaman '+p+' ditandai telah dimurajaah hari ini.' : ('Gagal simpan: ' + lastSyncDetail), ok);
+  showToast(ok ? 'Halaman '+p+' ditandai telah dimuraja\'ah hari ini.' : ('Gagal simpan: ' + lastSyncDetail), ok);
 }
 /* tandai 1 halaman "lupa" — dipakai saat hafalan yang tadinya sudah
    murajaah/stabil ternyata lupa lagi & perlu dihafal ulang dari awal.
@@ -2207,7 +2207,7 @@ async function markMurajaahToday(n){
   pushHistory(e, 'murajaah_bulk', { pagesCount: count });
   renderDetail(); renderAll();
   const ok = await pushData(); renderSyncBanner();
-  showToast(ok ? 'Tersimpan — seluruh juz ('+count+' hal.) telah dimurajaah hari ini.' : ('Gagal simpan: ' + lastSyncDetail), ok);
+  showToast(ok ? 'Tersimpan — seluruh juz ('+count+' hal.) telah dimuraja\'ah hari ini.' : ('Gagal simpan: ' + lastSyncDetail), ok);
 }
 /* saveDetailStatus: terapkan satu status+tanggal ke SEMUA halaman juz sekaligus */
 async function saveDetailStatus(n){
@@ -2291,7 +2291,7 @@ async function saveQuickLog(){
     pushHistory(e, 'murajaah', fromStatus!==pg.status ? { page:p, from:fromStatus, to:pg.status } : { page:p });
     renderAll();
     const ok = await pushData(); renderSyncBanner();
-    showToast(ok ? 'Halaman '+p+' ditandai murajaah hari ini.' : ('Gagal simpan: ' + lastSyncDetail), ok);
+    showToast(ok ? 'Halaman '+p+' ditandai muraja\'ah hari ini.' : ('Gagal simpan: ' + lastSyncDetail), ok);
   }
 }
 
