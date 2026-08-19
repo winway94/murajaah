@@ -34,7 +34,7 @@
   --status-belum:#CBD5E1;
   --status-dihafal:#0EA5E9;
   --status-murajaah:#EAB308;
-  --status-stabil:#16A34A;
+  --status-mutqin:#16A34A;
   --status-lupa:#EA580C;
   --status-overdue:#E11D48;
   --gray-50:#F7F8F6;
@@ -414,7 +414,7 @@ button{font-family:var(--font-sans);}
           <option value="belum">Belum dihafal</option>
           <option value="dihafal">Sedang dihafal</option>
           <option value="murajaah">Sedang murajaah</option>
-          <option value="stabil">Stabil (mutqin)</option>
+          <option value="mutqin">Mutqin</option>
           <option value="lupa">Lupa (perlu hafal ulang)</option>
           <option value="overdue">Perlu murajaah</option>
         </select>
@@ -462,7 +462,7 @@ button{font-family:var(--font-sans);}
           <div class="donut-num"><div class="donut-pct" id="statDonutPct">0%</div><div class="donut-caption">mutqin</div></div>
         </div>
         <div class="donut-legend">
-          <div class="legend-row"><span class="legend-dot" style="background:var(--primary)"></span><span id="legStabil">Stabil: 0</span></div>
+          <div class="legend-row"><span class="legend-dot" style="background:var(--primary)"></span><span id="legStabil">Mutqin: 0</span></div>
           <div class="legend-row"><span class="legend-dot" style="background:var(--success)"></span><span id="legMurajaah">Murajaah: 0</span></div>
           <div class="legend-row"><span class="legend-dot" style="background:var(--accent)"></span><span id="legDihafal">Dihafal: 0</span></div>
           <div class="legend-row"><span class="legend-dot" style="background:var(--gray-300)"></span><span id="legBelum">Belum: 0</span></div>
@@ -508,7 +508,7 @@ button{font-family:var(--font-sans);}
       </div>
       <div class="card" style="margin-top:14px; padding:14px 16px;">
         <p class="section-title" style="margin:0 0 4px;">⏱️ Ambang waktu overdue murajaah</p>
-        <p class="hint" style="margin:0 0 12px;">Halaman "Sedang murajaah"/"Stabil" ditandai <b>perlu murajaah</b> kalau lebih dari sekian hari sejak terakhir dimurajaah. Berlaku juga untuk pengingat Telegram.</p>
+        <p class="hint" style="margin:0 0 12px;">Halaman "Sedang murajaah"/"Mutqin" ditandai <b>perlu murajaah</b> kalau lebih dari sekian hari sejak terakhir dimurajaah. Berlaku juga untuk pengingat Telegram.</p>
         <div class="field" style="margin-bottom:12px;">
           <label>Jumlah hari</label>
           <input type="number" id="overdueDaysInput" min="1" max="365" step="1" inputmode="numeric">
@@ -580,7 +580,7 @@ button{font-family:var(--font-sans);}
       <option value="belum">Belum dihafal</option>
       <option value="dihafal">Sedang dihafal</option>
       <option value="murajaah">Sedang murajaah</option>
-      <option value="stabil">Stabil (mutqin)</option>
+      <option value="mutqin">Mutqin</option>
       <option value="lupa">Lupa (perlu hafal ulang)</option>
     </select>
   </div>
@@ -710,7 +710,7 @@ const STATUS_META = {
   belum:{label:'Belum dihafal', color:'var(--status-belum)'},
   dihafal:{label:'Sedang dihafal', color:'var(--status-dihafal)'},
   murajaah:{label:'Sedang murajaah', color:'var(--status-murajaah)'},
-  stabil:{label:'Stabil (mutqin)', color:'var(--status-stabil)'},
+  mutqin:{label:'Mutqin', color:'var(--status-mutqin)'},
   lupa:{label:'Lupa (perlu hafal ulang)', color:'var(--status-lupa)'}
 };
 const TOTAL_JUZ = 30;
@@ -1142,6 +1142,16 @@ function serverConfigured(){ return !!apiBase() && !!appToken(); }
    murajaah per HALAMAN (nomor halaman mushaf, 1-604). Data lama (skema v2,
    status per juz) otomatis dimigrasikan: statusnya diterapkan rata ke
    semua halaman juz itu. */
+/* Migrasi nama status "stabil" -> "mutqin" (label tampilan sudah diganti
+   jadi "Mutqin", ini menyamakan key datanya juga). Data LAMA yang sudah
+   tersimpan di server/Worker (dari sebelum migrasi ini) masih memakai
+   key "stabil" — fungsi ini menerjemahkannya begitu data dibaca, supaya
+   halaman yang sudah kamu tandai "Mutqin" dulu tetap terbaca benar,
+   bukan malah kelihatan "belum dihafal". Begitu app melakukan pushData()
+   berikutnya, datanya otomatis tersimpan ulang pakai key baru "mutqin",
+   jadi migrasi ini cukup dijalankan sekali per baca lalu selesai dengan
+   sendirinya secara bertahap. */
+function migrateStatusKey(s){ return s==='stabil' ? 'mutqin' : s; }
 function defaultJuzEntry(n){
   const [s,e] = juzRange(n);
   const pages = {};
@@ -1150,13 +1160,13 @@ function defaultJuzEntry(n){
 }
 function ensureJuzShape(e, n){
   const [s,end] = juzRange(n);
-  const legacyStatus = e && e.status;
+  const legacyStatus = e && migrateStatusKey(e.status);
   const legacyDate = (e && e.lastMurajaah) || null;
   const rawPages = (e && e.pages && typeof e.pages==='object') ? e.pages : null;
   const pages = {};
   for(let p=s;p<=end;p++){
     const rp = rawPages && rawPages[p];
-    if(rp) pages[p] = { status: rp.status||'belum', lastMurajaah: rp.lastMurajaah||null };
+    if(rp) pages[p] = { status: migrateStatusKey(rp.status)||'belum', lastMurajaah: rp.lastMurajaah||null };
     else if(legacyStatus) pages[p] = { status: legacyStatus, lastMurajaah: legacyDate };
     else pages[p] = { status:'belum', lastMurajaah:null };
   }
@@ -1182,17 +1192,17 @@ function normalizeData(raw){
 /* status gabungan sebuah juz, dihitung otomatis dari status semua halamannya */
 function juzAggregateStatus(entry){
   const vals = Object.values(entry.pages).map(p=>p.status);
-  const c = { belum:0, dihafal:0, murajaah:0, stabil:0, lupa:0 };
+  const c = { belum:0, dihafal:0, murajaah:0, mutqin:0, lupa:0 };
   vals.forEach(v=>c[v]++);
   const total = vals.length;
-  if(c.stabil===total) return 'stabil';
+  if(c.mutqin===total) return 'mutqin';
   if(c.belum===total) return 'belum';
   if(c.lupa>0) return 'lupa';
-  if(c.dihafal>0 || (c.belum>0 && (c.murajaah>0||c.stabil>0))) return 'dihafal';
+  if(c.dihafal>0 || (c.belum>0 && (c.murajaah>0||c.mutqin>0))) return 'dihafal';
   return 'murajaah';
 }
 function juzPageStats(entry){
-  const c = { belum:0, dihafal:0, murajaah:0, stabil:0, lupa:0, total:0 };
+  const c = { belum:0, dihafal:0, murajaah:0, mutqin:0, lupa:0, total:0 };
   Object.values(entry.pages).forEach(p=>{ c[p.status]++; c.total++; });
   return c;
 }
@@ -1267,7 +1277,7 @@ function overdueDaysThreshold(){
   const v = appData && appData.settings && appData.settings.overdueDays;
   return (Number.isFinite(v) && v>0) ? v : DEFAULT_OVERDUE_DAYS;
 }
-function isPageOverdue(p){ if(p.status!=='murajaah' && p.status!=='stabil') return false; if(!p.lastMurajaah) return true; return daysSince(p.lastMurajaah) > overdueDaysThreshold(); }
+function isPageOverdue(p){ if(p.status!=='murajaah' && p.status!=='mutqin') return false; if(!p.lastMurajaah) return true; return daysSince(p.lastMurajaah) > overdueDaysThreshold(); }
 function isJuzOverdue(entry){ return Object.values(entry.pages).some(isPageOverdue); }
 function overduePagesInJuz(entry){
   const arr=[];
@@ -1285,7 +1295,7 @@ function dotColor(entry){
   const agg = juzAggregateStatus(entry);
   if(agg==='belum') return 'var(--status-belum)';
   if(agg==='dihafal') return 'var(--status-dihafal)';
-  if(agg==='stabil') return 'var(--status-stabil)';
+  if(agg==='mutqin') return 'var(--status-mutqin)';
   if(agg==='lupa') return 'var(--status-lupa)';
   return 'var(--status-murajaah)'; // murajaah
 }
@@ -1374,21 +1384,21 @@ function renderBeranda(){
   for(let i=1;i<=TOTAL_JUZ;i++){
     const e = juz[i];
     const ps = juzPageStats(e);
-    counts.belum += ps.belum; counts.dihafal += ps.dihafal; counts.murajaah += ps.murajaah; counts.stabil += ps.stabil; counts.lupa += ps.lupa;
-    if(juzAggregateStatus(e)==='stabil') juzStabilCount++;
+    counts.belum += ps.belum; counts.dihafal += ps.dihafal; counts.murajaah += ps.murajaah; counts.mutqin += ps.mutqin; counts.lupa += ps.lupa;
+    if(juzAggregateStatus(e)==='mutqin') juzStabilCount++;
     const op = overduePagesInJuz(e);
     if(op.length){ overdueJuz.push(i); overduePageTotal += op.length; }
     const lp = lupaPagesInJuz(e);
     if(lp.length){ lupaJuz.push(i); lupaPageTotal += lp.length; }
   }
 
-  document.getElementById('progNum').textContent = counts.stabil + ' / ' + TOTAL_PAGES;
+  document.getElementById('progNum').textContent = counts.mutqin + ' / ' + TOTAL_PAGES;
   document.getElementById('progLabel').textContent = 'Halaman mutqin (' + juzStabilCount + ' juz penuh)';
-  document.getElementById('statStabilN').textContent = counts.stabil;
+  document.getElementById('statStabilN').textContent = counts.mutqin;
   document.getElementById('statMurajaahN').textContent = counts.murajaah;
   document.getElementById('statDihafalN').textContent = counts.dihafal;
   document.getElementById('statBelumN').textContent = counts.belum;
-  const pct = Math.round(counts.stabil/TOTAL_PAGES*100);
+  const pct = Math.round(counts.mutqin/TOTAL_PAGES*100);
   document.getElementById('progBarFill').style.width = pct + '%';
   drawRing('progRing', pct, 72, 6, '#B99A45', 'rgba(255,255,255,0.18)');
 
@@ -1439,7 +1449,7 @@ function renderJuzGrid(){
     card.className='juz-dot-card';
     card.title = 'Terakhir dimurajaah: ' + formatRelativeTime(lastDate, false);
     card.innerHTML = '<div class="juz-dot-num">'+String(i).padStart(2,'0')+'</div><div class="juz-dot" style="background:'+dotColor(e)+'"></div>'+
-      '<div class="juz-dot-sub">'+ps.stabil+'/'+ps.total+'</div>'+
+      '<div class="juz-dot-sub">'+ps.mutqin+'/'+ps.total+'</div>'+
       '<div class="juz-dot-time">'+formatRelativeTime(lastDate, true)+'</div>';
     card.onclick = ()=> openDetail(i);
     grid.appendChild(card);
@@ -1548,7 +1558,7 @@ function renderStatistik(){
   for(let i=1;i<=TOTAL_JUZ;i++){
     Object.keys(juz[i].pages).map(Number).forEach(p=>{
       const pg = juz[i].pages[p];
-      if(pg.status==='murajaah' || pg.status==='stabil'){
+      if(pg.status==='murajaah' || pg.status==='mutqin'){
         const d = daysSince(pg.lastMurajaah);
         const dd = d===null ? 99999 : d;
         if(dd > palingDays){ palingDays = dd; paling = i; palingPage = p; }
@@ -1577,12 +1587,12 @@ function renderStatistik(){
   renderHeatmap(all);
 
   let counts = { belum:0, dihafal:0, murajaah:0, stabil:0 };
-  for(let i=1;i<=TOTAL_JUZ;i++){ const ps=juzPageStats(juz[i]); counts.belum+=ps.belum; counts.dihafal+=ps.dihafal; counts.murajaah+=ps.murajaah; counts.stabil+=ps.stabil; }
-  document.getElementById('legStabil').textContent = 'Stabil: '+counts.stabil+' hal.';
+  for(let i=1;i<=TOTAL_JUZ;i++){ const ps=juzPageStats(juz[i]); counts.belum+=ps.belum; counts.dihafal+=ps.dihafal; counts.murajaah+=ps.murajaah; counts.mutqin+=ps.mutqin; }
+  document.getElementById('legStabil').textContent = 'Mutqin: '+counts.mutqin+' hal.';
   document.getElementById('legMurajaah').textContent = 'Murajaah: '+counts.murajaah+' hal.';
   document.getElementById('legDihafal').textContent = 'Dihafal: '+counts.dihafal+' hal.';
   document.getElementById('legBelum').textContent = 'Belum: '+counts.belum+' hal.';
-  const pct = Math.round(counts.stabil/TOTAL_PAGES*100);
+  const pct = Math.round(counts.mutqin/TOTAL_PAGES*100);
   document.getElementById('statDonutPct').textContent = pct+'%';
   drawRing('statDonut', pct, 120, 12, '#164A40', '#E5E9E7');
 }
@@ -1614,9 +1624,9 @@ function renderDetail(){
   }else if(agg==='belum'){
     recText = 'Juz ini belum mulai dihafal. Tap halaman di bawah untuk menandai "Sedang dihafal" begitu Anda mulai.';
   }else if(agg==='dihafal'){
-    recText = 'Masih ada halaman yang belum selesai dihafal (' + ps.stabil + '/' + ps.total + ' hal. sudah mutqin). Terus lanjutkan.';
+    recText = 'Masih ada halaman yang belum selesai dihafal (' + ps.mutqin + '/' + ps.total + ' hal. sudah mutqin). Terus lanjutkan.';
   }else{
-    recText = 'Kondisi juz ini masih aman (' + ps.stabil + '/' + ps.total + ' hal. mutqin). Pertahankan jadwal murajaah rutin.';
+    recText = 'Kondisi juz ini masih aman (' + ps.mutqin + '/' + ps.total + ' hal. mutqin). Pertahankan jadwal murajaah rutin.';
   }
 
   const el = document.getElementById('screenDetail');
@@ -1634,7 +1644,7 @@ function renderDetail(){
             <p class="hero-eyebrow">Status</p>
             <p class="hero-status">${overdue?overduePages.length+' hal. perlu murajaah':STATUS_META[agg].label}</p>
             <p class="hero-meta-label">Progres halaman</p>
-            <p class="hero-meta-val">${ps.stabil}/${ps.total} mutqin \u00b7 hal.${rangeStart}\u2013${rangeStart+ps.total-1}</p>
+            <p class="hero-meta-val">${ps.mutqin}/${ps.total} mutqin \u00b7 hal.${rangeStart}\u2013${rangeStart+ps.total-1}</p>
             <p class="hero-meta-val" style="opacity:.85; margin-top:2px;">${juzSurahRangeLabel(n)}</p>
             <p class="hero-meta-label" style="margin-top:8px;">Terakhir dimurajaah</p>
             <p class="hero-meta-val">${formatRelativeTime(juzLastMurajaahDate(e), false)}</p>
@@ -1677,7 +1687,7 @@ function renderDetail(){
           <p class="section-title">Halaman (tap untuk ubah)</p>
           <div style="display:flex; align-items:center; gap:10px;">
             <button class="icon-btn" id="btnViewMushafJuz" title="Lihat halaman mushaf" style="padding:2px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></button>
-            <span class="page-progress-frac">${ps.stabil}/${ps.total}</span>
+            <span class="page-progress-frac">${ps.mutqin}/${ps.total}</span>
           </div>
         </div>
         <div class="page-grid" id="pageGrid"></div>
@@ -1685,7 +1695,7 @@ function renderDetail(){
           <div class="page-legend-item"><span class="page-legend-dot" style="background:var(--status-belum)"></span>Belum</div>
           <div class="page-legend-item"><span class="page-legend-dot" style="background:var(--status-dihafal)"></span>Dihafal</div>
           <div class="page-legend-item"><span class="page-legend-dot" style="background:var(--status-murajaah)"></span>Murajaah</div>
-          <div class="page-legend-item"><span class="page-legend-dot" style="background:var(--status-stabil)"></span>Stabil</div>
+          <div class="page-legend-item"><span class="page-legend-dot" style="background:var(--status-mutqin)"></span>Mutqin</div>
           <div class="page-legend-item"><span class="page-legend-dot" style="background:var(--status-lupa)"></span>Lupa</div>
           <div class="page-legend-item"><span class="page-legend-dot" style="background:var(--status-overdue)"></span>Overdue</div>
         </div>
@@ -1697,7 +1707,7 @@ function renderDetail(){
             <option value="belum">Belum dihafal</option>
             <option value="dihafal">Sedang dihafal</option>
             <option value="murajaah">Sedang murajaah</option>
-            <option value="stabil">Stabil (mutqin)</option>
+            <option value="mutqin">Mutqin</option>
             <option value="lupa">Lupa (perlu hafal ulang)</option>
           </select>
         </div>
