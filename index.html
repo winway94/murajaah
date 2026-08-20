@@ -1991,6 +1991,7 @@ function historyLabel(h){
   if(h.event==='murajaah_bulk') return 'Seluruh Juz ' + String(h.juz).padStart(2,'0') + ' dimuraja\'ah (' + (h.pagesCount||'?') + ' halaman)';
   if(h.event==='status_change') return 'Juz '+String(h.juz).padStart(2,'0')+(h.page?' hal.'+h.page:'')+': '+statusLabelSafe(h.from)+' \u2192 '+statusLabelSafe(h.to);
   if(h.event==='status_change_bulk') return 'Seluruh Juz '+String(h.juz).padStart(2,'0')+' diubah ke '+statusLabelSafe(h.to)+' ('+(h.pagesCount||'?')+' halaman)';
+  if(h.event==='murajaah_count_reset') return 'Hitungan muraja\'ah Juz '+String(h.juz).padStart(2,'0')+' direset (sebelumnya '+(h.previousCount??'?')+'x)';
   return 'Juz ' + String(h.juz).padStart(2,'0') + ' diperbarui';
 }
 function renderRiwayatGlobal(){
@@ -2787,7 +2788,11 @@ async function markMurajaahToday(n){
   const ok = await pushData(); renderSyncBanner();
   showToast(ok ? 'Tersimpan — seluruh juz ('+count+' hal.) telah dimuraja\'ah hari ini.' : ('Gagal simpan: ' + lastSyncDetail), ok);
 }
-/* saveDetailStatus: terapkan satu status+tanggal ke SEMUA halaman juz sekaligus */
+// Catatan: reset hitungan "Total dimuraja'ah" per juz SENGAJA hanya
+// tersedia lewat command bot Telegram "resetmurajaah <juz>" (lihat
+// worker.js), bukan tombol di app ini. Event 'murajaah_count_reset' yang
+// ditulis bot tetap ditangani di historyLabel() di atas supaya muncul rapi
+// di tab Riwayat app.
 async function saveDetailStatus(n){
   const e = appData.juz[n];
   const newStatus = document.getElementById('detailStatus').value;
