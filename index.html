@@ -109,35 +109,33 @@ button{font-family:var(--font-sans);}
 .app{max-width:480px;margin:0 auto;min-height:100vh;background:var(--gray-50);position:relative;
   display:flex;flex-direction:column;}
 
-/* ---------- LOCK SCREEN ---------- */
-.lock-screen{position:relative;min-height:100vh;display:flex;flex-direction:column;justify-content:space-between;align-items:center;
-  background-color:var(--primary);
-  background-image:
-    repeating-linear-gradient(45deg, rgba(185,154,69,0.08) 0 1px, transparent 1px 42px),
-    repeating-linear-gradient(-45deg, rgba(185,154,69,0.08) 0 1px, transparent 1px 42px);
-  padding:32px 24px max(28px, env(safe-area-inset-bottom));}
+/* ---------- LOCK SCREEN & PIN BOXES (gaya kartu putih + kotak PIN) ---------- */
+.lock-screen{position:relative;min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;
+  background:var(--gray-50);padding:32px 24px max(28px, env(safe-area-inset-bottom));}
 /* Akses cepat ke Tasbih Digital TANPA perlu buka PIN dulu — fitur ini
    tidak berisi data hafalan pribadi, jadi aman ditaruh di luar kunci PIN. */
 .lock-tasbih-fab{position:absolute;top:max(18px, env(safe-area-inset-top));right:18px;width:40px;height:40px;
-  border-radius:50%;background:rgba(255,255,255,0.1);border:1.5px solid rgba(185,154,69,0.55);
-  display:flex;align-items:center;justify-content:center;color:var(--accent);z-index:5;}
-.lock-tasbih-fab:active{background:rgba(185,154,69,0.22);}
-.lock-card{width:100%;max-width:320px;text-align:center;color:var(--on-primary);}
-.lock-eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:0 0 6px;font-weight:600;}
-.lock-title{font-size:26px;font-weight:800;margin:0;}
-.pin-dots{display:flex;justify-content:center;gap:14px;margin-bottom:28px;flex-wrap:wrap;}
-.pin-dot{width:15px;height:15px;border-radius:50%;border:1.5px solid var(--accent);background:transparent;transition:var(--transition);}
-.pin-dot.filled{background:var(--accent);}
-.pin-dots.shake{animation:shake .32s;}
+  border-radius:50%;background:var(--primary-50);border:1.5px solid var(--gray-200);
+  display:flex;align-items:center;justify-content:center;color:var(--primary);z-index:5;}
+.lock-tasbih-fab:active{background:var(--gray-200);}
+.lock-panel{width:100%;max-width:340px;text-align:center;background:var(--white);
+  border-radius:var(--radius-xl);box-shadow:var(--shadow-lg);padding:30px 24px;}
+.lock-icon-circle{width:56px;height:56px;border-radius:50%;background:var(--primary-50);
+  color:var(--primary);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;}
+.lock-title{font-size:19px;font-weight:800;margin:0 0 8px;color:var(--gray-900);}
+.lock-sub{font-size:13px;color:var(--gray-500);margin:0 0 22px;line-height:1.5;}
+.pinbox-row{display:flex;justify-content:center;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
+.pinbox{width:15%;max-width:44px;aspect-ratio:1/1.14;text-align:center;font-size:19px;font-weight:700;
+  color:var(--gray-900);background:var(--white);border:1.5px solid var(--gray-300);border-radius:var(--radius-md);
+  padding:0;transition:var(--transition);}
+.pinbox:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-50);}
+.pinbox.filled{border-color:var(--primary);background:var(--primary-50);}
+.pinbox-row.shake{animation:shake .32s;}
 @keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
-.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:280px;margin:0 auto;}
-.key{font-size:23px;font-weight:600;color:var(--on-primary);
-  background:rgba(255,255,255,0.09);border:1px solid rgba(185,154,69,0.4);
-  border-radius:var(--radius-md);padding:19px 0;cursor:pointer;}
-.key:active{background:rgba(185,154,69,0.25);}
-.lock-msg{font-size:13px;color:#E8D9B0;margin-top:16px;min-height:18px;}
-.lock-link{background:none;border:none;color:var(--accent);font-size:11.5px;text-decoration:underline;cursor:pointer;margin-top:14px;}
-.lock-footnote{font-size:11px;color:rgba(255,255,255,0.5);margin-top:18px;line-height:1.6;}
+.lock-msg{font-size:12.5px;color:var(--danger);margin:-6px 0 14px;min-height:16px;}
+.lock-link{display:inline-block;background:none;border:none;color:var(--primary-text);font-size:12px;
+  text-decoration:underline;cursor:pointer;margin-top:16px;font-weight:600;}
+.lock-footnote{font-size:11px;color:var(--gray-500);margin-top:16px;line-height:1.6;}
 
 /* ---------- APP SHELL ---------- */
 .appbar{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;
@@ -458,15 +456,16 @@ button{font-family:var(--font-sans);}
     <a class="lock-tasbih-fab" href="tasbih.html" aria-label="Buka Tasbih Digital">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="5" r="2.4" fill="currentColor"/><circle cx="18.5" cy="9" r="2.1" fill="currentColor"/><circle cx="19.5" cy="16" r="2.1" fill="currentColor"/><circle cx="14" cy="20.5" r="2.1" fill="currentColor"/><circle cx="6.5" cy="19" r="2.1" fill="currentColor"/><circle cx="4" cy="12" r="2.1" fill="currentColor"/><circle cx="7.5" cy="6" r="2.1" fill="currentColor"/></svg>
     </a>
-    <div class="lock-card">
-      <p class="lock-eyebrow" id="lockEyebrow">Kunci aplikasi</p>
+    <div class="lock-panel">
+      <div class="lock-icon-circle">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
       <h1 class="lock-title" id="lockTitle">Masukkan PIN</h1>
-    </div>
-    <div class="lock-card">
-      <div class="pin-dots" id="pinDots"></div>
-      <div class="keypad" id="keypad"></div>
+      <p class="lock-sub" id="lockSub">Masukkan PIN 6 digit untuk membuka Hafalan &amp; Muraja'ah.</p>
+      <div class="pinbox-row" id="pinBoxes"></div>
       <p class="lock-msg" id="lockMsg"></p>
-      <button class="lock-link" id="btnServerSetup">Pengaturan server &amp; bot Telegram</button>
+      <button class="btn-full btn-primary" id="btnUnlockSubmit">Buka</button>
+      <button class="lock-link" id="btnServerSetup">Lupa PIN? Buka pengaturan server</button>
       <p class="lock-footnote">PIN mengunci tampilan di perangkat ini. Data tersimpan di server Anda sendiri.</p>
     </div>
   </div>
@@ -868,12 +867,21 @@ button{font-family:var(--font-sans);}
 </div></div>
 
 <!-- PIN MODAL -->
-<div class="overlay center" id="pinOverlay"><div class="sheet">
-  <h3>Ubah PIN</h3>
-  <p class="hint">PIN 6 digit baru untuk membuka aplikasi ini di perangkat ini.</p>
-  <div class="field"><label>PIN baru</label><input type="password" id="newPin" inputmode="numeric" maxlength="6" placeholder="6 digit"></div>
-  <div class="field"><label>Ulangi PIN baru</label><input type="password" id="newPin2" inputmode="numeric" maxlength="6" placeholder="6 digit"></div>
-  <p class="lock-msg" id="pinModalMsg" style="color:var(--danger);"></p>
+<div class="overlay center" id="pinOverlay"><div class="sheet" style="text-align:center;">
+  <div class="lock-icon-circle" style="margin:0 auto 12px;">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+  </div>
+  <h3 style="margin:0 0 6px;">Ubah PIN</h3>
+  <p class="hint" style="margin:0 0 18px;">PIN 6 digit baru untuk membuka aplikasi ini di perangkat ini.</p>
+  <div class="field" style="text-align:left;">
+    <label style="text-align:center;">PIN baru</label>
+    <div class="pinbox-row" id="newPinBoxes" style="margin-bottom:6px;"></div>
+  </div>
+  <div class="field" style="text-align:left;">
+    <label style="text-align:center;">Ulangi PIN baru</label>
+    <div class="pinbox-row" id="newPin2Boxes" style="margin-bottom:6px;"></div>
+  </div>
+  <p class="lock-msg" id="pinModalMsg"></p>
   <div class="modal-actions">
     <button class="btn btn-ghost" id="pinCancel">Batal</button>
     <button class="btn btn-primary" id="pinSave">Simpan PIN</button>
@@ -949,8 +957,12 @@ const DEFAULT_OVERDUE_DAYS = 30;
    AWAL array CHANGELOG (paling atas = paling baru). Ini murni tampilan
    (tidak memengaruhi cache); yang mengontrol update service worker
    tetap CACHE_VERSION di sw.js. */
-const APP_VERSION = 'v45';
+const APP_VERSION = 'v46';
 const CHANGELOG = [
+  { version:'v46', date:'20 Agustus 2026', changes:[
+    'Desain ulang layar Masukkan PIN & modal Ubah PIN: dari gaya lama (tema gelap emas + keypad angka custom + titik indikator) jadi kartu putih dengan ikon gembok, judul & deskripsi, dan 6 kotak input PIN terpisah (pakai keyboard numerik bawaan perangkat, auto-pindah kotak berikutnya, mendukung paste kode sekaligus).',
+    'Tombol "Lupa PIN?" di layar kunci sekarang mengarah ke Pengaturan server (fungsinya sama seperti sebelumnya, cuma teksnya disesuaikan) — belum ada fitur reset PIN ke bawaan tersendiri.'
+  ]},
   { version:'v45', date:'20 Agustus 2026', changes:[
     'Tambah kartu "Notifikasi otomatis" di Pengaturan — nyalakan/matikan sendiri 2 notifikasi Telegram: pengingat pagi jam 06.00 (kalau kemarin sama sekali tidak ada laporan muraja\'ah, + kata motivasi islami) dan refleksi mingguan tiap Senin jam 07.00. Bisa juga diatur lewat bot dengan mengetik "notifikasi".',
     'Fix bug tersembunyi: pengaturan jam pengingat/notifikasi (reminderState) sebelumnya ikut hilang tiap kali app ini menyimpan data (pushData), karena field-nya tidak diteruskan balik ke server. Sekarang diteruskan apa adanya supaya pengaturan yang dibuat lewat bot Telegram maupun lewat app ini sama-sama tersimpan konsisten.'
@@ -1461,7 +1473,6 @@ const QUOTES = [
 
 let appData = null;
 let pin = localStorage.getItem(LS_PIN);
-let pinBuffer = '';
 let lastSyncOk = true;
 let lastSyncDetail = '';
 let currentView = 'beranda';
@@ -1731,38 +1742,91 @@ function dotColor(entry){
 function fmtDate(iso){ if(!iso) return '-'; return new Date(iso).toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'}); }
 function fmtDateShort(iso){ if(!iso) return '-'; return new Date(iso).toLocaleDateString('id-ID',{day:'numeric',month:'short'}); }
 
-/* ---------- LOCK SCREEN ---------- */
-function buildKeypad(){
-  const keypad = document.getElementById('keypad'); keypad.innerHTML = '';
-  ['1','2','3','4','5','6','7','8','9','','0','back'].forEach(k=>{
-    const btn = document.createElement('button'); btn.className='key';
-    if(k===''){ btn.style.visibility='hidden'; }
-    else if(k==='back'){ btn.textContent='\u232B'; btn.onclick=()=>onKey('back'); }
-    else { btn.textContent=k; btn.onclick=()=>onKey(k); }
-    keypad.appendChild(btn);
+/* ---------- LOCK SCREEN & KOTAK PIN (dipakai di lockScreen & modal Ubah PIN) ----------
+   Ganti dari gaya lama (dots + keypad custom) ke gaya kotak per-digit yang
+   pakai keyboard numerik bawaan perangkat (lebih familiar & mendukung
+   autofill kode OTP di sebagian browser lewat autocomplete="one-time-code"). */
+function renderPinBoxes(containerId, count){
+  const wrap = document.getElementById(containerId); if(!wrap) return;
+  wrap.innerHTML = '';
+  for(let i=0;i<count;i++){
+    const inp = document.createElement('input');
+    inp.type = 'tel'; inp.inputMode = 'numeric'; inp.pattern = '[0-9]*';
+    inp.maxLength = 1; inp.className = 'pinbox'; inp.autocomplete = i===0 ? 'one-time-code' : 'off';
+    inp.dataset.idx = i;
+    wrap.appendChild(inp);
+  }
+}
+function getPinBoxValue(containerId){
+  return Array.from(document.querySelectorAll('#'+containerId+' .pinbox')).map(b=>b.value).join('');
+}
+function clearPinBoxes(containerId){
+  const boxes = Array.from(document.querySelectorAll('#'+containerId+' .pinbox'));
+  boxes.forEach(b=>{ b.value=''; b.classList.remove('filled'); });
+  if(boxes[0]) boxes[0].focus();
+}
+function shakePinBoxes(containerId, msgElId, msg){
+  const wrap = document.getElementById(containerId);
+  if(wrap){ wrap.classList.add('shake'); setTimeout(()=>wrap.classList.remove('shake'),320); }
+  if(msgElId) document.getElementById(msgElId).textContent = msg || 'PIN salah, coba lagi.';
+}
+/* Delegasi event di CONTAINER (bukan per-input), supaya tetap jalan walau
+   isi container di-render ulang lewat renderPinBoxes() (elemen lama
+   dibuang, tapi container-nya sendiri tidak diganti). Dipasang SEKALI di
+   init(). onComplete(value) dipanggil begitu semua kotak di baris itu terisi
+   (baik lewat ketik manual maupun paste). */
+function wirePinBoxRow(containerId, onComplete){
+  const wrap = document.getElementById(containerId); if(!wrap) return;
+  const boxes = ()=> Array.from(wrap.querySelectorAll('.pinbox'));
+  wrap.addEventListener('input', (e)=>{
+    const t = e.target; if(!t.classList || !t.classList.contains('pinbox')) return;
+    t.value = t.value.replace(/\D/g,'').slice(0,1);
+    t.classList.toggle('filled', !!t.value);
+    if(t.value){
+      const next = boxes()[Number(t.dataset.idx)+1];
+      if(next) next.focus();
+    }
+    const val = boxes().map(b=>b.value).join('');
+    if(val.length === boxes().length) onComplete(val);
+  });
+  wrap.addEventListener('keydown', (e)=>{
+    const t = e.target; if(!t.classList || !t.classList.contains('pinbox')) return;
+    if(e.key === 'Backspace' && !t.value){
+      const prev = boxes()[Number(t.dataset.idx)-1];
+      if(prev){ prev.focus(); prev.value=''; prev.classList.remove('filled'); }
+    }
+  });
+  wrap.addEventListener('paste', (e)=>{
+    const text = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g,'');
+    if(!text) return;
+    e.preventDefault();
+    const bs = boxes();
+    text.split('').slice(0, bs.length).forEach((ch,i)=>{ bs[i].value=ch; bs[i].classList.add('filled'); });
+    const lastIdx = Math.min(text.length, bs.length) - 1;
+    if(bs[lastIdx]) bs[lastIdx].focus();
+    const val = bs.map(b=>b.value).join('');
+    if(val.length === bs.length) onComplete(val);
   });
 }
-function renderDotsShell(){ const wrap=document.getElementById('pinDots'); wrap.innerHTML=''; for(let i=0;i<6;i++){ const d=document.createElement('div'); d.className='pin-dot'; wrap.appendChild(d);} }
-function renderDots(){ document.querySelectorAll('.pin-dot').forEach((d,i)=> d.classList.toggle('filled', i<pinBuffer.length)); }
-function shakeDots(msg){ const wrap=document.getElementById('pinDots'); wrap.classList.add('shake'); document.getElementById('lockMsg').textContent = msg || 'PIN salah, coba lagi.'; setTimeout(()=>wrap.classList.remove('shake'),320); }
-function onKey(k){
-  if(k==='back'){ pinBuffer = pinBuffer.slice(0,-1); renderDots(); return; }
-  if(pinBuffer.length>=6) return;
-  pinBuffer += k; renderDots();
-  if(pinBuffer.length===6){
-    if(!pin){ localStorage.setItem(LS_PIN, pinBuffer); pin=pinBuffer; pinBuffer=''; renderDots(); unlockApp(); return; }
-    if(pinBuffer===pin){ pinBuffer=''; unlockApp(); }
-    else{ shakeDots(); setTimeout(()=>{ pinBuffer=''; renderDots(); document.getElementById('lockMsg').textContent=''; },500); }
-  }
+function submitLockPin(){
+  const val = getPinBoxValue('pinBoxes');
+  const msgEl = document.getElementById('lockMsg');
+  if(val.length < 6){ msgEl.textContent = 'Isi 6 digit PIN dulu.'; return; }
+  if(!pin){ localStorage.setItem(LS_PIN, val); pin=val; clearPinBoxes('pinBoxes'); msgEl.textContent=''; unlockApp(); return; }
+  if(val === pin){ clearPinBoxes('pinBoxes'); msgEl.textContent=''; unlockApp(); }
+  else{ shakePinBoxes('pinBoxes','lockMsg'); setTimeout(()=>{ clearPinBoxes('pinBoxes'); msgEl.textContent=''; },500); }
 }
 function showLockScreen(){
   sessionStorage.removeItem(SS_UNLOCKED);
-  pinBuffer=''; renderDotsShell(); renderDots();
+  renderPinBoxes('pinBoxes', 6);
   document.getElementById('lockMsg').textContent='';
-  document.getElementById('lockEyebrow').textContent = pin ? 'Kunci aplikasi' : 'Pengaturan awal';
   document.getElementById('lockTitle').textContent = pin ? 'Masukkan PIN' : 'Buat PIN baru';
+  document.getElementById('lockSub').textContent = pin
+    ? "Masukkan PIN 6 digit untuk membuka Hafalan & Muraja'ah."
+    : "Buat PIN 6 digit baru untuk mengunci aplikasi ini di perangkat ini.";
   document.getElementById('lockScreen').style.display='flex';
   document.getElementById('mainApp').style.display='none';
+  setTimeout(()=>{ const f=document.querySelector('#pinBoxes .pinbox'); if(f) f.focus(); }, 60);
 }
 async function unlockApp(){
   sessionStorage.setItem(SS_UNLOCKED,'1');
@@ -2793,10 +2857,16 @@ async function saveQuickLog(){
 }
 
 /* ---------- PIN / SERVER MODALS ---------- */
-function openPinModal(){ document.getElementById('newPin').value=''; document.getElementById('newPin2').value=''; document.getElementById('pinModalMsg').textContent=''; document.getElementById('pinOverlay').classList.add('open'); }
+function openPinModal(){
+  renderPinBoxes('newPinBoxes', 6);
+  renderPinBoxes('newPin2Boxes', 6);
+  document.getElementById('pinModalMsg').textContent='';
+  document.getElementById('pinOverlay').classList.add('open');
+  setTimeout(()=>{ const f=document.querySelector('#newPinBoxes .pinbox'); if(f) f.focus(); }, 60);
+}
 function closePinModal(){ document.getElementById('pinOverlay').classList.remove('open'); }
 function savePinModal(){
-  const p1=document.getElementById('newPin').value.trim(), p2=document.getElementById('newPin2').value.trim();
+  const p1=getPinBoxValue('newPinBoxes'), p2=getPinBoxValue('newPin2Boxes');
   const msg=document.getElementById('pinModalMsg');
   if(!/^\d{6}$/.test(p1)){ msg.textContent='PIN harus 6 digit angka.'; return; }
   if(p1!==p2){ msg.textContent='PIN tidak sama, coba lagi.'; return; }
@@ -2964,7 +3034,10 @@ if(window.matchMedia){
   });
 }
 function init(){
-  buildKeypad(); renderDotsShell();
+  wirePinBoxRow('pinBoxes', submitLockPin);
+  wirePinBoxRow('newPinBoxes', ()=>{ const next=document.querySelector('#newPin2Boxes .pinbox'); if(next) next.focus(); });
+  wirePinBoxRow('newPin2Boxes', ()=>{});
+  document.getElementById('btnUnlockSubmit').onclick = submitLockPin;
   const alreadyUnlocked = pin && sessionStorage.getItem(SS_UNLOCKED)==='1';
   if(alreadyUnlocked){ document.getElementById('lockScreen').style.display='none'; document.getElementById('mainApp').style.display='block'; unlockApp(); }
   else{ showLockScreen(); }
