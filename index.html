@@ -33,10 +33,10 @@
      lain. Urutan mengikuti progres belajar: netral -> biru -> kuning ->
      hijau (tujuan akhir) -> oranye/merah (butuh perhatian). */
   --status-belum:#CBD5E1;
-  --status-dihafal:#0EA5E9;
+  --status-ziyadah:#0EA5E9;
   --status-murajaah:#EAB308;
   --status-mutqin:#16A34A;
-  --status-lupa:#000000;
+  --status-terlupakan:#000000;
   --status-overdue:#E11D48;
   --gray-50:#F7F8F6;
   --gray-100:#F0F2F1;
@@ -53,6 +53,8 @@
   --alert-warning-text:#8A5321;
   --mushaf-tap-bg:#FDECC8;
   --mushaf-playing-bg:#D9EEE6;
+  --mushaf-sorot-bg:#EFE1BC;
+  --mushaf-paper-bg:#FBF6EA;
   --heat-1:#BFE0D6;
   --heat-2:#7FC2AC;
   --font-sans:'Inter','DM Sans','Segoe UI',sans-serif;
@@ -75,10 +77,10 @@
   --warning:#FFA94D;
   --danger:#E27C72;
   --status-belum:#5B6B78;
-  --status-dihafal:#38BDF8;
+  --status-ziyadah:#38BDF8;
   --status-murajaah:#FACC15;
   --status-mutqin:#22C55E;
-  --status-lupa:#E5E9E7;
+  --status-terlupakan:#E5E9E7;
   --status-overdue:#FB7185;
   --gray-50:#121815;
   --gray-100:#1E2622;
@@ -94,6 +96,8 @@
   --alert-warning-text:#F5CE8C;
   --mushaf-tap-bg:#4A3B1A;
   --mushaf-playing-bg:#1E3A32;
+  --mushaf-sorot-bg:#4A3F22;
+  --mushaf-paper-bg:#241B12;
   --heat-1:#234A3E;
   --heat-2:#2F7A64;
   --shadow-sm:0 1px 2px rgba(0,0,0,0.3);
@@ -353,10 +357,66 @@ button{font-family:var(--font-sans);}
 .mushaf-ayah{cursor:pointer;border-radius:6px;padding:1px 2px;transition:background-color .15s ease;}
 .mushaf-ayah:active{background:var(--mushaf-tap-bg);}
 .mushaf-ayah.ayah-playing{background:var(--mushaf-playing-bg);}
+.mushaf-ayah.sorot{background:var(--mushaf-sorot-bg);}
 .mushaf-ayah-num{font-size:15px;color:var(--primary-text);font-family:'DM Sans',sans-serif;padding:0 2px;}
+/* ---- mode "Perkata": toolbar toggle (Mode Mushaf / Mode Perkata) + grid
+   kartu per-kata (Arab di atas, arti Indonesia di bawah). Dipakai
+   bergantian dengan .mushaf-ayat-text di dalam #mushafTextWrap yang sama;
+   pilihan mode disimpan per-device (localStorage), sumber data dari
+   Quran.com API (words=true, teks Uthmani biasa + terjemahan per-kata
+   bahasa Indonesia), di-cache permanen sama seperti info surah/ayat. ---- */
+.mushaf-word-toolbar{display:flex;gap:8px;margin-bottom:12px;}
+.mushaf-mode-btn{flex:1;text-align:center;padding:9px 6px;border-radius:10px;font-family:'DM Sans',sans-serif;
+  font-size:12px;font-weight:700;border:1px solid var(--gray-200);background:var(--white);color:var(--gray-500);cursor:pointer;}
+.mushaf-mode-btn.active{background:var(--primary);color:var(--on-primary);border-color:var(--primary);}
+.mushaf-word-group{margin-bottom:16px;border-radius:12px;padding:8px 6px;cursor:pointer;transition:background-color .15s ease;}
+.mushaf-word-group:active{background:var(--mushaf-tap-bg);}
+.mushaf-word-group.ayah-playing{background:var(--mushaf-playing-bg);}
+.mushaf-word-group.sorot{background:var(--mushaf-sorot-bg);}
+.word-group-head{direction:rtl;text-align:right;margin:0 2px 6px;}
+.mushaf-word-grid{direction:rtl;display:grid;grid-template-columns:repeat(auto-fill,minmax(60px,1fr));gap:8px;}
+.word-card{background:var(--gray-100);border-radius:10px;padding:8px 4px 6px;text-align:center;}
+.word-card .word-ar{font-family:'Amiri Quran',serif;font-size:calc(var(--mushaf-font-size, 26px) - 4px);color:var(--gray-900);line-height:1.3;}
+.word-card .word-id{direction:ltr;font-family:'DM Sans',sans-serif;font-size:10px;color:var(--gray-500);margin-top:4px;font-weight:600;}
+.word-card-loading{grid-column:1/-1;text-align:center;font-size:11px;color:var(--gray-500);padding:10px 0;}
 .mushaf-loading,.mushaf-error{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   text-align:center;padding:20px;font-size:12.5px;color:var(--gray-500);}
 .mushaf-tip{font-size:11px;color:var(--gray-500);text-align:center;margin:8px 0 0;}
+/* ---- Tafsir ayat: trigger kecil (pill) di bawah tiap ayat + panel
+   accordion yang muncul tepat di bawahnya. Selector 3 kitab tafsir
+   ditaruh DI DALAM panel yang sama (bukan elemen terpisah) supaya tidak
+   menambah lapisan visual baru -- dan cuma 1 panel boleh terbuka
+   sekaligus (lihat closeAllTafsirPanels() di JS) supaya halaman tidak
+   makin panjang & berantakan saat baca banyak ayat berturut-turut. ---- */
+.tafsir-trigger{direction:ltr;display:inline-flex;align-items:center;gap:5px;margin:0 0 14px;padding:4px 10px 4px 4px;
+  border-radius:99px;background:var(--gray-100);font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;
+  color:var(--gray-500);cursor:pointer;}
+.tafsir-trigger .ic{width:20px;height:20px;border-radius:50%;background:var(--white);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.tafsir-trigger .ic svg{width:11px;height:11px;color:var(--accent);}
+.tafsir-trigger.open{background:var(--primary);color:var(--on-primary);}
+.tafsir-trigger.open .ic{background:rgba(255,255,255,.2);}
+.tafsir-trigger.open .ic svg{color:var(--on-primary);}
+.tafsir-panel{direction:ltr;margin:-6px 0 14px;background:var(--gray-100);border-radius:12px;overflow:hidden;}
+.tafsir-panel-head{display:flex;gap:6px;padding:10px 10px 0;}
+.src-pill{flex:1;text-align:center;padding:6px 4px;border-radius:8px;font-family:'DM Sans',sans-serif;
+  font-size:10.5px;font-weight:700;color:var(--gray-500);background:transparent;cursor:pointer;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.src-pill.active{background:var(--white);color:var(--primary-text);box-shadow:var(--shadow-sm);}
+.tafsir-panel-body{padding:12px 14px 14px;min-height:40px;}
+.tafsir-panel-body p{font-size:12.5px;line-height:1.75;color:var(--gray-900);margin:0;}
+.tafsir-attr{font-size:10px;color:var(--gray-500);margin-top:8px;font-style:italic;}
+.tafsir-loading{font-size:11.5px;color:var(--gray-500);}
+/* ---- Mode "Madinah": tiap baris JSON = 1 baris fisik mushaf asli,
+   di-scale horizontal via JS (adjustQcf4LineWidths) supaya selalu rata
+   kiri-kanan walau lebar layar beda-beda. Kata (.qcf4-word) numpang
+   class "mushaf-ayah" yang sudah ada supaya tap-untuk-audio & highlight
+   otomatis ikut jalan tanpa kode terpisah. ---- */
+.qcf4-page{direction:rtl;padding:16px 14px 20px;background:var(--mushaf-paper-bg);border-radius:var(--radius-md,10px);}
+.qcf4-line{direction:rtl;white-space:nowrap;line-height:2.1;margin-bottom:4px;will-change:transform;}
+.qcf4-line .mushaf-ayah,.qcf4-deco{font-size:var(--mushaf-font-size, 26px);color:var(--gray-900);}
+.qcf4-deco{padding:0 1px;}
+.qcf4-surah-banner{font-size:30px;line-height:1.6;color:var(--primary-text);
+  border:1.5px solid var(--gray-300);border-radius:10px;padding:10px 8px;margin:0 0 12px;background:var(--white);}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
 /* Sebelumnya min-height:104px ini berlaku SAMA RATA ke idle bar & playing
    bar lewat class .mushaf-audiobar yang dipakai bersama -- padahal isi
@@ -408,6 +468,39 @@ button{font-family:var(--font-sans);}
 .mushaf-repeat-chip.active{background:var(--primary-50);color:var(--primary-text);}
 .mushaf-repeat-chip.disabled{opacity:.4;pointer-events:none;}
 .mushaf-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;}
+/* ---------- Mode fullscreen (imersif) & Mode Sorot ----------
+   Tap di area kosong halaman mushaf (bukan di ayat) -> toggle class
+   "immersive" di #mushafOverlay: header, badge mutasyabih, toolbar
+   ukuran font/mode-perkata, dan nav Sebelumnya/Berikutnya sama-sama
+   dilipat (max-height->0) supaya #mushafStage otomatis mengisi
+   seluruh sisa tinggi layar (fullscreen). Pindah halaman tetap bisa
+   lewat swipe (lihat setupMushafSwipe), jadi nav boleh ikut hilang.
+   Mode Sorot: tahan 1 kata/ayat (long-press) -> ayat itu disorot +
+   pil "Mode Sorot" muncul; selama pil aktif, TAP ayat lain langsung
+   ikut disorot tanpa perlu tahan lagi (lihat toggleMushafAyahSorot). */
+#mushafOverlay .mushaf-head,
+#mushafOverlay .mushaf-mutasyabih-badge,
+#mushafOverlay .mushaf-fontsize-row,
+#mushafOverlay .mushaf-word-toolbar,
+#mushafOverlay .mushaf-nav{
+  max-height:120px;opacity:1;overflow:hidden;
+  transition:max-height .28s ease,opacity .2s ease,margin .28s ease;
+}
+#mushafOverlay.immersive .mushaf-head,
+#mushafOverlay.immersive .mushaf-mutasyabih-badge,
+#mushafOverlay.immersive .mushaf-fontsize-row,
+#mushafOverlay.immersive .mushaf-word-toolbar,
+#mushafOverlay.immersive .mushaf-nav{
+  max-height:0!important;opacity:0;margin-top:0!important;margin-bottom:0!important;pointer-events:none;
+}
+.mushaf-sorot-pill{position:absolute;left:50%;top:10px;transform:translateX(-50%);z-index:6;
+  max-width:calc(100% - 28px);background:var(--gray-900);color:var(--white);font-family:'DM Sans',sans-serif;
+  font-size:11px;font-weight:700;padding:8px 14px;border-radius:99px;display:flex;align-items:center;gap:8px;
+  box-shadow:var(--shadow-md);opacity:0;pointer-events:none;transition:opacity .2s ease;}
+.mushaf-sorot-pill.show{opacity:1;pointer-events:auto;}
+.mushaf-sorot-pill span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mushaf-sorot-pill button{background:rgba(255,255,255,.18);border:none;color:var(--white);font-size:10.5px;
+  font-weight:700;padding:4px 10px;border-radius:99px;font-family:'DM Sans',sans-serif;flex-shrink:0;cursor:pointer;}
 .sheet h3{font-size:18px;font-weight:800;margin:0 0 4px;color:var(--gray-900);}
 .hint{font-size:12.5px;color:var(--gray-500);line-height:1.5;margin:0 0 16px;}
 .field{margin-bottom:14px;}
@@ -506,7 +599,7 @@ button{font-family:var(--font-sans);}
           </div>
           <div class="pstat">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>
-            <div class="pstat-num" id="statDihafalN">0</div><div class="pstat-label">Dihafal</div>
+            <div class="pstat-num" id="statZiyadahN">0</div><div class="pstat-label">Ziyadah</div>
           </div>
           <div class="pstat">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="3 3"><circle cx="12" cy="12" r="9"/></svg>
@@ -529,24 +622,24 @@ button{font-family:var(--font-sans);}
         <div class="alert-chips" id="overdueChips"></div>
       </div>
 
-      <div class="alert-card alert-warn" id="lupaCard" style="display:none;">
+      <div class="alert-card alert-warn" id="terlupakanCard" style="display:none;">
         <div class="alert-head">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 8v5M12 16h.01"/><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v5h5"/></svg>
-          LUPA — PERLU HAFAL ULANG
+          TERLUPAKAN — PERLU HAFAL ULANG
         </div>
-        <p class="alert-sub" id="lupaSub">0 halaman perlu dihafal ulang</p>
-        <div class="alert-chips" id="lupaChips"></div>
+        <p class="alert-sub" id="terlupakanSub">0 halaman perlu ziyadah ulang</p>
+        <div class="alert-chips" id="terlupakanChips"></div>
       </div>
 
       <div class="section-head">
         <p class="section-title">Semua juz</p>
         <select class="filter-btn" id="filterSelect">
           <option value="semua">Filter: Semua</option>
-          <option value="belum">Belum dihafal</option>
-          <option value="dihafal">Sedang dihafal</option>
+          <option value="belum">Belum ziyadah</option>
+          <option value="ziyadah">Sedang ziyadah</option>
           <option value="murajaah">Sedang muraja'ah</option>
           <option value="mutqin">Mutqin</option>
-          <option value="lupa">Lupa (perlu hafal ulang)</option>
+          <option value="terlupakan">Terlupakan (perlu hafal ulang)</option>
           <option value="overdue">Perlu muraja'ah</option>
         </select>
       </div>
@@ -595,7 +688,7 @@ button{font-family:var(--font-sans);}
         <div class="donut-legend">
           <div class="legend-row"><span class="legend-dot" style="background:var(--primary)"></span><span id="legStabil">Mutqin: 0</span></div>
           <div class="legend-row"><span class="legend-dot" style="background:var(--success)"></span><span id="legMurajaah">Muraja'ah: 0</span></div>
-          <div class="legend-row"><span class="legend-dot" style="background:var(--accent)"></span><span id="legDihafal">Dihafal: 0</span></div>
+          <div class="legend-row"><span class="legend-dot" style="background:var(--accent)"></span><span id="legZiyadah">Ziyadah: 0</span></div>
           <div class="legend-row"><span class="legend-dot" style="background:var(--gray-300)"></span><span id="legBelum">Belum: 0</span></div>
         </div>
       </div>
@@ -752,18 +845,18 @@ button{font-family:var(--font-sans);}
   <p class="hint" id="pageModalCount" style="margin-top:-6px; color:var(--gray-500);"></p>
   <div class="field"><label>Status</label>
     <select id="pageStatus">
-      <option value="belum">Belum dihafal</option>
-      <option value="dihafal">Sedang dihafal</option>
+      <option value="belum">Belum ziyadah</option>
+      <option value="ziyadah">Sedang ziyadah</option>
       <option value="murajaah">Sedang muraja'ah</option>
       <option value="mutqin">Mutqin</option>
-      <option value="lupa">Lupa (perlu hafal ulang)</option>
+      <option value="terlupakan">Terlupakan (perlu hafal ulang)</option>
     </select>
   </div>
   <div class="field"><label>Tanggal muraja'ah terakhir</label>
     <input type="date" id="pageDate">
   </div>
   <button class="btn-full btn-outline" id="pageMarkToday" style="margin-bottom:10px; color:var(--success); border-color:var(--success);">Telah dimuraja'ah hari ini</button>
-  <button class="btn-full btn-outline" id="pageMarkLupa" style="margin-bottom:10px; color:var(--warning); border-color:var(--warning);">Tandai lupa (perlu hafal ulang)</button>
+  <button class="btn-full btn-outline" id="pageMarkTerlupakan" style="margin-bottom:10px; color:var(--warning); border-color:var(--warning);">Tandai terlupakan (perlu hafal ulang)</button>
   <button class="btn-full btn-outline" id="pageViewMushaf" style="margin-bottom:14px;">📖 Lihat halaman mushaf</button>
   <div class="modal-actions">
     <button class="btn btn-ghost" id="pageCancel">Batal</button>
@@ -789,7 +882,15 @@ button{font-family:var(--font-sans);}
     <input type="range" id="mushafFontSize" min="18" max="36" step="1" value="26" style="flex:1;">
     <span style="font-size:18px; color:var(--gray-500);">A</span>
   </div>
+  <div class="mushaf-word-toolbar" id="mushafWordToolbar" style="display:none;">
+    <button class="mushaf-mode-btn" id="mushafModeMushafBtn">Mode Mushaf</button>
+    <button class="mushaf-mode-btn" id="mushafModePerkataBtn">Terjemahan Perkata</button>
+  </div>
   <div class="mushaf-stage" id="mushafStage">
+  <div class="mushaf-sorot-pill" id="mushafSorotPill">
+    <span>Mode Sorot — ketuk ayat lain untuk menambah</span>
+    <button id="mushafSorotDone">Selesai</button>
+  </div>
   <div class="mushaf-imgwrap" id="mushafImgWrap">
     <div class="mushaf-textwrap" id="mushafTextWrap" style="display:none;"></div>
     <img id="mushafImg" alt="Halaman mushaf" style="display:none;" />
@@ -935,11 +1036,11 @@ button{font-family:var(--font-sans);}
 
 <script>
 const STATUS_META = {
-  belum:{label:'Belum dihafal', color:'var(--status-belum)'},
-  dihafal:{label:'Sedang dihafal', color:'var(--status-dihafal)'},
+  belum:{label:'Belum ziyadah', color:'var(--status-belum)'},
+  ziyadah:{label:'Sedang ziyadah', color:'var(--status-ziyadah)'},
   murajaah:{label:'Sedang muraja\'ah', color:'var(--status-murajaah)'},
   mutqin:{label:'Mutqin', color:'var(--status-mutqin)'},
-  lupa:{label:'Lupa (perlu hafal ulang)', color:'var(--status-lupa)'}
+  terlupakan:{label:'Terlupakan (perlu hafal ulang)', color:'var(--status-terlupakan)'}
 };
 const TOTAL_JUZ = 30;
 const TOTAL_PAGES = 604;
@@ -957,8 +1058,12 @@ const DEFAULT_OVERDUE_DAYS = 30;
    AWAL array CHANGELOG (paling atas = paling baru). Ini murni tampilan
    (tidak memengaruhi cache); yang mengontrol update service worker
    tetap CACHE_VERSION di sw.js. */
-const APP_VERSION = 'v47';
+const APP_VERSION = 'v48';
 const CHANGELOG = [
+  { version:'v48', date:'20 Agustus 2026', changes:[
+    'Halaman mushaf sekarang bisa fullscreen: ketuk area kosong (bukan di ayat) untuk sembunyikan/tampilkan header & nav Sebelumnya/Berikutnya — pindah halaman tetap bisa lewat swipe seperti biasa selama fullscreen aktif.',
+    'Tambah "Mode Sorot": tahan 1 ayat (\u2265450ms) untuk menyorotnya, lalu selama Mode Sorot aktif tinggal ketuk ayat lain untuk ikut menyorot tanpa perlu tahan lagi. Ketuk "Selesai" atau area kosong untuk keluar Mode Sorot.'
+  ]},
   { version:'v47', date:'20 Agustus 2026', changes:[
     'Kotak input PIN (layar Masukkan PIN & modal Ubah PIN) sekarang menyamarkan angka yang diketik jadi titik (•), bukan menampilkan digitnya langsung — lebih aman kalau dilihat orang lain di sekitar.'
   ]},
@@ -1030,7 +1135,7 @@ const CHANGELOG = [
     'Tambah menu "Kuota AI Hari Ini" di Pengaturan — cek sisa jatah Workers AI hari ini kapan saja (progres bar + status), sumber datanya sama dengan indikator kecil di modal Pengaturan server. Bot Telegram juga bisa dicek lewat ketik "kuota" (atau "ai"/"token").'
   ]},
   { version:'v28', date:'19 Agustus 2026', changes:[
-    'Perbaiki bug navigasi: menutup modal di layar Detail Juz (mis. tombol "Telah dimuraja\'ah hari ini", "Simpan", "Tandai lupa") sekarang tetap di layar Detail Juz yang sama, tidak lagi otomatis terlempar balik ke Dasbor.'
+    'Perbaiki bug navigasi: menutup modal di layar Detail Juz (mis. tombol "Telah dimuraja\'ah hari ini", "Simpan", "Tandai terlupakan") sekarang tetap di layar Detail Juz yang sama, tidak lagi otomatis terlempar balik ke Dasbor.'
   ]},
   { version:'v27', date:'19 Agustus 2026', changes:[
     'Tambah pengaturan ambang waktu overdue muraja\'ah (bisa diubah sendiri, default 30 hari) — tersimpan di server, ikut dipakai reminder Telegram.',
@@ -1309,6 +1414,244 @@ function getPageMeta(p){
   return null;
 }
 
+/* ---------- Terjemahan perkata (mode "Terjemahan Perkata") ----------
+   Sumber: Quran.com API v4 (api.quran.com, gratis & tanpa API key),
+   endpoint /verses/by_page/{n} dengan words=true — beda dari getPageMeta()
+   di atas (Al Quran Cloud, cuma teks ayat utuh) karena ini butuh teks
+   PER-KATA (text_uthmani, font Arab standar sama seperti Amiri Quran,
+   BUKAN glyph font khusus QPC) + terjemahan Indonesia per-kata sekaligus
+   (?language=id). Di-cache permanen di localStorage per nomor halaman,
+   sama seperti page meta, karena datanya statis. Kalau offline/gagal,
+   mode Perkata otomatis fallback ke mode Mushaf biasa (gagal senyap). */
+const LS_WORD_META = 'hafalan_word_meta_v1';
+const WORD_META_API = 'https://api.quran.com/api/v4/verses/by_page/';
+let wordMetaCache = null;
+const wordMetaInFlight = {};
+const wordMetaFailed = {};
+function loadWordMetaCache(){
+  if(wordMetaCache) return wordMetaCache;
+  try{ wordMetaCache = JSON.parse(localStorage.getItem(LS_WORD_META) || '{}'); }
+  catch(e){ wordMetaCache = {}; }
+  return wordMetaCache;
+}
+function saveWordMetaCache(){
+  try{ localStorage.setItem(LS_WORD_META, JSON.stringify(wordMetaCache)); }catch(e){ /* penuh/di-block, abaikan */ }
+}
+/* ubah respons API jadi bentuk ringkas per-ayat: [{surah, ayah, words:[{ar,id}]}].
+   char_type_name "end" (penanda nomor ayat) sengaja dibuang, sudah ada
+   nomor ayat sendiri dari getPageMeta(). */
+function buildWordPageData(json){
+  const verses = (json && json.verses) || [];
+  return verses.map(v=>{
+    const [surahNum, ayahNum] = String(v.verse_key||'').split(':').map(Number);
+    const words = (v.words||[])
+      .filter(w=> w.char_type_name==='word')
+      .map(w=> ({ ar: w.text_uthmani || w.text || '', id: (w.translation && w.translation.text) || '' }));
+    return { surah:surahNum, ayah:ayahNum, words };
+  }).filter(a=> a.surah && a.ayah);
+}
+/* pola identik dengan getPageMeta(): baca dari cache; kalau belum ada,
+   mulai fetch background & panggil onWordMetaLoaded() begitu selesai. */
+function getPageWords(p){
+  const cache = loadWordMetaCache();
+  if(cache[p]) return cache[p];
+  if(!wordMetaInFlight[p] && !wordMetaFailed[p]){
+    wordMetaInFlight[p] = fetch(WORD_META_API + p + '?words=true&word_fields=text_uthmani&language=id')
+      .then(r=> r.ok ? r.json() : Promise.reject(new Error('HTTP '+r.status)))
+      .then(json=>{
+        const data = buildWordPageData(json);
+        if(!data.length) throw new Error('respons kosong');
+        cache[p] = data;
+        saveWordMetaCache();
+        onWordMetaLoaded(p);
+      })
+      .catch(e=>{ wordMetaFailed[p] = true; console.log('data perkata hal.'+p+' gagal dimuat:', e); })
+      .finally(()=>{ delete wordMetaInFlight[p]; });
+  }
+  return null;
+}
+/* begitu data perkata 1 halaman selesai di-fetch, render ulang viewer
+   KALAU sedang kebuka di halaman itu & mode Perkata sedang aktif. */
+function onWordMetaLoaded(p){
+  if(document.getElementById('mushafOverlay') && document.getElementById('mushafOverlay').classList.contains('open')
+     && currentMushafPage===p && mushafWordMode){
+    renderMushafViewer();
+  }
+}
+/* sama seperti buildMushafTextHtml() (kelompokkan ayat per-surah dengan
+   banner), tapi tiap ayat dirender sebagai GRID kartu kata (bukan
+   paragraf). Wrapper tiap ayat SENGAJA tetap pakai class "mushaf-ayah" +
+   data-surah/data-ayah supaya delegasi klik & highlight audio yang sudah
+   ada (lihat setupMushafSwipe/updateAyahHighlight) otomatis ikut jalan
+   tanpa perlu logika terpisah -- ketuk kartu kata mana pun akan memutar
+   ayat itu, sama seperti ketuk ayat di mode Mushaf biasa. */
+function buildMushafWordGridHtml(meta, wordAyahs){
+  const blocks = [];
+  let currentGroup = null;
+  meta.ayahs.forEach(a=>{
+    if(!currentGroup || currentGroup.surah !== a.surah){
+      const seg = meta.segs.find(s=> s.surahNumber===a.surah);
+      blocks.push({ type:'banner', text: seg ? seg.surahArab : '' });
+      currentGroup = { type:'group', surah:a.surah, ayahs:[] };
+      blocks.push(currentGroup);
+    }
+    currentGroup.ayahs.push(a);
+  });
+  const wordMap = {};
+  (wordAyahs||[]).forEach(wa=> wordMap[wa.surah+':'+wa.ayah] = wa.words);
+  return blocks.map(b=>{
+    if(b.type==='banner') return '<div class="mushaf-surah-banner">'+escapeHtml(b.text)+'</div>';
+    return b.ayahs.map(a=>{
+      const words = wordMap[a.surah+':'+a.ayah];
+      const cardsHtml = (words && words.length)
+        ? words.map(w=> '<div class="word-card"><div class="word-ar">'+escapeHtml(w.ar)+'</div><div class="word-id">'+escapeHtml(w.id||'\u2014')+'</div></div>').join('')
+        : '<div class="word-card-loading">Memuat terjemahan\u2026</div>';
+      return '<div class="mushaf-ayah mushaf-word-group" data-surah="'+a.surah+'" data-ayah="'+a.ayah+'">'+
+        '<div class="word-group-head"><span class="mushaf-ayah-num">\uFD3F'+toArabicDigits(a.ayah)+'\uFD3E</span></div>'+
+        '<div class="mushaf-word-grid">'+cardsHtml+'</div>'+
+        '</div>';
+    }).join('');
+  }).join('');
+}
+const LS_MUSHAF_WORD_MODE = 'hafalan_mushaf_word_mode';
+let mushafWordMode = (function(){ try{ return localStorage.getItem(LS_MUSHAF_WORD_MODE)==='1'; }catch(e){ return false; } })();
+function setMushafWordMode(on){
+  mushafWordMode = on;
+  try{ localStorage.setItem(LS_MUSHAF_WORD_MODE, on ? '1' : '0'); }catch(e){}
+  const btnMushaf = document.getElementById('mushafModeMushafBtn');
+  const btnPerkata = document.getElementById('mushafModePerkataBtn');
+  if(btnMushaf) btnMushaf.classList.toggle('active', !on);
+  if(btnPerkata) btnPerkata.classList.toggle('active', on);
+  renderMushafViewer();
+}
+
+/* ---------- Mode "Madinah" (font QCF4 asli Mushaf Madinah 1441H) ----------
+   Sumber: MohamadHajjRabee/quran-qcf4 (github.com) -- data JSON halaman via
+   raw.githubusercontent.com, font WOFF2 via CDN jsdelivr. BUKAN gambar/SVG:
+   tiap kata dirender pakai FONT vektor asli kaligrafi Utsman Thaha (King
+   Fahd Complex), jadi tetap tajam di zoom berapa pun & jauh lebih ringan
+   dari gambar PNG. Setiap baris di font ini sudah "dijahit" pas selebar
+   1 baris mushaf asli (termasuk peregangan huruf/kashida bawaan font) --
+   supaya tetap pas walau lebar layar beda-beda, tiap baris di-scale
+   horizontal (scaleX) otomatis lewat JS (lihat adjustQcf4LineWidths())
+   supaya selalu rata kiri-kanan seperti mushaf cetak, bukan cuma pas di
+   1 ukuran layar tertentu. Fitur eksperimental pertama kali dicoba di
+   app ini -- kalau data/font gagal dimuat, otomatis fallback SENYAP ke
+   Mode Teks biasa (lihat onQcf4PageLoaded), jadi tidak pernah bikin
+   halaman kosong/rusak. */
+const QCF4_JSON_BASE = 'https://raw.githubusercontent.com/MohamadHajjRabee/quran-qcf4/main/pages/';
+const QCF4_FONT_BASE = 'https://cdn.jsdelivr.net/gh/MohamadHajjRabee/quran-qcf4@main/fonts-woff2/';
+const LS_QCF4_PAGE = 'hafalan_qcf4_page_v1';
+let qcf4PageCache = null;
+const qcf4PageInFlight = {};
+const qcf4PageFailed = {};
+function loadQcf4PageCache(){
+  if(qcf4PageCache) return qcf4PageCache;
+  try{ qcf4PageCache = JSON.parse(localStorage.getItem(LS_QCF4_PAGE) || '{}'); }
+  catch(e){ qcf4PageCache = {}; }
+  return qcf4PageCache;
+}
+function saveQcf4PageCache(){
+  try{ localStorage.setItem(LS_QCF4_PAGE, JSON.stringify(qcf4PageCache)); }catch(e){ /* penuh/di-block, abaikan */ }
+}
+function getQcf4Page(p){
+  const cache = loadQcf4PageCache();
+  if(cache[p]) return cache[p];
+  if(!qcf4PageInFlight[p] && !qcf4PageFailed[p]){
+    qcf4PageInFlight[p] = fetch(QCF4_JSON_BASE + String(p).padStart(3,'0') + '.json')
+      .then(r=> r.ok ? r.json() : Promise.reject(new Error('HTTP '+r.status)))
+      .then(json=>{
+        if(!json || !json.lines || !json.lines.length) throw new Error('respons kosong');
+        cache[p] = json;
+        saveQcf4PageCache();
+        onQcf4PageLoaded(p, false);
+      })
+      .catch(e=>{ qcf4PageFailed[p] = true; console.log('QCF4 hal.'+p+' gagal dimuat:', e); onQcf4PageLoaded(p, true); })
+      .finally(()=>{ delete qcf4PageInFlight[p]; });
+  }
+  return null;
+}
+function onQcf4PageLoaded(p, failed){
+  const overlayOpen = document.getElementById('mushafOverlay') && document.getElementById('mushafOverlay').classList.contains('open');
+  if(!overlayOpen || currentMushafPage!==p || mushafViewMode!=='madinah') return;
+  if(failed){
+    // gagal senyap: turun ke Mode Teks biasa (bukan gambar) supaya tetap
+    // dapat pengalaman baca yang mirip, cuma tanpa font Madinah-nya
+    mushafViewMode = 'text';
+    try{ localStorage.setItem('hafalan_mushaf_view_mode', 'text'); }catch(e){}
+  }
+  renderMushafViewer();
+}
+const qcf4LoadedFonts = {};
+function ensureQcf4Font(fontName){
+  if(!fontName || qcf4LoadedFonts[fontName]) return;
+  qcf4LoadedFonts[fontName] = true;
+  let styleEl = document.getElementById('qcf4FontStyles');
+  if(!styleEl){
+    styleEl = document.createElement('style');
+    styleEl.id = 'qcf4FontStyles';
+    document.head.appendChild(styleEl);
+  }
+  styleEl.appendChild(document.createTextNode(
+    '@font-face{font-family:"'+fontName+'";src:url("'+QCF4_FONT_BASE+fontName+'_W.woff2") format("woff2");font-display:swap;}'
+  ));
+}
+/* susun HTML halaman gaya Madinah: 1 baris JSON = 1 baris <div> (persis
+   baris fisik mushaf asli), tiap kata (type "word"/"end") dibungkus
+   class "mushaf-ayah" + data-surah/data-ayah -- SENGAJA dipakai ulang
+   class yang sama dengan mode Teks, supaya delegasi klik & highlight
+   audio yang sudah ada (playAyahFrom, updateAyahHighlight) otomatis
+   ikut jalan tanpa logika terpisah. Header surah & bismillah dirender
+   sebagai glyph dekoratif (tidak diketuk). */
+function buildQcf4PageHtml(pageData){
+  const fontsUsed = {};
+  const linesHtml = pageData.lines.map(line=>{
+    if(line.words.length===1 && line.words[0].type==='surah_header'){
+      const w = line.words[0];
+      fontsUsed[w.font] = true;
+      return '<div class="mushaf-surah-banner qcf4-surah-banner" style="font-family:\''+w.font+'\';">'+escapeHtml(w.char)+'</div>';
+    }
+    const wordsHtml = line.words.map(w=>{
+      fontsUsed[w.font] = true;
+      if((w.type==='word' || w.type==='end') && w.verse_key){
+        const parts = w.verse_key.split(':');
+        return '<span class="mushaf-ayah qcf4-word" data-surah="'+parts[0]+'" data-ayah="'+parts[1]+'" style="font-family:\''+w.font+'\';">'+escapeHtml(w.char)+'</span>';
+      }
+      return '<span class="qcf4-deco" style="font-family:\''+w.font+'\';">'+escapeHtml(w.char)+'</span>';
+    }).join('');
+    return '<div class="qcf4-line">'+wordsHtml+'</div>';
+  }).join('');
+  Object.keys(fontsUsed).forEach(ensureQcf4Font);
+  return '<div class="qcf4-page">'+linesHtml+'</div>';
+}
+/* tiap baris QCF4 sudah "pas" untuk lebar buku fisik aslinya -- supaya
+   tetap rata kiri-kanan di lebar layar HP berapa pun (seperti mushaf
+   cetak asli), tiap baris di-scale horizontal sesudah font kepasang &
+   lebar aslinya diketahui. Dibatasi 0.85x-1.15x supaya baris terakhir
+   pendek (mis. akhir surah) tidak dipaksa melar aneh. */
+function adjustQcf4LineWidths(){
+  const wrap = document.getElementById('mushafTextWrap');
+  if(!wrap) return;
+  const page = wrap.querySelector('.qcf4-page');
+  if(!page) return;
+  // lebar target = lebar dalam .qcf4-page dikurangi padding kiri-kanannya
+  // sendiri (dulu wrapper luar dipakai langsung -- sekarang meleset
+  // karena .qcf4-page sudah punya padding kertas sendiri)
+  const cs = getComputedStyle(page);
+  const wrapWidth = page.clientWidth - parseFloat(cs.paddingLeft||0) - parseFloat(cs.paddingRight||0);
+  if(!wrapWidth) return;
+  wrap.querySelectorAll('.qcf4-line').forEach(line=>{
+    line.style.transform = 'none';
+    const natural = line.scrollWidth;
+    if(!natural) return;
+    let scale = wrapWidth / natural;
+    if(scale > 1.15) scale = 1.15;
+    if(scale < 0.85) scale = 0.85;
+    line.style.transformOrigin = 'right center';
+    line.style.transform = 'scaleX(' + scale.toFixed(4) + ')';
+  });
+}
+
 /* ---------- Unduh semua halaman untuk dipakai offline ----------
    Berbeda dari getPageMeta() (yang fetch 1 halaman di background & lepas
    tangan), ini SEKUENSIAL & di-await, khusus dipanggil dari tombol
@@ -1553,7 +1896,7 @@ let currentDetailJuz = null;
 let currentDetailTab = 'ringkasan';
 let gridFilter = 'semua';
 let overdueExpanded = false;
-let lupaExpanded = false;
+let terlupakanExpanded = false;
 
 function apiBase(){ return localStorage.getItem(LS_API_BASE) || DEFAULT_API_BASE; }
 function appToken(){ return localStorage.getItem(LS_APP_TOKEN) || ''; }
@@ -1568,7 +1911,7 @@ function serverConfigured(){ return !!apiBase() && !!appToken(); }
    tersimpan di server/Worker (dari sebelum migrasi ini) masih memakai
    key "stabil" — fungsi ini menerjemahkannya begitu data dibaca, supaya
    halaman yang sudah kamu tandai "Mutqin" dulu tetap terbaca benar,
-   bukan malah kelihatan "belum dihafal". Begitu app melakukan pushData()
+   bukan malah kelihatan "belum ziyadah". Begitu app melakukan pushData()
    berikutnya, datanya otomatis tersimpan ulang pakai key baru "mutqin",
    jadi migrasi ini cukup dijalankan sekali per baca lalu selesai dengan
    sendirinya secara bertahap. */
@@ -1635,17 +1978,17 @@ function normalizeData(raw){
 /* status gabungan sebuah juz, dihitung otomatis dari status semua halamannya */
 function juzAggregateStatus(entry){
   const vals = Object.values(entry.pages).map(p=>p.status);
-  const c = { belum:0, dihafal:0, murajaah:0, mutqin:0, lupa:0 };
+  const c = { belum:0, ziyadah:0, murajaah:0, mutqin:0, terlupakan:0 };
   vals.forEach(v=>c[v]++);
   const total = vals.length;
   if(c.mutqin===total) return 'mutqin';
   if(c.belum===total) return 'belum';
-  if(c.lupa>0) return 'lupa';
-  if(c.dihafal>0 || (c.belum>0 && (c.murajaah>0||c.mutqin>0))) return 'dihafal';
+  if(c.terlupakan>0) return 'terlupakan';
+  if(c.ziyadah>0 || (c.belum>0 && (c.murajaah>0||c.mutqin>0))) return 'ziyadah';
   return 'murajaah';
 }
 function juzPageStats(entry){
-  const c = { belum:0, dihafal:0, murajaah:0, mutqin:0, lupa:0, total:0 };
+  const c = { belum:0, ziyadah:0, murajaah:0, mutqin:0, terlupakan:0, total:0 };
   Object.values(entry.pages).forEach(p=>{ c[p.status]++; c.total++; });
   return c;
 }
@@ -1736,17 +2079,17 @@ function overduePagesInJuz(entry){
   });
   return arr.sort((a,b)=> (b.days??9999)-(a.days??9999));
 }
-/* halaman yang ditandai "lupa" (perlu dihafal ulang) dalam 1 juz */
-function lupaPagesInJuz(entry){
-  return Object.keys(entry.pages).map(Number).sort((a,b)=>a-b).filter(p=> entry.pages[p].status==='lupa');
+/* halaman yang ditandai "terlupakan" (perlu ziyadah ulang) dalam 1 juz */
+function terlupakanPagesInJuz(entry){
+  return Object.keys(entry.pages).map(Number).sort((a,b)=>a-b).filter(p=> entry.pages[p].status==='terlupakan');
 }
 function dotColor(entry){
   if(isJuzOverdue(entry)) return 'var(--status-overdue)';
   const agg = juzAggregateStatus(entry);
   if(agg==='belum') return 'var(--status-belum)';
-  if(agg==='dihafal') return 'var(--status-dihafal)';
+  if(agg==='ziyadah') return 'var(--status-ziyadah)';
   if(agg==='mutqin') return 'var(--status-mutqin)';
-  if(agg==='lupa') return 'var(--status-lupa)';
+  if(agg==='terlupakan') return 'var(--status-terlupakan)';
   return 'var(--status-murajaah)'; // murajaah
 }
 function fmtDate(iso){ if(!iso) return '-'; return new Date(iso).toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'}); }
@@ -1878,28 +2221,28 @@ function renderSyncBanner(){
 /* ---------- BERANDA ---------- */
 function renderBeranda(){
   const juz = appData.juz;
-  let counts = { belum:0, dihafal:0, murajaah:0, mutqin:0, lupa:0 };
+  let counts = { belum:0, ziyadah:0, murajaah:0, mutqin:0, terlupakan:0 };
   let overdueJuz = []; // juz yang punya >=1 halaman overdue
   let overduePageTotal = 0;
-  let lupaJuz = []; // juz yang punya >=1 halaman berstatus "lupa"
-  let lupaPageTotal = 0;
+  let terlupakanJuz = []; // juz yang punya >=1 halaman berstatus "terlupakan"
+  let terlupakanPageTotal = 0;
   let juzStabilCount = 0;
   for(let i=1;i<=TOTAL_JUZ;i++){
     const e = juz[i];
     const ps = juzPageStats(e);
-    counts.belum += ps.belum; counts.dihafal += ps.dihafal; counts.murajaah += ps.murajaah; counts.mutqin += ps.mutqin; counts.lupa += ps.lupa;
+    counts.belum += ps.belum; counts.ziyadah += ps.ziyadah; counts.murajaah += ps.murajaah; counts.mutqin += ps.mutqin; counts.terlupakan += ps.terlupakan;
     if(juzAggregateStatus(e)==='mutqin') juzStabilCount++;
     const op = overduePagesInJuz(e);
     if(op.length){ overdueJuz.push(i); overduePageTotal += op.length; }
-    const lp = lupaPagesInJuz(e);
-    if(lp.length){ lupaJuz.push(i); lupaPageTotal += lp.length; }
+    const lp = terlupakanPagesInJuz(e);
+    if(lp.length){ terlupakanJuz.push(i); terlupakanPageTotal += lp.length; }
   }
 
   document.getElementById('progNum').textContent = counts.mutqin + ' / ' + TOTAL_PAGES;
   document.getElementById('progLabel').textContent = 'Halaman mutqin (' + juzStabilCount + ' juz penuh)';
   document.getElementById('statStabilN').textContent = counts.mutqin;
   document.getElementById('statMurajaahN').textContent = counts.murajaah;
-  document.getElementById('statDihafalN').textContent = counts.dihafal;
+  document.getElementById('statZiyadahN').textContent = counts.ziyadah;
   document.getElementById('statBelumN').textContent = counts.belum;
   const pct = Math.round(counts.mutqin/TOTAL_PAGES*100);
   document.getElementById('progBarFill').style.width = pct + '%';
@@ -1920,18 +2263,18 @@ function renderBeranda(){
     if(btnMore) btnMore.onclick = ()=>{ overdueExpanded=true; renderBeranda(); };
   }else{ overdueCard.style.display='none'; overdueExpanded=false; }
 
-  const lupaCard = document.getElementById('lupaCard');
-  if(lupaJuz.length){
-    lupaCard.style.display='block';
-    document.getElementById('lupaSub').textContent = lupaPageTotal + ' halaman (di ' + lupaJuz.length + ' juz) perlu dihafal ulang dari awal';
-    const shownL = lupaExpanded ? lupaJuz : lupaJuz.slice(0,3);
+  const terlupakanCard = document.getElementById('terlupakanCard');
+  if(terlupakanJuz.length){
+    terlupakanCard.style.display='block';
+    document.getElementById('terlupakanSub').textContent = terlupakanPageTotal + ' halaman (di ' + terlupakanJuz.length + ' juz) perlu ziyadah ulang dari awal';
+    const shownL = terlupakanExpanded ? terlupakanJuz : terlupakanJuz.slice(0,3);
     let htmlL = shownL.map(n=>'<button class="chip" data-juz="'+n+'">Juz '+String(n).padStart(2,'0')+'</button>').join('');
-    if(!lupaExpanded && lupaJuz.length>3) htmlL += '<button class="alert-more" id="btnLihatSemuaLupa">Lihat semua \u203A</button>';
-    document.getElementById('lupaChips').innerHTML = htmlL;
-    document.querySelectorAll('#lupaChips .chip').forEach(c=> c.onclick=()=> openDetail(Number(c.dataset.juz)));
-    const btnMoreL = document.getElementById('btnLihatSemuaLupa');
-    if(btnMoreL) btnMoreL.onclick = ()=>{ lupaExpanded=true; renderBeranda(); };
-  }else{ lupaCard.style.display='none'; lupaExpanded=false; }
+    if(!terlupakanExpanded && terlupakanJuz.length>3) htmlL += '<button class="alert-more" id="btnLihatSemuaTerlupakan">Lihat semua \u203A</button>';
+    document.getElementById('terlupakanChips').innerHTML = htmlL;
+    document.querySelectorAll('#terlupakanChips .chip').forEach(c=> c.onclick=()=> openDetail(Number(c.dataset.juz)));
+    const btnMoreL = document.getElementById('btnLihatSemuaTerlupakan');
+    if(btnMoreL) btnMoreL.onclick = ()=>{ terlupakanExpanded=true; renderBeranda(); };
+  }else{ terlupakanCard.style.display='none'; terlupakanExpanded=false; }
 
   renderJuzGrid();
 }
@@ -2097,11 +2440,11 @@ function renderStatistik(){
 
   renderHeatmap(all);
 
-  let counts = { belum:0, dihafal:0, murajaah:0, mutqin:0 };
-  for(let i=1;i<=TOTAL_JUZ;i++){ const ps=juzPageStats(juz[i]); counts.belum+=ps.belum; counts.dihafal+=ps.dihafal; counts.murajaah+=ps.murajaah; counts.mutqin+=ps.mutqin; }
+  let counts = { belum:0, ziyadah:0, murajaah:0, mutqin:0 };
+  for(let i=1;i<=TOTAL_JUZ;i++){ const ps=juzPageStats(juz[i]); counts.belum+=ps.belum; counts.ziyadah+=ps.ziyadah; counts.murajaah+=ps.murajaah; counts.mutqin+=ps.mutqin; }
   document.getElementById('legStabil').textContent = 'Mutqin: '+counts.mutqin+' hal.';
   document.getElementById('legMurajaah').textContent = 'Muraja\'ah: '+counts.murajaah+' hal.';
-  document.getElementById('legDihafal').textContent = 'Dihafal: '+counts.dihafal+' hal.';
+  document.getElementById('legZiyadah').textContent = 'Ziyadah: '+counts.ziyadah+' hal.';
   document.getElementById('legBelum').textContent = 'Belum: '+counts.belum+' hal.';
   const pct = Math.round(counts.mutqin/TOTAL_PAGES*100);
   document.getElementById('statDonutPct').textContent = pct+'%';
@@ -2133,9 +2476,9 @@ function renderDetail(){
     const sample = overduePages.slice(0,4).map(o=>'hal.'+o.page).join(', ');
     recText = overduePages.length + ' halaman perlu diulang (' + sample + (overduePages.length>4?', ...':'') + '). Mulai muraja\'ah hari ini untuk menjaga hafalan tetap kuat.';
   }else if(agg==='belum'){
-    recText = 'Juz ini belum mulai dihafal. Tap halaman di bawah untuk menandai "Sedang dihafal" begitu Anda mulai.';
-  }else if(agg==='dihafal'){
-    recText = 'Masih ada halaman yang belum selesai dihafal (' + ps.mutqin + '/' + ps.total + ' hal. sudah mutqin). Terus lanjutkan.';
+    recText = 'Juz ini belum mulai ziyadah. Tap halaman di bawah untuk menandai "Sedang ziyadah" begitu Anda mulai.';
+  }else if(agg==='ziyadah'){
+    recText = 'Masih ada halaman yang belum selesai ziyadah (' + ps.mutqin + '/' + ps.total + ' hal. sudah mutqin). Terus lanjutkan.';
   }else{
     recText = 'Kondisi juz ini masih aman (' + ps.mutqin + '/' + ps.total + ' hal. mutqin). Pertahankan jadwal muraja\'ah rutin.';
   }
@@ -2204,10 +2547,10 @@ function renderDetail(){
         <div class="page-grid" id="pageGrid"></div>
         <div class="page-legend">
           <div class="page-legend-item"><span class="page-legend-dot" style="background:var(--status-belum)"></span>Belum</div>
-          <div class="page-legend-item"><span class="page-legend-dot" style="background:var(--status-dihafal)"></span>Dihafal</div>
+          <div class="page-legend-item"><span class="page-legend-dot" style="background:var(--status-ziyadah)"></span>Ziyadah</div>
           <div class="page-legend-item"><span class="page-legend-dot" style="background:var(--status-murajaah)"></span>Muraja'ah</div>
           <div class="page-legend-item"><span class="page-legend-dot" style="background:var(--status-mutqin)"></span>Mutqin</div>
-          <div class="page-legend-item"><span class="page-legend-dot" style="background:var(--status-lupa)"></span>Lupa</div>
+          <div class="page-legend-item"><span class="page-legend-dot" style="background:var(--status-terlupakan)"></span>Terlupakan</div>
           <div class="page-legend-item"><span class="page-legend-dot" style="background:var(--status-overdue)"></span>Overdue</div>
         </div>
       </div>
@@ -2215,11 +2558,11 @@ function renderDetail(){
         <div class="field" style="padding:14px 16px 4px;">
           <label>Ubah status seluruh juz sekaligus</label>
           <select id="detailStatus">
-            <option value="belum">Belum dihafal</option>
-            <option value="dihafal">Sedang dihafal</option>
+            <option value="belum">Belum ziyadah</option>
+            <option value="ziyadah">Sedang ziyadah</option>
             <option value="murajaah">Sedang muraja'ah</option>
             <option value="mutqin">Mutqin</option>
-            <option value="lupa">Lupa (perlu hafal ulang)</option>
+            <option value="terlupakan">Terlupakan (perlu hafal ulang)</option>
           </select>
         </div>
         <div class="field" style="padding:4px 16px 14px;">
@@ -2316,7 +2659,7 @@ function refreshPageEditorHint(){
 
 /* ---------- MUSHAF VIEWER (teks Arab asli, fallback gambar + audio) ---------- */
 let currentMushafPage = null;
-let mushafViewMode = localStorage.getItem('hafalan_mushaf_view_mode') || 'text'; // 'text' | 'image'
+let mushafViewMode = localStorage.getItem('hafalan_mushaf_view_mode') || 'text'; // 'text' | 'madinah' | 'image'
 let mushafPlaylist = [];      // [{surah, ayah, text}, ...] urutan baca di halaman ini
 let mushafPlayIndex = -1;     // -1 = tidak sedang memutar apa pun
 let repeatMode = 'off';       // 'off' = tidak diulang (lanjut ke ayat berikutnya), 1-5 = ulang berapa kali per ayat, 'inf' = ulang tak terhingga
@@ -2329,8 +2672,13 @@ function toArabicDigits(n){
   return String(n).split('').map(d=> map[+d] !== undefined ? map[+d] : d).join('');
 }
 /* susun HTML halaman: kelompokkan ayat per-surah (banner nama surah tiap
-   kali surah berganti dalam halaman itu), tiap ayat dibungkus <span>
-   yang bisa diketuk buat trigger audio & highlight. */
+   kali surah berganti dalam halaman itu). Tiap ayat jadi blok sendiri
+   (dulu semua ayat 1 surah digabung 1 paragraf mengalir; sekarang
+   dipisah per-ayat) supaya bisa disisipi tombol "Tafsir" + panel
+   accordion tepat di bawah ayat itu tanpa merusak markup (elemen block
+   tidak valid ditaruh di tengah <p>). Span ayat tetap pakai class
+   "mushaf-ayah" + data-surah/data-ayah, jadi delegasi klik & highlight
+   audio yang sudah ada otomatis tetap jalan tanpa perlu diubah. */
 function buildMushafTextHtml(meta){
   const blocks = [];
   let currentGroup = null;
@@ -2345,12 +2693,130 @@ function buildMushafTextHtml(meta){
   });
   return blocks.map(b=>{
     if(b.type==='banner') return '<div class="mushaf-surah-banner">'+escapeHtml(b.text)+'</div>';
-    const spans = b.ayahs.map(a=>
-      '<span class="mushaf-ayah" data-surah="'+a.surah+'" data-ayah="'+a.ayah+'">'+escapeHtml(a.text)+
-      ' <span class="mushaf-ayah-num">\uFD3F'+toArabicDigits(a.ayah)+'\uFD3E</span></span> '
+    return b.ayahs.map(a=>
+      '<p class="mushaf-ayat-text"><span class="mushaf-ayah" data-surah="'+a.surah+'" data-ayah="'+a.ayah+'">'+escapeHtml(a.text)+
+      ' <span class="mushaf-ayah-num">\uFD3F'+toArabicDigits(a.ayah)+'\uFD3E</span></span></p>'+
+      '<div class="tafsir-trigger" data-surah="'+a.surah+'" data-ayah="'+a.ayah+'">'+
+        '<span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6"/></svg></span>Tafsir'+
+      '</div>'+
+      '<div class="tafsir-panel" data-surah="'+a.surah+'" data-ayah="'+a.ayah+'" style="display:none;">'+
+        '<div class="tafsir-panel-head"></div><div class="tafsir-panel-body"></div>'+
+      '</div>'
     ).join('');
-    return '<p class="mushaf-ayat-text">'+spans+'</p>';
   }).join('');
+}
+
+/* ---------- Tafsir ayat (accordion, 1 ayat terbuka per waktu) ----------
+   Sumber: spa5k/tafsir_api (gratis, tanpa API key, lewat CDN jsdelivr —
+   sumber yang SAMA jenisnya dengan mushaf-assets lain di app ini).
+   3 kitab tafsir Indonesia yang penulisnya jelas & diakui:
+   Al-Muyassar (Markaz Tafsir Riyadh), As-Sa'di (Syaikh Abdurrahman
+   As-Sa'di), dan Jalalayn (Al-Mahalli & As-Suyuthi). Tafsir Ibnu Katsir
+   versi Indonesia SENGAJA belum dimasukkan -- belum ada sumber gratis
+   yang bisa langsung di-fetch dari browser (yang ada berbentuk library
+   Node.js + database sendiri, bukan API/JSON statis). */
+const TAFSIR_SOURCES = [
+  { slug:'indonesian-mokhtasar', label:'Muyassar', attr:'Tafsir Al-Muyassar \u2014 Markaz Tafsir Riyadh (Tafsir Center for Quranic Studies)' },
+  { slug:'id-tafsir-as-saadi', label:'As-Sa\'di', attr:'Tafsir As-Sa\'di \u2014 Syaikh Abdurrahman As-Sa\'di' },
+  { slug:'in-tafsir-jalalayn', label:'Jalalayn', attr:'Tafsir Jalalayn \u2014 Jalaluddin Al-Mahalli & Jalaluddin As-Suyuthi' },
+];
+const TAFSIR_API_BASE = 'https://cdn.jsdelivr.net/gh/spa5k/tafsir_api@main/tafsir/';
+const LS_TAFSIR_CACHE = 'hafalan_tafsir_cache_v1';
+let tafsirCache = null;
+const tafsirInFlight = {};
+function loadTafsirCache(){
+  if(tafsirCache) return tafsirCache;
+  try{ tafsirCache = JSON.parse(localStorage.getItem(LS_TAFSIR_CACHE) || '{}'); }
+  catch(e){ tafsirCache = {}; }
+  return tafsirCache;
+}
+function saveTafsirCache(){
+  try{ localStorage.setItem(LS_TAFSIR_CACHE, JSON.stringify(tafsirCache)); }catch(e){ /* penuh/di-block, abaikan */ }
+}
+/* ambil teks tafsir dari cache; kalau belum ada, mulai fetch di
+   belakang layar & panggil onTafsirLoaded() begitu selesai.
+   Return undefined = belum pernah di-fetch (masih loading),
+   Return null = sudah dicoba tapi gagal/kosong,
+   Return string = teks tafsirnya. */
+function getTafsirText(slug, surah, ayah){
+  const cache = loadTafsirCache();
+  const key = slug+':'+surah+':'+ayah;
+  if(Object.prototype.hasOwnProperty.call(cache, key)) return cache[key];
+  if(!tafsirInFlight[key]){
+    tafsirInFlight[key] = fetch(TAFSIR_API_BASE+slug+'/'+surah+'/'+ayah+'.json')
+      .then(r=> r.ok ? r.json() : Promise.reject(new Error('HTTP '+r.status)))
+      .then(json=>{
+        const text = (json && (json.text || json.tafsir)) || '';
+        cache[key] = text || null;
+        saveTafsirCache();
+        onTafsirLoaded(key);
+      })
+      .catch(e=>{ cache[key] = null; saveTafsirCache(); onTafsirLoaded(key); console.log('tafsir gagal dimuat:', slug, surah, ayah, e); })
+      .finally(()=>{ delete tafsirInFlight[key]; });
+  }
+  return undefined;
+}
+let activeTafsirKey = null;      // "surah:ayah" ayat yang panelnya sedang terbuka (null = tidak ada)
+let activeTafsirSourceIdx = 0;   // index TAFSIR_SOURCES yang sedang dipilih di panel yang terbuka
+function onTafsirLoaded(key){
+  const [slug, surah, ayah] = key.split(':');
+  if(activeTafsirKey === surah+':'+ayah && TAFSIR_SOURCES[activeTafsirSourceIdx].slug===slug){
+    renderTafsirPanelBody(surah, ayah);
+  }
+}
+function renderTafsirPanelBody(surah, ayah){
+  const body = document.querySelector('.tafsir-panel[data-surah="'+surah+'"][data-ayah="'+ayah+'"] .tafsir-panel-body');
+  if(!body) return;
+  const src = TAFSIR_SOURCES[activeTafsirSourceIdx];
+  const text = getTafsirText(src.slug, surah, ayah);
+  if(text===undefined) body.innerHTML = '<p class="tafsir-loading">Memuat tafsir\u2026</p>';
+  else if(!text) body.innerHTML = '<p class="tafsir-loading">Tafsir tidak tersedia untuk ayat ini, atau gagal dimuat (cek koneksi).</p>';
+  else body.innerHTML = '<p>'+escapeHtml(text)+'</p><div class="tafsir-attr">\u2014 '+escapeHtml(src.attr)+'</div>';
+}
+function renderTafsirSourcePills(surah, ayah){
+  const head = document.querySelector('.tafsir-panel[data-surah="'+surah+'"][data-ayah="'+ayah+'"] .tafsir-panel-head');
+  if(!head) return;
+  head.innerHTML = TAFSIR_SOURCES.map((s,i)=>
+    '<div class="src-pill'+(i===activeTafsirSourceIdx ? ' active' : '')+'" data-idx="'+i+'">'+escapeHtml(s.label)+'</div>'
+  ).join('');
+  head.querySelectorAll('.src-pill').forEach(el=>{
+    el.onclick = ()=>{
+      activeTafsirSourceIdx = Number(el.getAttribute('data-idx'));
+      renderTafsirSourcePills(surah, ayah);
+      renderTafsirPanelBody(surah, ayah);
+    };
+  });
+}
+/* tutup semua panel tafsir KECUALI exceptKey -- ini yang bikin cuma
+   1 ayat boleh terbuka panelnya sekaligus (poin utama biar tidak
+   berantakan saat baca banyak ayat berturut-turut). */
+function closeAllTafsirPanels(exceptKey){
+  document.querySelectorAll('.tafsir-panel').forEach(p=>{
+    if((p.dataset.surah+':'+p.dataset.ayah) !== exceptKey) p.style.display = 'none';
+  });
+  document.querySelectorAll('.tafsir-trigger.open').forEach(t=>{
+    if((t.dataset.surah+':'+t.dataset.ayah) !== exceptKey) t.classList.remove('open');
+  });
+}
+function toggleTafsirPanel(surah, ayah){
+  const key = surah+':'+ayah;
+  const panel = document.querySelector('.tafsir-panel[data-surah="'+surah+'"][data-ayah="'+ayah+'"]');
+  const trigger = document.querySelector('.tafsir-trigger[data-surah="'+surah+'"][data-ayah="'+ayah+'"]');
+  if(!panel || !trigger) return;
+  const alreadyOpen = activeTafsirKey===key && panel.style.display!=='none';
+  if(alreadyOpen){
+    panel.style.display = 'none';
+    trigger.classList.remove('open');
+    activeTafsirKey = null;
+    return;
+  }
+  closeAllTafsirPanels(key);
+  activeTafsirKey = key;
+  activeTafsirSourceIdx = 0; // tiap buka ayat baru, mulai lagi dari sumber pertama
+  panel.style.display = 'block';
+  trigger.classList.add('open');
+  renderTafsirSourcePills(surah, ayah);
+  renderTafsirPanelBody(surah, ayah);
 }
 
 function openMushafViewer(page){
@@ -2361,11 +2827,41 @@ function openMushafViewer(page){
 }
 function closeMushafViewer(){
   stopMushafAudio();
+  setMushafImmersive(false);
   document.getElementById('mushafOverlay').classList.remove('open');
   consumeNavStateIfNeeded();
 }
+/* ---------- Fullscreen (mode imersif) & Mode Sorot ----------
+   Lihat catatan CSS di atas #mushafOverlay.immersive utk detail apa
+   yang disembunyikan. mushafSorotedKeys pakai key "surah:ayah" (bukan
+   per-kata), jadi di Mode Madinah (per-kata) sorot tetap menyorot
+   SATU ayat utuh (semua kata dgn data-surah/data-ayah yang sama). */
+let mushafImmersive = false;
+let mushafSorotMode = false;
+const mushafSorotedKeys = new Set();
+function setMushafImmersive(on){
+  mushafImmersive = on;
+  document.getElementById('mushafOverlay').classList.toggle('immersive', on);
+}
+function setMushafSorotMode(on){
+  mushafSorotMode = on;
+  const pill = document.getElementById('mushafSorotPill');
+  if(pill) pill.classList.toggle('show', on);
+  if(!on){
+    mushafSorotedKeys.clear();
+    document.querySelectorAll('#mushafImgWrap .mushaf-ayah.sorot').forEach(el=> el.classList.remove('sorot'));
+  }
+}
+function toggleMushafAyahSorot(surah, ayah){
+  const key = surah+':'+ayah;
+  const isOn = mushafSorotedKeys.has(key);
+  if(isOn) mushafSorotedKeys.delete(key); else mushafSorotedKeys.add(key);
+  document.querySelectorAll('#mushafImgWrap .mushaf-ayah[data-surah="'+surah+'"][data-ayah="'+ayah+'"]').forEach(el=>{
+    el.classList.toggle('sorot', !isOn);
+  });
+}
 function toggleMushafViewMode(){
-  mushafViewMode = (mushafViewMode==='text') ? 'image' : 'text';
+  mushafViewMode = (mushafViewMode==='text') ? 'madinah' : (mushafViewMode==='madinah') ? 'image' : 'text';
   try{ localStorage.setItem('hafalan_mushaf_view_mode', mushafViewMode); }catch(e){}
   renderMushafViewer();
 }
@@ -2433,11 +2929,18 @@ function setupMushafFontSizeSlider(){
   if(!slider) return;
   slider.value = currentMushafFontSize();
   applyMushafFontSize(Number(slider.value));
-  slider.oninput = ()=> applyMushafFontSize(Number(slider.value));
+  slider.oninput = ()=>{
+    applyMushafFontSize(Number(slider.value));
+    // ukuran font berubah -> lebar asli tiap baris QCF4 ikut berubah,
+    // scaleX-nya perlu dihitung ulang supaya tetap rata kiri-kanan
+    if(mushafViewMode==='madinah') adjustQcf4LineWidths();
+  };
 }
 function renderMushafViewer(){
   const p = currentMushafPage;
   stopMushafAudio();
+  setMushafSorotMode(false); // sorot terikat ke ayat halaman ini, "lupa" tiap pindah halaman/mode (mode imersif SENGAJA tidak direset di sini, supaya tetap fullscreen selama swipe ganti halaman)
+  activeTafsirKey = null; // panel tafsir manapun yg sempat terbuka otomatis "lupa" saat pindah halaman/mode
   const meta = getPageMeta(p); // sudah di-cache dari fitur info surah/ayat, dipakai ulang di sini
   document.getElementById('mushafTitle').textContent = 'Halaman '+p;
   document.getElementById('mushafHint').textContent = meta ? meta.label : 'Memuat info surah\u2026';
@@ -2464,7 +2967,29 @@ function renderMushafViewer(){
   renderMutasyabihBadge(mushafPlaylist);
   if(hasAyahData) updateIdleReciterName();
 
-  if(mushafViewMode==='text' && hasAyahData){
+  // toolbar toggle Mode Mushaf / Terjemahan Perkata: cuma masuk akal di
+  // mode teks (bukan mode gambar) & begitu ada data ayat untuk halaman ini
+  const wordToolbar = document.getElementById('mushafWordToolbar');
+  if(wordToolbar) wordToolbar.style.display = (mushafViewMode==='text' && hasAyahData) ? 'flex' : 'none';
+  const btnMushaf = document.getElementById('mushafModeMushafBtn');
+  const btnPerkata = document.getElementById('mushafModePerkataBtn');
+  if(btnMushaf) btnMushaf.classList.toggle('active', !mushafWordMode);
+  if(btnPerkata) btnPerkata.classList.toggle('active', mushafWordMode);
+
+  if(mushafViewMode==='text' && hasAyahData && mushafWordMode){
+    // Mode Terjemahan Perkata: render grid kata langsung dengan data yang
+    // sudah ada di cache (kalau ada); kalau belum, tampilkan kartu
+    // "Memuat terjemahan…" per ayat -- getPageWords() jalan di belakang
+    // layar & onWordMetaLoaded() akan panggil ulang fungsi ini begitu
+    // datanya siap, jadi otomatis muncul tanpa perlu buka-tutup lagi.
+    loading.style.display = 'none';
+    const wordAyahs = getPageWords(p) || [];
+    textWrap.innerHTML = buildMushafWordGridHtml(meta, wordAyahs);
+    textWrap.style.display = 'block';
+    tip.style.display = 'block';
+    document.getElementById('mushafFontSizeRow').style.display = 'flex';
+    document.getElementById('mushafPlayerIdle').style.display = 'flex';
+  }else if(mushafViewMode==='text' && hasAyahData){
     loading.style.display = 'none';
     textWrap.innerHTML = buildMushafTextHtml(meta);
     textWrap.style.display = 'block';
@@ -2476,6 +3001,35 @@ function renderMushafViewer(){
     // belakang layar -> tetap tampilkan loading, nanti onPageMetaLoaded()
     // yang panggil ulang fungsi ini begitu datanya siap.
     loading.style.display = 'flex';
+  }else if(mushafViewMode==='madinah'){
+    // Mode Madinah (font QCF4 asli) -- butuh 2 sumber sekaligus: data
+    // ayat (meta, buat playlist audio & fallback) DAN data halaman QCF4
+    // (qcf4Data, buat glyph+layout). Kalau salah satu belum siap, tetap
+    // tampilkan loading; onPageMetaLoaded()/onQcf4PageLoaded() yang akan
+    // panggil ulang fungsi ini begitu datanya lengkap.
+    const qcf4Data = getQcf4Page(p);
+    if(hasAyahData && qcf4Data){
+      loading.style.display = 'none';
+      textWrap.innerHTML = buildQcf4PageHtml(qcf4Data);
+      textWrap.style.display = 'block';
+      tip.style.display = 'block';
+      document.getElementById('mushafFontSizeRow').style.display = 'flex';
+      document.getElementById('mushafPlayerIdle').style.display = 'flex';
+      // baris QCF4 baru bisa diukur lebarnya yang BENAR setelah font
+      // custom-nya beres dimuat (sebelum itu lebar teks masih pakai
+      // font fallback sistem, jadi hasil scaleX bisa meleset) -- makanya
+      // nunggu document.fonts.ready, + fallback timeout jaga-jaga kalau
+      // browser lama tidak dukung Font Loading API.
+      if(document.fonts && document.fonts.ready) document.fonts.ready.then(adjustQcf4LineWidths).catch(()=>{});
+      setTimeout(adjustQcf4LineWidths, 350);
+    }else if(!qcf4Data && !qcf4PageFailed[p]){
+      loading.style.display = 'flex';
+    }else if(!hasAyahData && !pageMetaFailed[p]){
+      loading.style.display = 'flex';
+    }
+    // kalau qcf4PageFailed[p] true, onQcf4PageLoaded() sudah otomatis
+    // pindah mushafViewMode ke 'text' & panggil ulang fungsi ini --
+    // jadi cabang ini tidak akan pernah "macet" di loading selamanya.
   }else{
     // mode gambar (baik karena dipilih user, atau otomatis jadi cadangan
     // kalau mode teks gagal ambil data) — sumber PNG yang sudah terbukti
@@ -2518,8 +3072,12 @@ function updateAyahHighlight(){
   updateProgressSegHighlight();
   if(mushafPlayIndex<0 || mushafPlayIndex>=mushafPlaylist.length) return;
   const { surah, ayah } = mushafPlaylist[mushafPlayIndex];
-  const el = document.querySelector('.mushaf-textwrap .mushaf-ayah[data-surah="'+surah+'"][data-ayah="'+ayah+'"]');
-  if(el){ el.classList.add('ayah-playing'); el.scrollIntoView({ block:'center', behavior:'smooth' }); }
+  // mode Madinah: 1 ayat = banyak <span> kata terpisah (bukan 1 span
+  // seperti mode Teks) -- querySelectorAll supaya SEMUA katanya ikut
+  // ter-highlight, bukan cuma kata pertama.
+  const els = document.querySelectorAll('.mushaf-textwrap .mushaf-ayah[data-surah="'+surah+'"][data-ayah="'+ayah+'"]');
+  els.forEach(el=> el.classList.add('ayah-playing'));
+  if(els[0]) els[0].scrollIntoView({ block:'center', behavior:'smooth' });
 }
 function playCurrentAyah(){
   if(mushafPlayIndex<0 || mushafPlayIndex>=mushafPlaylist.length){ stopMushafAudio(); return; }
@@ -2685,30 +3243,84 @@ mushafAudioEl.addEventListener('ended', ()=>{
   stopMushafAudio();
 });
 
-/* ---------- Swipe kiri/kanan buat pindah halaman ---------- */
+/* ---------- Swipe kiri/kanan pindah halaman + tap kosong (fullscreen) ----------
+   + tahan lama 1 kata/ayat (Mode Sorot) ----------
+   Deteksi tap vs swipe vs tahan-lama semua dari 1 pasang titik sentuh
+   (touchstart..touchend) di area yang sama (#mushafImgWrap):
+   - Gerakan horizontal jauh (>55px, lebih dominan dari gerakan vertikal)
+     saat lepas jari -> ganti halaman (swipe), SAMA seperti sebelumnya.
+   - Ditahan >=450ms nyaris tanpa gerak (<=12px) di atas 1 ayat -> masuk
+     Mode Sorot + ayat itu langsung tersorot (mushafLongPressFired jadi
+     true, supaya event 'click' sintetis sesudahnya tidak ikut memicu
+     playAyahFrom/toggle lagi).
+   - Selain itu (tap biasa, gerakan kecil) -> ditangani via event 'click':
+     tap di ayat = putar audio dari situ (mode biasa) / toggle sorot
+     (Mode Sorot aktif); tap di area kosong = toggle Mode Sorot mati
+     (kalau lagi aktif) ATAU toggle fullscreen (mode imersif). */
+let mushafPressTimer = null;
+let mushafLongPressFired = false;
 function setupMushafSwipe(){
   const el = document.getElementById('mushafImgWrap');
   if(!el) return;
-  let sx=0, sy=0, active=false;
+  let sx=0, sy=0, active=false, pressTarget=null;
+  const clearPressTimer = ()=>{ clearTimeout(mushafPressTimer); mushafPressTimer=null; };
+
   el.addEventListener('touchstart', (e)=>{
     if(e.touches.length!==1) return;
     sx = e.touches[0].clientX; sy = e.touches[0].clientY; active = true;
+    mushafLongPressFired = false;
+    pressTarget = e.target.closest('.mushaf-ayah');
+    clearPressTimer();
+    mushafPressTimer = setTimeout(()=>{
+      mushafLongPressFired = true;
+      if(pressTarget){
+        if(!mushafSorotMode) setMushafSorotMode(true);
+        toggleMushafAyahSorot(Number(pressTarget.dataset.surah), Number(pressTarget.dataset.ayah));
+        if(navigator.vibrate) navigator.vibrate(12);
+      }
+    }, 450);
   }, { passive:true });
+
+  el.addEventListener('touchmove', (e)=>{
+    if(!active || !e.touches.length) return;
+    // gerakan sudah cukup jauh -> ini scroll/swipe, bukan tahan diam; batalkan timer tahan-lama
+    if(Math.abs(e.touches[0].clientX-sx) > 12 || Math.abs(e.touches[0].clientY-sy) > 12) clearPressTimer();
+  }, { passive:true });
+
   el.addEventListener('touchend', (e)=>{
     if(!active) return;
     active = false;
+    clearPressTimer();
+    if(mushafLongPressFired) return; // sudah ditangani di setTimeout, jangan diproses ulang sbg tap/swipe
     const dx = (e.changedTouches[0].clientX - sx);
     const dy = (e.changedTouches[0].clientY - sy);
     if(Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy)*1.5){
       if(dx < 0) mushafNext(); else mushafPrev();
     }
   }, { passive:true });
-  // delegasi klik: ketuk ayat mana pun di mode teks buat mulai audio dari situ
+
+  el.addEventListener('touchcancel', ()=>{ active=false; clearPressTimer(); }, { passive:true });
+
+  // delegasi klik: tap ayat = putar audio / toggle sorot; tap area kosong = toggle fullscreen / keluar Mode Sorot
   el.addEventListener('click', (e)=>{
+    if(mushafLongPressFired){ mushafLongPressFired = false; return; } // klik sintetis stlh tahan lama, abaikan
+    const trigger = e.target.closest('.tafsir-trigger');
+    if(trigger){
+      toggleTafsirPanel(trigger.getAttribute('data-surah'), trigger.getAttribute('data-ayah'));
+      return;
+    }
     const span = e.target.closest('.mushaf-ayah');
-    if(!span) return;
-    playAyahFrom(Number(span.dataset.surah), Number(span.dataset.ayah));
+    if(span){
+      if(mushafSorotMode) toggleMushafAyahSorot(Number(span.dataset.surah), Number(span.dataset.ayah));
+      else playAyahFrom(Number(span.dataset.surah), Number(span.dataset.ayah));
+      return;
+    }
+    if(mushafSorotMode) setMushafSorotMode(false);
+    else setMushafImmersive(!mushafImmersive);
   });
+
+  const sorotDoneBtn = document.getElementById('mushafSorotDone');
+  if(sorotDoneBtn) sorotDoneBtn.onclick = (e)=>{ e.stopPropagation(); setMushafSorotMode(false); };
 }
 
 function closePageEditor(){ document.getElementById('pageOverlay').classList.remove('open'); currentEditJuz=null; currentEditPage=null; consumeNavStateIfNeeded(); }
@@ -2732,10 +3344,10 @@ async function markPageToday(){
   const e = appData.juz[n];
   const pg = e.pages[p];
   const fromStatus = pg.status;
-  // "belum"/"dihafal"/"lupa" -> begitu direview hari ini, otomatis naik
-  // jadi "murajaah" (termasuk "lupa": kalau baru saja dimurajaah lagi,
-  // logisnya statusnya sudah tidak "lupa" lagi, bukan tetap nyangkut).
-  if(pg.status==='belum' || pg.status==='dihafal' || pg.status==='lupa') pg.status='murajaah';
+  // "belum"/"ziyadah"/"terlupakan" -> begitu direview hari ini, otomatis naik
+  // jadi "murajaah" (termasuk "terlupakan": kalau baru saja dimurajaah lagi,
+  // logisnya statusnya sudah tidak "terlupakan" lagi, bukan tetap nyangkut).
+  if(pg.status==='belum' || pg.status==='ziyadah' || pg.status==='terlupakan') pg.status='murajaah';
   pg.lastMurajaah = new Date().toISOString().slice(0,10);
   document.getElementById('pageStatus').value = pg.status;
   document.getElementById('pageDate').value = pg.lastMurajaah;
@@ -2745,23 +3357,23 @@ async function markPageToday(){
   const ok = await pushData(); renderSyncBanner();
   showToast(ok ? 'Halaman '+p+' ditandai telah dimuraja\'ah hari ini.' : ('Gagal simpan: ' + lastSyncDetail), ok);
 }
-/* tandai 1 halaman "lupa" — dipakai saat hafalan yang tadinya sudah
-   murajaah/stabil ternyata lupa lagi & perlu dihafal ulang dari awal.
+/* tandai 1 halaman "terlupakan" — dipakai saat hafalan yang tadinya sudah
+   murajaah/stabil ternyata terlupakan lagi & perlu ziyadah ulang dari awal.
    Tanggal murajaah terakhir sengaja TIDAK diubah/dihapus supaya riwayat
    sebelumnya tetap tercatat; yang berubah cuma status halamannya. */
-async function markPageLupa(){
+async function markPageTerlupakan(){
   const n = currentEditJuz, p = currentEditPage;
   if(!n || !p) return;
   const e = appData.juz[n];
   const pg = e.pages[p];
   const fromStatus = pg.status;
-  pg.status = 'lupa';
+  pg.status = 'terlupakan';
   document.getElementById('pageStatus').value = pg.status;
-  pushHistory(e, 'status_change', { page:p, from:fromStatus, to:'lupa' });
+  pushHistory(e, 'status_change', { page:p, from:fromStatus, to:'terlupakan' });
   closePageEditor();
   renderDetail(); renderAll();
   const ok = await pushData(); renderSyncBanner();
-  showToast(ok ? 'Halaman '+p+' ditandai lupa \u2014 perlu dihafal ulang.' : ('Gagal simpan: ' + lastSyncDetail), ok);
+  showToast(ok ? 'Halaman '+p+' ditandai terlupakan \u2014 perlu ziyadah ulang.' : ('Gagal simpan: ' + lastSyncDetail), ok);
 }
 
 /* markMurajaahToday: tandai SELURUH juz (semua halamannya) telah dimurajaah hari ini */
@@ -2772,9 +3384,9 @@ async function markMurajaahToday(n){
   const touchedPages = [];
   Object.keys(e.pages).map(Number).forEach(p=>{
     const pg = e.pages[p];
-    // sama seperti markPageToday(): "lupa" ikut naik jadi "murajaah" juga,
-    // bukan tetap nyangkut di status lupa walau tanggalnya sudah ter-update.
-    if(pg.status==='belum' || pg.status==='dihafal' || pg.status==='lupa') pg.status='murajaah';
+    // sama seperti markPageToday(): "terlupakan" ikut naik jadi "murajaah" juga,
+    // bukan tetap nyangkut di status terlupakan walau tanggalnya sudah ter-update.
+    if(pg.status==='belum' || pg.status==='ziyadah' || pg.status==='terlupakan') pg.status='murajaah';
     pg.lastMurajaah = today;
     touchedPages.push(p);
     count++;
@@ -2870,7 +3482,7 @@ async function saveQuickLog(){
     const e = appData.juz[n];
     const pg = e.pages[p];
     const fromStatus = pg.status;
-    if(pg.status==='belum' || pg.status==='dihafal') pg.status='murajaah';
+    if(pg.status==='belum' || pg.status==='ziyadah') pg.status='murajaah';
     pg.lastMurajaah = new Date().toISOString().slice(0,10);
     pushHistory(e, 'murajaah', fromStatus!==pg.status ? { page:p, from:fromStatus, to:pg.status } : { page:p });
     renderAll();
@@ -3080,11 +3692,18 @@ function init(){
   document.getElementById('pageCancel').onclick = closePageEditor;
   document.getElementById('pageSave').onclick = savePageEditor;
   document.getElementById('pageMarkToday').onclick = markPageToday;
-  document.getElementById('pageMarkLupa').onclick = markPageLupa;
+  document.getElementById('pageMarkTerlupakan').onclick = markPageTerlupakan;
   document.getElementById('pageViewMushaf').onclick = ()=>{ if(currentEditPage!=null) openMushafViewer(currentEditPage); };
   document.getElementById('mushafClose').onclick = closeMushafViewer;
   document.getElementById('mushafToggleMode').onclick = toggleMushafViewMode;
+  document.getElementById('mushafModeMushafBtn').onclick = ()=> setMushafWordMode(false);
+  document.getElementById('mushafModePerkataBtn').onclick = ()=> setMushafWordMode(true);
   setupMushafFontSizeSlider();
+  // rotasi layar/lipat HP -> lebar #mushafTextWrap berubah, scaleX tiap
+  // baris QCF4 perlu dihitung ulang supaya tetap rata kiri-kanan
+  window.addEventListener('resize', ()=>{
+    if(mushafViewMode==='madinah' && document.getElementById('mushafOverlay').classList.contains('open')) adjustQcf4LineWidths();
+  });
   document.getElementById('mushafPrev').onclick = mushafPrev;
   document.getElementById('mushafNext').onclick = mushafNext;
   document.getElementById('mushafPlayToggle').onclick = toggleMushafPlay;
