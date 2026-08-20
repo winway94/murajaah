@@ -317,6 +317,27 @@ button{font-family:var(--font-sans);}
 #mushafOverlay .sheet{max-width:100%; max-height:100%; height:100%; width:100%;
   border-radius:0; display:flex; flex-direction:column; padding:14px 14px calc(14px + env(safe-area-inset-bottom));}
 #mushafOverlay .mushaf-imgwrap{flex:1 1 auto; max-height:none;}
+/* ---------- Panggung mushaf: bungkus imgwrap + player mengambang ----------
+   .mushaf-stage yang jadi flex:1 (menggantikan peran .mushaf-imgwrap
+   sebelumnya) supaya area baca (imgwrap) bisa mengisi PENUH sisa tinggi
+   layar, sampai ke tepi bawah -- .mushaf-floating-player di dalamnya
+   position:absolute (dilepas dari alur normal), jadi TIDAK lagi mengurangi
+   tinggi imgwrap seperti waktu masih sejajar sebagai sibling block biasa.
+   mushaf-nav (Sebelumnya/Berikutnya) SENGAJA dibiarkan di luar stage, tetap
+   di alur normal seperti semula -- supaya navigasi ganti halaman tetap
+   selalu terlihat & tidak menutupi teks ayat. */
+#mushafOverlay .mushaf-stage{flex:1 1 auto; min-height:0; position:relative;}
+#mushafOverlay .mushaf-stage .mushaf-imgwrap{position:absolute; inset:0; max-height:none; margin:0;}
+.mushaf-floating-player{position:absolute; left:0; right:0; bottom:0; z-index:6;
+  padding:26px 0 0; pointer-events:none;
+  background:linear-gradient(to bottom, rgba(0,0,0,0) 0%, var(--gray-100) 42%, var(--gray-100) 100%);}
+.mushaf-floating-player > *{pointer-events:auto;}
+/* mushaf-tip & mushaf-audiobar sebelumnya punya margin-top sendiri (utk
+   jarak dgn imgwrap di alur normal) -- di dalam floating-player yg sudah
+   dikasih padding-top di atas, margin itu tidak perlu lagi & malah bikin
+   jarak dobel dgn tepi floating-player, jadi dihilangkan khusus di sini. */
+.mushaf-floating-player .mushaf-tip{margin:0 0 4px;}
+.mushaf-floating-player .mushaf-audiobar{margin-top:6px;}
 .mushaf-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px;}
 .mushaf-mutasyabih-badge{background:var(--alert-warning-bg);border:1px solid var(--warning);border-radius:10px;padding:8px 10px;margin-bottom:10px;font-size:11.5px;color:var(--alert-warning-text);line-height:1.5;}
 .mushaf-mutasyabih-badge b{color:var(--warning);}
@@ -339,7 +360,14 @@ button{font-family:var(--font-sans);}
   text-align:center;padding:20px;font-size:12.5px;color:var(--gray-500);}
 .mushaf-tip{font-size:11px;color:var(--gray-500);text-align:center;margin:8px 0 0;}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
-.mushaf-audiobar{margin-top:8px;position:relative;min-height:104px;display:flex;flex-direction:column;justify-content:center;}
+/* Sebelumnya min-height:104px ini berlaku SAMA RATA ke idle bar & playing
+   bar lewat class .mushaf-audiobar yang dipakai bersama -- padahal isi
+   idle bar (cuma 1 baris: tombol play + nama qori) jauh lebih pendek dari
+   playing bar (progress segs + 5 tombol kontrol), jadi idle bar dipaksa
+   punya ruang kosong ~46px di atas+bawahnya (akibat justify-content:center).
+   Sekarang min-height dipindah supaya HANYA berlaku ke #mushafAudioBar. */
+.mushaf-audiobar{margin-top:8px;position:relative;display:flex;flex-direction:column;justify-content:center;}
+#mushafAudioBar{min-height:104px;}
 .mushaf-idle-bar{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-lg,16px);padding:10px 12px;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow-sm);}
 .mushaf-idle-play{width:38px;height:38px;border-radius:50%;border:none;background:var(--primary);color:var(--on-primary);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;padding:0;}
 .mushaf-idle-play svg{width:46%;height:46%;}
@@ -744,55 +772,66 @@ button{font-family:var(--font-sans);}
     <input type="range" id="mushafFontSize" min="18" max="36" step="1" value="26" style="flex:1;">
     <span style="font-size:18px; color:var(--gray-500);">A</span>
   </div>
+  <div class="mushaf-stage" id="mushafStage">
   <div class="mushaf-imgwrap" id="mushafImgWrap">
     <div class="mushaf-textwrap" id="mushafTextWrap" style="display:none;"></div>
     <img id="mushafImg" alt="Halaman mushaf" style="display:none;" />
     <div class="mushaf-loading" id="mushafLoading">Memuat halaman…</div>
     <div class="mushaf-error" id="mushafError" style="display:none;">Halaman ini gagal dimuat sama sekali (perlu koneksi internet). Coba lagi, atau cek nanti saat online.</div>
   </div>
-  <p class="mushaf-tip" id="mushafTip" style="display:none;">Ketuk ayat mana pun untuk memutar murottal dari situ.</p>
-  <div class="mushaf-audiobar" id="mushafPlayerIdle" style="display:none;">
-    <div class="mushaf-idle-bar">
-      <button class="mushaf-idle-play" id="mushafIdlePlay" aria-label="Putar">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5v14l11-7z"/></svg>
-      </button>
-      <button class="mushaf-idle-reciter" id="mushafIdleReciterBtn">
-        <span id="mushafIdleReciterName">Memuat…</span>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-      </button>
-    </div>
-  </div>
-  <div class="mushaf-audiobar" id="mushafAudioBar" style="display:none;">
-    <div class="mushaf-player">
-      <span id="mushafAudioLabel" class="sr-only"></span>
-      <div class="mushaf-progress-segs" id="mushafProgressSegs"></div>
-      <div class="mushaf-controls-row">
-        <button class="mushaf-ctl-btn mushaf-ctl-stop" id="mushafStop" title="Berhenti" aria-label="Berhenti"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg></button>
-        <button class="mushaf-ctl-btn mushaf-ctl-skip" id="mushafAyahPrev" title="Ayat sebelumnya" aria-label="Ayat sebelumnya"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zM10 12l8-6v12z"/></svg></button>
-        <button class="mushaf-ctl-main" id="mushafPlayToggle" aria-label="Putar/jeda"></button>
-        <button class="mushaf-ctl-btn mushaf-ctl-skip" id="mushafAyahNext" title="Ayat berikutnya" aria-label="Ayat berikutnya"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM6 6l8 6-8 6z"/></svg></button>
-        <button class="mushaf-ctl-btn" id="mushafRepeatBtn" title="Ulang bacaan" aria-label="Pengaturan ulang bacaan">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+  <!-- Player (idle & sedang-main) + tip MENGAMBANG di atas mushaf-imgwrap
+       (position:absolute, lihat CSS .mushaf-floating-player) supaya TIDAK
+       memakan/mengurangi tinggi area baca seperti sebelumnya -- area baca
+       (mushaf-imgwrap) sekarang otomatis memenuhi seluruh mushaf-stage.
+       Semua id di dalamnya SENGAJA tidak diubah, jadi semua fungsi JS yang
+       sudah ada (playCurrentAyah, stopMushafAudio, dst.) tetap jalan apa
+       adanya tanpa perlu disentuh. -->
+  <div class="mushaf-floating-player" id="mushafFloatingPlayer">
+    <p class="mushaf-tip" id="mushafTip" style="display:none;">Ketuk ayat mana pun untuk memutar murottal dari situ.</p>
+    <div class="mushaf-audiobar" id="mushafPlayerIdle" style="display:none;">
+      <div class="mushaf-idle-bar">
+        <button class="mushaf-idle-play" id="mushafIdlePlay" aria-label="Putar">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5v14l11-7z"/></svg>
+        </button>
+        <button class="mushaf-idle-reciter" id="mushafIdleReciterBtn">
+          <span id="mushafIdleReciterName">Memuat…</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
         </button>
       </div>
-      <div class="mushaf-repeat-popover" id="mushafRepeatPopover" style="display:none;">
-        <div class="mushaf-repeat-row">
-          <span class="mushaf-repeat-row-label">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
-            Ulang ayat ini
-          </span>
-          <button class="mushaf-repeat-chip" id="mushafRepeatAyahChip">Nonaktif</button>
+    </div>
+    <div class="mushaf-audiobar" id="mushafAudioBar" style="display:none;">
+      <div class="mushaf-player">
+        <span id="mushafAudioLabel" class="sr-only"></span>
+        <div class="mushaf-progress-segs" id="mushafProgressSegs"></div>
+        <div class="mushaf-controls-row">
+          <button class="mushaf-ctl-btn mushaf-ctl-stop" id="mushafStop" title="Berhenti" aria-label="Berhenti"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg></button>
+          <button class="mushaf-ctl-btn mushaf-ctl-skip" id="mushafAyahPrev" title="Ayat sebelumnya" aria-label="Ayat sebelumnya"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zM10 12l8-6v12z"/></svg></button>
+          <button class="mushaf-ctl-main" id="mushafPlayToggle" aria-label="Putar/jeda"></button>
+          <button class="mushaf-ctl-btn mushaf-ctl-skip" id="mushafAyahNext" title="Ayat berikutnya" aria-label="Ayat berikutnya"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM6 6l8 6-8 6z"/></svg></button>
+          <button class="mushaf-ctl-btn" id="mushafRepeatBtn" title="Ulang bacaan" aria-label="Pengaturan ulang bacaan">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+          </button>
         </div>
-        <div class="mushaf-repeat-divider"></div>
-        <div class="mushaf-repeat-row">
-          <span class="mushaf-repeat-row-label">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
-            Ulang 1 halaman
-          </span>
-          <button class="mushaf-repeat-chip" id="mushafRepeatPageChip">Nonaktif</button>
+        <div class="mushaf-repeat-popover" id="mushafRepeatPopover" style="display:none;">
+          <div class="mushaf-repeat-row">
+            <span class="mushaf-repeat-row-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+              Ulang ayat ini
+            </span>
+            <button class="mushaf-repeat-chip" id="mushafRepeatAyahChip">Nonaktif</button>
+          </div>
+          <div class="mushaf-repeat-divider"></div>
+          <div class="mushaf-repeat-row">
+            <span class="mushaf-repeat-row-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+              Ulang 1 halaman
+            </span>
+            <button class="mushaf-repeat-chip" id="mushafRepeatPageChip">Nonaktif</button>
+          </div>
         </div>
       </div>
     </div>
+  </div>
   </div>
   <div class="mushaf-nav">
     <button class="btn btn-ghost" id="mushafPrev">‹ Sebelumnya</button>
@@ -892,8 +931,12 @@ const DEFAULT_OVERDUE_DAYS = 30;
    AWAL array CHANGELOG (paling atas = paling baru). Ini murni tampilan
    (tidak memengaruhi cache); yang mengontrol update service worker
    tetap CACHE_VERSION di sw.js. */
-const APP_VERSION = 'v42';
+const APP_VERSION = 'v43';
 const CHANGELOG = [
+  { version:'v43', date:'20 Agustus 2026', changes:[
+    'Layar baca mushaf: player audio (tombol putar + kontrol) & tip instruksi sekarang MENGAMBANG di atas teks/gambar mushaf (seperti aplikasi mushaf pada umumnya), bukan lagi mendorong area baca jadi lebih pendek. Area baca sekarang otomatis memenuhi hampir seluruh layar, jadi scroll yang dibutuhkan jauh lebih sedikit.',
+    'Fix bug: ada celah kosong ~46px di bawah bar player kondisi belum diputar (idle) -- sebelumnya bar itu ikut dipaksa setinggi bar kondisi sedang-main padahal isinya jauh lebih pendek.'
+  ]},
   { version:'v42', date:'20 Agustus 2026', changes:[
     'Fix bug: halaman Riwayat & Statistik bisa jadi kosong total (tidak ter-render sama sekali) kalau ada entri riwayat lama yang masih pakai key status "stabil" (sisa rename "stabil"→"mutqin" yang belum lengkap, lanjutan dari fix v39 — kali ini di field from/to pada history). Sekarang key lama dimigrasi otomatis + ditambah fallback aman supaya 1 entri riwayat rusak tidak lagi bisa menjatuhkan seluruh render.'
   ]},
