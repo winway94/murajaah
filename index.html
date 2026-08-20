@@ -1695,16 +1695,23 @@ function daysSince(dateStr){ if(!dateStr) return null; return Math.floor((new Da
 /* ---------- Hitung berapa kali sudah dimurajaah ----------
    Dihitung langsung dari riwayat (history) — TIDAK butuh field data baru.
    1 halaman terhitung "dimurajaah" tiap kali ada event 'murajaah' yang
-   nunjuk ke halaman itu SATU-SATU, ATAU tiap kali ada 'murajaah_bulk'
-   (tandai seluruh juz sekaligus) di juz itu, karena bulk mencakup semua
-   halamannya termasuk ini. Catatan: riwayat per-juz dibatasi 200 entri
-   terakhir (lihat pushHistory) — jadi utk juz yang SANGAT aktif,
-   hitungan ini adalah batas bawah (minimal segini), bukan pasti presisi. */
+   nunjuk ke halaman itu SATU-SATU, ATAU tiap kali ada 'murajaah_bulk' yang
+   daftar halamannya (h.pages) memuat halaman ini secara spesifik.
+   Event 'murajaah_bulk' LAMA (sebelum field 'pages' ditambahkan) tidak
+   punya daftar halaman presisi — untuk itu tetap dihitung +1 ke semua
+   halaman di juz seperti perilaku lama, sebagai perkiraan terbaik dari
+   data yang ada (bukan bug baru, hanya keterbatasan data lama).
+   Catatan: riwayat per-juz dibatasi 200 entri terakhir (lihat pushHistory)
+   — jadi utk juz yang SANGAT aktif, hitungan ini adalah batas bawah
+   (minimal segini), bukan pasti presisi. */
 function pageMurajaahCount(entry, page){
   let count = 0;
   (entry.history||[]).forEach(h=>{
     if(h.event==='murajaah' && h.page===page) count++;
-    else if(h.event==='murajaah_bulk') count++;
+    else if(h.event==='murajaah_bulk'){
+      if(Array.isArray(h.pages)) { if(h.pages.includes(page)) count++; }
+      else count++; // data lama tanpa daftar halaman -> perilaku lama (perkiraan)
+    }
   });
   return count;
 }
@@ -2761,14 +2768,21 @@ async function markMurajaahToday(n){
   const e = appData.juz[n];
   const today = new Date().toISOString().slice(0,10);
   let count = 0;
-  Object.values(e.pages).forEach(pg=>{
+  const touchedPages = [];
+  Object.keys(e.pages).map(Number).forEach(p=>{
+    const pg = e.pages[p];
     // sama seperti markPageToday(): "lupa" ikut naik jadi "murajaah" juga,
     // bukan tetap nyangkut di status lupa walau tanggalnya sudah ter-update.
     if(pg.status==='belum' || pg.status==='dihafal' || pg.status==='lupa') pg.status='murajaah';
     pg.lastMurajaah = today;
+    touchedPages.push(p);
     count++;
   });
-  pushHistory(e, 'murajaah_bulk', { pagesCount: count });
+  // 'pages' menyimpan daftar halaman PERSIS yang tersentuh aksi ini, supaya
+  // pageMurajaahCount() bisa menghitung per-halaman secara akurat (lihat
+  // catatan di pageMurajaahCount) — bukan cuma jumlahnya (pagesCount lama
+  // dipertahankan untuk kompatibilitas tampilan riwayat).
+  pushHistory(e, 'murajaah_bulk', { pagesCount: count, pages: touchedPages });
   renderDetail(); renderAll();
   const ok = await pushData(); renderSyncBanner();
   showToast(ok ? 'Tersimpan — seluruh juz ('+count+' hal.) telah dimuraja\'ah hari ini.' : ('Gagal simpan: ' + lastSyncDetail), ok);
@@ -2779,8 +2793,9 @@ async function saveDetailStatus(n){
   const newStatus = document.getElementById('detailStatus').value;
   const newDate = document.getElementById('detailDate').value || null;
   let count = 0;
-  Object.values(e.pages).forEach(pg=>{ pg.status = newStatus; pg.lastMurajaah = newDate; count++; });
-  pushHistory(e, 'status_change_bulk', { to:newStatus, pagesCount:count });
+  const touchedPages = [];
+  Object.keys(e.pages).map(Number).forEach(p=>{ const pg = e.pages[p]; pg.status = newStatus; pg.lastMurajaah = newDate; touchedPages.push(p); count++; });
+  pushHistory(e, 'status_change_bulk', { to:newStatus, pagesCount:count, pages: touchedPages });
   renderDetail(); renderAll();
   const ok = await pushData(); renderSyncBanner();
   showToast(ok ? 'Perubahan diterapkan ke '+count+' halaman.' : ('Gagal simpan: ' + lastSyncDetail), ok);
