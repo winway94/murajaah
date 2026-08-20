@@ -892,8 +892,11 @@ const DEFAULT_OVERDUE_DAYS = 30;
    AWAL array CHANGELOG (paling atas = paling baru). Ini murni tampilan
    (tidak memengaruhi cache); yang mengontrol update service worker
    tetap CACHE_VERSION di sw.js. */
-const APP_VERSION = 'v41';
+const APP_VERSION = 'v42';
 const CHANGELOG = [
+  { version:'v42', date:'20 Agustus 2026', changes:[
+    'Fix bug: halaman Riwayat & Statistik bisa jadi kosong total (tidak ter-render sama sekali) kalau ada entri riwayat lama yang masih pakai key status "stabil" (sisa rename "stabil"→"mutqin" yang belum lengkap, lanjutan dari fix v39 — kali ini di field from/to pada history). Sekarang key lama dimigrasi otomatis + ditambah fallback aman supaya 1 entri riwayat rusak tidak lagi bisa menjatuhkan seluruh render.'
+  ]},
   { version:'v41', date:'20 Agustus 2026', changes:[
     'worker.js: ketemu penyebab pasti "Gagal ambil teks ayat" lewat log Cloudflare — bukan API down, tapi HTTP 404 spesifik utk beberapa nomor halaman saat minta 2 edisi (Arab+terjemahan) sekaligus dalam 1 request. Sekarang kalau kombinasi itu gagal, otomatis dicoba lagi TERPISAH (teks Arab wajib berhasil, terjemahan Indonesia best-effort/boleh kosong) — jauh lebih tahan banting.'
   ]},
@@ -1475,9 +1478,23 @@ function ensureJuzShape(e, n){
     else if(legacyStatus) pages[p] = { status: legacyStatus, lastMurajaah: legacyDate };
     else pages[p] = { status:'belum', lastMurajaah:null };
   }
+  // Migrasi entri history lama yang masih menyimpan key status "stabil"
+  // (from/to) di event status_change / status_change_bulk — kalau tidak
+  // dimigrasi, STATUS_META['stabil'] akan undefined dan menyebabkan
+  // exception saat dirender di layar Riwayat (lihat historyLabel()),
+  // yang ikut menggagalkan renderStatistik() karena dipanggil setelahnya.
+  const history = ((e && Array.isArray(e.history)) ? e.history : []).map(h=>{
+    if(h && (h.from || h.to)){
+      return Object.assign({}, h,
+        h.from ? { from: migrateStatusKey(h.from) } : {},
+        h.to ? { to: migrateStatusKey(h.to) } : {}
+      );
+    }
+    return h;
+  });
   return {
     notes: (e && typeof e.notes === 'string') ? e.notes : '',
-    history: (e && Array.isArray(e.history)) ? e.history : [],
+    history,
     pages
   };
 }
@@ -1783,11 +1800,16 @@ function flattenHistory(){
   all.sort((a,b)=> new Date(b.at) - new Date(a.at));
   return all;
 }
+// Ambil label status dengan aman — kalau key-nya tidak dikenal (mis. data
+// lama/korup yang lolos dari migrasi), jangan lempar exception (yang akan
+// menggagalkan seluruh renderRiwayatGlobal()+renderStatistik()), cukup
+// tampilkan key mentahnya apa adanya.
+function statusLabelSafe(key){ return (STATUS_META[key] && STATUS_META[key].label) || key || '?'; }
 function historyLabel(h){
   if(h.event==='murajaah') return 'Muraja\'ah Juz ' + String(h.juz).padStart(2,'0') + (h.page ? ' hal.'+h.page : '');
   if(h.event==='murajaah_bulk') return 'Seluruh Juz ' + String(h.juz).padStart(2,'0') + ' dimuraja\'ah (' + (h.pagesCount||'?') + ' halaman)';
-  if(h.event==='status_change') return 'Juz '+String(h.juz).padStart(2,'0')+(h.page?' hal.'+h.page:'')+': '+STATUS_META[h.from].label+' \u2192 '+STATUS_META[h.to].label;
-  if(h.event==='status_change_bulk') return 'Seluruh Juz '+String(h.juz).padStart(2,'0')+' diubah ke '+STATUS_META[h.to].label+' ('+(h.pagesCount||'?')+' halaman)';
+  if(h.event==='status_change') return 'Juz '+String(h.juz).padStart(2,'0')+(h.page?' hal.'+h.page:'')+': '+statusLabelSafe(h.from)+' \u2192 '+statusLabelSafe(h.to);
+  if(h.event==='status_change_bulk') return 'Seluruh Juz '+String(h.juz).padStart(2,'0')+' diubah ke '+statusLabelSafe(h.to)+' ('+(h.pagesCount||'?')+' halaman)';
   return 'Juz ' + String(h.juz).padStart(2,'0') + ' diperbarui';
 }
 function renderRiwayatGlobal(){
