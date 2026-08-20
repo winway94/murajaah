@@ -656,6 +656,24 @@ button{font-family:var(--font-sans);}
         <div id="aiQuotaMenuResult" style="display:none; margin-top:12px;"></div>
       </div>
       <div class="card" style="margin-top:14px; padding:14px 16px;">
+        <p class="section-title" style="margin:0 0 4px;">🔔 Notifikasi otomatis</p>
+        <p class="hint" style="margin:0 0 12px;">Diatur/dikirim lewat bot Telegram, bisa juga dinyalakan/dimatikan lewat bot dengan mengetik "notifikasi".</p>
+        <div class="toggle-row" style="margin-bottom:14px;">
+          <div style="flex:1; min-width:0;">
+            <p class="section-title" style="margin:0 0 4px;">Pengingat pagi (06:00 WIB)</p>
+            <p class="hint" style="margin:0;">DM kalau kemarin sama sekali tidak ada laporan muraja'ah, disertai kata motivasi islami.</p>
+          </div>
+          <button class="toggle-switch" id="toggleNoReportReminder" role="switch" aria-label="Pengingat pagi"></button>
+        </div>
+        <div class="toggle-row">
+          <div style="flex:1; min-width:0;">
+            <p class="section-title" style="margin:0 0 4px;">Refleksi mingguan (Senin 07:00 WIB)</p>
+            <p class="hint" style="margin:0;">Ringkasan/refleksi progres hafalan seminggu terakhir dari AI.</p>
+          </div>
+          <button class="toggle-switch" id="toggleWeeklyReflection" role="switch" aria-label="Refleksi mingguan"></button>
+        </div>
+      </div>
+      <div class="card" style="margin-top:14px; padding:14px 16px;">
         <p class="section-title" style="margin:0 0 4px;">⏱️ Ambang waktu overdue muraja'ah</p>
         <p class="hint" style="margin:0 0 12px;">Halaman "Sedang muraja'ah"/"Mutqin" ditandai <b>perlu muraja'ah</b> kalau lebih dari sekian hari sejak terakhir dimuraja'ah. Berlaku juga untuk pengingat Telegram.</p>
         <div class="field" style="margin-bottom:12px;">
@@ -931,8 +949,12 @@ const DEFAULT_OVERDUE_DAYS = 30;
    AWAL array CHANGELOG (paling atas = paling baru). Ini murni tampilan
    (tidak memengaruhi cache); yang mengontrol update service worker
    tetap CACHE_VERSION di sw.js. */
-const APP_VERSION = 'v44';
+const APP_VERSION = 'v45';
 const CHANGELOG = [
+  { version:'v45', date:'20 Agustus 2026', changes:[
+    'Tambah kartu "Notifikasi otomatis" di Pengaturan — nyalakan/matikan sendiri 2 notifikasi Telegram: pengingat pagi jam 06.00 (kalau kemarin sama sekali tidak ada laporan muraja\'ah, + kata motivasi islami) dan refleksi mingguan tiap Senin jam 07.00. Bisa juga diatur lewat bot dengan mengetik "notifikasi".',
+    'Fix bug tersembunyi: pengaturan jam pengingat/notifikasi (reminderState) sebelumnya ikut hilang tiap kali app ini menyimpan data (pushData), karena field-nya tidak diteruskan balik ke server. Sekarang diteruskan apa adanya supaya pengaturan yang dibuat lewat bot Telegram maupun lewat app ini sama-sama tersimpan konsisten.'
+  ]},
   { version:'v44', date:'20 Agustus 2026', changes:[
     'Fix: bar player "sedang muraja\'ah" (idle -> playing) melompat jadi jauh lebih tinggi begitu tombol putar ditekan, ikut menutupi lebih banyak baris ayat di bawahnya (efek samping dari player mengambang di v43). Tombol kontrol & padding player sekarang diperkecil supaya tinggi idle vs playing hampir sama, jadi hampir tidak ada "lompatan" ukuran saat play/stop.'
   ]},
@@ -1302,6 +1324,37 @@ function offlineDownloadedCount(){
   return n;
 }
 
+/* ---------- Pengaturan: notifikasi otomatis (pengingat pagi & refleksi mingguan) ----------
+   Sumber kebenaran & default-nya ada di Worker (reminderState, lihat
+   normalizeReminderState() di worker.js) — di sini cuma baca apa adanya dari
+   appData.reminderState (kalau belum ada/belum pernah di-fetch, anggap AKTIF,
+   sama seperti default di server) lalu tulis balik lewat pushData(). */
+function isNoReportReminderEnabled(){
+  const v = appData && appData.reminderState && appData.reminderState.noReportReminderEnabled;
+  return v === false ? false : true;
+}
+function isWeeklyReflectionEnabled(){
+  const v = appData && appData.reminderState && appData.reminderState.weeklyReflectionEnabled;
+  return v === false ? false : true;
+}
+function renderNotificationSettings(){
+  const a = document.getElementById('toggleNoReportReminder');
+  const b = document.getElementById('toggleWeeklyReflection');
+  if(a) a.classList.toggle('on', isNoReportReminderEnabled());
+  if(b) b.classList.toggle('on', isWeeklyReflectionEnabled());
+}
+async function toggleNotificationSetting(key, btnId){
+  appData.reminderState = appData.reminderState || {};
+  const next = !(key==='noReportReminderEnabled' ? isNoReportReminderEnabled() : isWeeklyReflectionEnabled());
+  appData.reminderState[key] = next;
+  const btn = document.getElementById(btnId);
+  if(btn) btn.classList.toggle('on', next);
+  const ok = await pushData();
+  const label = key==='noReportReminderEnabled' ? 'Pengingat pagi' : 'Refleksi mingguan';
+  showToast(ok ? (label+' sekarang '+(next?'AKTIF.':'DIMATIKAN.')) : ('Gagal simpan: '+lastSyncDetail), ok);
+  if(!ok) renderNotificationSettings(); // gagal simpan -> tampilkan lagi nilai yang tersimpan di server
+}
+
 /* ---------- Pengaturan: ambang waktu overdue ---------- */
 function renderOverdueDaysSetting(){
   const el = document.getElementById('overdueDaysInput');
@@ -1555,7 +1608,15 @@ function normalizeData(raw){
   for(let i=1;i<=TOTAL_JUZ;i++) juz[i] = ensureJuzShape(src[i], i);
   const rawOverdueDays = raw && raw.settings && raw.settings.overdueDays;
   const overdueDays = (Number.isFinite(rawOverdueDays) && rawOverdueDays>0) ? Math.round(rawOverdueDays) : DEFAULT_OVERDUE_DAYS;
-  return { juz, settings:{ overdueDays } };
+  const out = { juz, settings:{ overdueDays } };
+  // reminderState (jam pengingat, status notifikasi on/off, dst) dikelola &
+  // dinormalisasi penuh oleh Worker — di sini SEKADAR diteruskan apa adanya
+  // (pass-through). Kalau tidak diteruskan, tiap kali app ini pushData(),
+  // field ini akan hilang dari body lalu Worker menganggapnya "belum pernah
+  // diatur" dan mereset semuanya balik ke default — menimpa pengaturan yang
+  // sudah dibuat lewat bot Telegram maupun lewat menu Pengaturan di app ini.
+  if(raw && raw.reminderState && typeof raw.reminderState === 'object') out.reminderState = raw.reminderState;
+  return out;
 }
 /* status gabungan sebuah juz, dihitung otomatis dari status semua halamannya */
 function juzAggregateStatus(entry){
@@ -1722,7 +1783,7 @@ function switchView(view){
   const titles = { beranda:['Hafalan & Muraja\'ah', new Date().toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'})],
     riwayat:['Riwayat',''], statistik:['Statistik',''], pengaturan:['Pengaturan',''] };
   if(titles[view]){ document.getElementById('appbarTitle').textContent = titles[view][0]; document.getElementById('appbarSub').textContent = titles[view][1]; }
-  if(view==='pengaturan'){ renderOfflineProgress(); renderOverdueDaysSetting(); }
+  if(view==='pengaturan'){ renderOfflineProgress(); renderOverdueDaysSetting(); renderNotificationSettings(); }
   window.scrollTo(0,0);
 }
 
@@ -2950,6 +3011,8 @@ function init(){
   document.getElementById('btnCheckAiQuota').onclick = checkAiQuotaMenu;
   document.getElementById('btnDownloadOffline').onclick = downloadAllPagesForOffline;
   document.getElementById('btnSaveOverdueDays').onclick = saveOverdueDaysSetting;
+  document.getElementById('toggleNoReportReminder').onclick = ()=> toggleNotificationSetting('noReportReminderEnabled','toggleNoReportReminder');
+  document.getElementById('toggleWeeklyReflection').onclick = ()=> toggleNotificationSetting('weeklyReflectionEnabled','toggleWeeklyReflection');
   document.getElementById('btnChangelog').onclick = openChangelog;
   document.getElementById('changelogClose').onclick = closeChangelog;
   document.getElementById('btnCheckUpdate').onclick = checkForUpdate;
