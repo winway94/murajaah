@@ -957,8 +957,11 @@ const DEFAULT_OVERDUE_DAYS = 30;
    AWAL array CHANGELOG (paling atas = paling baru). Ini murni tampilan
    (tidak memengaruhi cache); yang mengontrol update service worker
    tetap CACHE_VERSION di sw.js. */
-const APP_VERSION = 'v46';
+const APP_VERSION = 'v47';
 const CHANGELOG = [
+  { version:'v47', date:'20 Agustus 2026', changes:[
+    'Kotak input PIN (layar Masukkan PIN & modal Ubah PIN) sekarang menyamarkan angka yang diketik jadi titik (•), bukan menampilkan digitnya langsung — lebih aman kalau dilihat orang lain di sekitar.'
+  ]},
   { version:'v46', date:'20 Agustus 2026', changes:[
     'Desain ulang layar Masukkan PIN & modal Ubah PIN: dari gaya lama (tema gelap emas + keypad angka custom + titik indikator) jadi kartu putih dengan ikon gembok, judul & deskripsi, dan 6 kotak input PIN terpisah (pakai keyboard numerik bawaan perangkat, auto-pindah kotak berikutnya, mendukung paste kode sekaligus).',
     'Tombol "Lupa PIN?" di layar kunci sekarang mengarah ke Pengaturan server (fungsinya sama seperti sebelumnya, cuma teksnya disesuaikan) — belum ada fitur reset PIN ke bawaan tersendiri.'
@@ -1751,7 +1754,7 @@ function renderPinBoxes(containerId, count){
   wrap.innerHTML = '';
   for(let i=0;i<count;i++){
     const inp = document.createElement('input');
-    inp.type = 'tel'; inp.inputMode = 'numeric'; inp.pattern = '[0-9]*';
+    inp.type = 'password'; inp.inputMode = 'numeric'; inp.pattern = '[0-9]*';
     inp.maxLength = 1; inp.className = 'pinbox'; inp.autocomplete = i===0 ? 'one-time-code' : 'off';
     inp.dataset.idx = i;
     wrap.appendChild(inp);
