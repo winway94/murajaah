@@ -744,19 +744,18 @@ button{font-family:var(--font-sans);}
         <div class="alert-chips" id="terlupakanChips"></div>
       </div>
 
-      <!-- Rekomendasi Muraja'ah Adaptif: mirip prinsip spaced repetition --
-           halaman diprioritaskan bukan cuma dari "sudah berapa hari",
-           tapi dibandingkan dgn jadwal ulang yang MELEBAR sendiri makin
-           sering suatu halaman berhasil di-muraja'ah beruntun (lihat
-           pageReviewStreak/srsIntervalDays/computeSrsRecommendations) --
-           supaya halaman yang masih rawan lupa diulang lebih sering,
-           yang sudah mantap boleh lebih jarang. -->
+      <!-- Rekomendasi Muraja'ah Hari Ini: maksimal 3 JUZ per hari, cuma
+           yang BENAR-BENAR sudah lewat ambang hari (overdueDaysThreshold,
+           default 30 hari, sama dgn dipakai overdueCard di atas & bisa
+           diubah user di Pengaturan) -- kalau belum lewat, TIDAK
+           direkomendasikan sama sekali. Terlupakan selalu ikut (lihat
+           computeJuzRecommendations). Diurutkan paling urgent duluan. -->
       <div class="card" id="srsCard" style="margin-bottom:14px;padding:14px 16px;display:none;">
         <div class="alert-head" style="color:var(--primary-text);">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
           REKOMENDASI MURAJA'AH HARI INI
         </div>
-        <p class="alert-sub" style="color:var(--gray-500);">Diurutkan otomatis (adaptif) — yang paling butuh diulang duluan, bukan cuma urut juz.</p>
+        <p class="alert-sub" style="color:var(--gray-500);">Maksimal 3 juz/hari, cuma yang paling urgent (sudah lama sekali tak disentuh, atau terlupakan).</p>
         <div id="srsList"></div>
       </div>
 
@@ -1290,8 +1289,15 @@ const DEFAULT_OVERDUE_DAYS = 30;
    AWAL array CHANGELOG (paling atas = paling baru). Ini murni tampilan
    (tidak memengaruhi cache); yang mengontrol update service worker
    tetap CACHE_VERSION di sw.js. */
-const APP_VERSION = 'v64';
+const APP_VERSION = 'v66';
 const CHANGELOG = [
+  { version:'v66', date:'21 Agustus 2026', changes:[
+    'Fix bug kotak "Halaman (tap untuk ubah)" di Detail Juz kadang hilang total (kosong, tidak ada satu kotak pun) -- penyebabnya 1 halaman saja dengan status data tidak dikenal bisa bikin SELURUH proses render kotak berhenti di tengah jalan. Sekarang tiap kotak dirender terpisah (gagal 1 tidak menggagalkan yang lain) + status tidak dikenal otomatis dianggap "Belum ziyadah" alih-alih bikin error.',
+    'Tombol "Unduh semua halaman" (offline) sekarang ikut mengunduh data Mode Madinah (layout QCF4 + font) per halaman, bukan cuma info surah/ayat -- sebelumnya Mode Madinah tetap loading tiap dibuka pertama kali walau sudah pernah tekan unduh semua.'
+  ]},
+  { version:'v65', date:'21 Agustus 2026', changes:[
+    'Ubah aturan "Rekomendasi Muraja\'ah Hari Ini": sekarang maksimal 3 JUZ per hari (bukan per halaman/rentang), dan cuma yang BENAR-BENAR sudah lewat ambang hari (pengaturan overdue yang sama dengan dipakai di seluruh app, default 30 hari) yang direkomendasikan -- kalau belum lewat, tidak muncul sama sekali. Halaman "terlupakan" tetap selalu diprioritaskan paling atas. Diurutkan dari yang paling lama tak disentuh duluan.'
+  ]},
   { version:'v64', date:'20 Agustus 2026', changes:[
     'Hapus bar Mode Uji Hafalan sepenuhnya -- keluar dari mode sudah otomatis bisa lewat ketuk ikon mata-coret di header lagi atau ketuk area kosong (tombol "Selesai" jadi mubazir). "Buka Semua" dipindah jadi 1 ikon kecil di header (muncul cuma pas mode aktif), bukan bar terpisah yang makan tempat.'
   ]},
@@ -2044,6 +2050,41 @@ function offlineDownloadedCount(){
   for(let p=1;p<=TOTAL_PAGES;p++) if(cache[p]) n++;
   return n;
 }
+/* Sama seperti fetchAndCachePageMetaSync() di atas, tapi untuk data
+   Mode Madinah (JSON layout QCF4 per halaman + font woff2-nya) — dulu
+   TIDAK ikut diunduh oleh tombol "Unduh semua halaman" (cuma info
+   surah/ayat yang diunduh), jadi Mode Madinah tetap loading tiap kali
+   dibuka pertama kali walau sudah pernah tekan "Unduh semua". Sekarang
+   ikut diambil & di-cache ke localStorage (JSON) + cache permanen
+   Service Worker (font, lewat MUSHAF_CACHEABLE_HOSTS di sw.js). */
+async function fetchAndCacheQcf4PageSync(p){
+  const cache = loadQcf4PageCache();
+  if(cache[p]) return cache[p];
+  try{
+    const res = await fetch(QCF4_JSON_BASE + String(p).padStart(3,'0') + '.json');
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const json = await res.json();
+    if(!json || !json.lines || !json.lines.length) throw new Error('respons kosong');
+    // prefetch juga font woff2 yang dipakai halaman ini, supaya sekalian
+    // tersimpan permanen di cache Service Worker (bukan cuma JSON layout-nya)
+    const fontsUsed = {};
+    json.lines.forEach(line=> line.words.forEach(w=>{ if(w.font) fontsUsed[w.font]=true; }));
+    await Promise.all(Object.keys(fontsUsed).map(ensureQcf4Font));
+    cache[p] = json;
+    saveQcf4PageCache();
+    delete qcf4PageFailed[p];
+    return cache[p];
+  }catch(e){
+    console.log('unduh offline (Madinah) hal.'+p+' gagal:', e);
+    return null;
+  }
+}
+function offlineQcf4DownloadedCount(){
+  const cache = loadQcf4PageCache();
+  let n = 0;
+  for(let p=1;p<=TOTAL_PAGES;p++) if(cache[p]) n++;
+  return n;
+}
 
 /* ---------- Pengaturan: notifikasi otomatis (pengingat pagi & refleksi mingguan) ----------
    Sumber kebenaran & default-nya ada di Worker (reminderState, lihat
@@ -2096,9 +2137,13 @@ function renderOfflineProgress(){
   const hint = document.getElementById('offlineDlHint');
   const bar = document.getElementById('offlineDlBar');
   if(!hint || !bar) return;
-  const n = offlineDownloadedCount();
+  // Dihitung dari 2 sumber sekaligus (info surah/ayat + layout Mode
+  // Madinah) -- 1 "halaman" dianggap lengkap kalau KEDUANYA sudah
+  // tersimpan, supaya persentase mencerminkan kesiapan offline yang
+  // sesungguhnya (termasuk Mode Madinah, bukan cuma metadata teks).
+  const n = Math.min(offlineDownloadedCount(), offlineQcf4DownloadedCount());
   const pct = Math.round(n/TOTAL_PAGES*100);
-  hint.textContent = n+' / '+TOTAL_PAGES+' halaman tersimpan offline ('+pct+'%).';
+  hint.textContent = n+' / '+TOTAL_PAGES+' halaman tersimpan offline, termasuk Mode Madinah ('+pct+'%).';
   bar.style.width = pct+'%';
 }
 let offlineDownloadCancelled = false;
@@ -2113,11 +2158,18 @@ async function downloadAllPagesForOffline(){
   let failed = 0;
   for(let p=1; p<=TOTAL_PAGES; p++){
     if(offlineDownloadCancelled) break;
-    const cache = loadPageMetaCache();
-    if(!cache[p]){
+    const metaCache = loadPageMetaCache();
+    if(!metaCache[p]){
       const meta = await fetchAndCachePageMetaSync(p);
       if(!meta) failed++;
       await new Promise(r=> setTimeout(r, 100)); // jeda kecil, jangan banjiri API
+    }
+    if(offlineDownloadCancelled) break;
+    const qcf4Cache = loadQcf4PageCache();
+    if(!qcf4Cache[p]){
+      const pg = await fetchAndCacheQcf4PageSync(p);
+      if(!pg) failed++;
+      await new Promise(r=> setTimeout(r, 100));
     }
     renderOfflineProgress();
   }
@@ -2126,8 +2178,8 @@ async function downloadAllPagesForOffline(){
   btn.onclick = downloadAllPagesForOffline;
   renderOfflineProgress();
   if(offlineDownloadCancelled) showToast('Unduhan dibatalkan.', true);
-  else if(failed) showToast(failed+' halaman gagal diunduh (coba lagi nanti).', false);
-  else showToast('Semua halaman berhasil diunduh untuk offline!', true);
+  else if(failed) showToast(failed+' bagian gagal diunduh (coba lagi nanti).', false);
+  else showToast('Semua halaman (termasuk Mode Madinah) berhasil diunduh untuk offline!', true);
 }
 /* ---------- Indikator "terakhir dimurajaah" per-juz (waktu relatif) ----------
    Format makin kasar makin lama jaraknya: hari -> bulan+hari -> tahun+bulan
@@ -2278,7 +2330,16 @@ function serverConfigured(){ return !!apiBase() && !!appToken(); }
    berikutnya, datanya otomatis tersimpan ulang pakai key baru "mutqin",
    jadi migrasi ini cukup dijalankan sekali per baca lalu selesai dengan
    sendirinya secara bertahap. */
-function migrateStatusKey(s){ return s==='stabil' ? 'mutqin' : s; }
+function migrateStatusKey(s){
+  if(s==='stabil') return 'mutqin';
+  // Jaring pengaman umum: kalau ternyata ada key status APAPUN yang tidak
+  // dikenali STATUS_META (bukan cuma "stabil" yang sudah diketahui), jangan
+  // diloloskan apa adanya -- itu yang bikin renderPageGrid() error dan
+  // kotak halaman hilang total. Fallback ke "belum" (paling aman, tidak
+  // mengklaim progres yang tidak pasti).
+  if(s && !STATUS_META[s]) return 'belum';
+  return s;
+}
 function defaultJuzEntry(n){
   const [s,e] = juzRange(n);
   const pages = {};
@@ -2429,107 +2490,75 @@ function juzMurajaahCount(entry){
   Object.keys(entry.pages).map(Number).forEach(p=> total += pageMurajaahCount(entry, p));
   return total;
 }
-/* ---------- Rekomendasi Muraja'ah Adaptif (mirip prinsip spaced repetition) ----------
-   Sama seperti pageMurajaahCount() -- dihitung langsung dari riwayat
-   (history), TIDAK butuh field data baru. Bedanya: pageReviewStreak()
-   cuma menghitung mundur dari yang PALING BARU, dan berhenti (reset ke 0)
-   begitu ketemu event halaman itu ditandai "terlupakan" -- jadi hasilnya
-   "sudah berapa kali beruntun berhasil dimuraja'ah SEJAK terakhir kali
-   lupa", bukan total sepanjang masa. Streak inilah yang dipakai melebarkan
-   jadwal ulangnya (srsIntervalDays) -- makin sering beruntun berhasil,
-   makin jarang perlu diulang; begitu pernah lupa lagi, jadwalnya balik
-   rapat lagi dari awal. */
-function pageReviewStreak(entry, page){
-  const hist = entry.history || [];
-  let streak = 0;
-  for(let i=hist.length-1; i>=0; i--){
-    const h = hist[i];
-    if(h.page!==page && !(h.event==='murajaah_bulk' && Array.isArray(h.pages) && h.pages.includes(page))) continue;
-    if(h.event==='status_change' && h.to==='terlupakan') break; // pernah ditandai lupa -> berhenti hitung, sisanya (sebelum ini) tidak relevan lagi
-    if(h.event==='murajaah' || h.event==='murajaah_bulk') streak++;
-  }
-  return streak;
-}
-/* jadwal ulang (dalam hari) yang MELEBAR sesuai streak -- pola umum
-   spaced repetition: interval = dasar * pertumbuhan^streak, dibatasi
-   maksimal supaya tidak "kelupaan" walau sudah sangat mantap. */
-function srsIntervalDays(streak){
-  const base = 3, growth = 1.6, maxDays = 60;
-  return Math.min(maxDays, base * Math.pow(growth, streak));
-}
-/* Susun daftar halaman yang PALING butuh diulang hari ini, diurutkan
-   dari skor tertinggi (paling telat dari jadwalnya sendiri-sendiri).
-   Skor = (sudah berapa hari sejak terakhir dimuraja'ah) / (jadwal ulang
-   adaptifnya) -- skor >= 1 artinya sudah lewat jadwal. Cuma halaman yang
-   memang sedang "dalam siklus muraja'ah" (murajaah/mutqin/terlupakan)
-   yang dihitung -- "belum ziyadah"/"sedang ziyadah" belum masuk siklus
-   ulang ini. */
-function computeSrsRecommendations(data, limit){
-  const results = [];
+/* ---------- Rekomendasi Muraja'ah Hari Ini ----------
+   Maksimal 3 JUZ per hari (bukan 3 baris/halaman), cuma yang BENAR-BENAR
+   sudah lewat ambang batas hari (pakai overdueDaysThreshold() yang SAMA
+   dgn dipakai overdueCard/isPageOverdue di tempat lain -- default 30
+   hari, bisa diubah user di Pengaturan) -- kalau belum lewat ambang itu,
+   TIDAK direkomendasikan sama sekali, walau statusnya "sedang
+   muraja'ah". Pengecualian: halaman berstatus "terlupakan" selalu ikut
+   (sinyal eksplisit dari user, tidak perlu nunggu ambang hari). Juz
+   diurutkan paling urgent duluan: yang punya halaman "terlupakan" di
+   atas semua, sisanya diurutkan dari yang paling lama tak disentuh. */
+function computeJuzRecommendations(data, maxJuz){
+  const threshold = overdueDaysThreshold();
+  const result = [];
   for(let n=1;n<=TOTAL_JUZ;n++){
     const e = data.juz[n];
     if(!e) continue;
-    Object.keys(e.pages).map(Number).forEach(p=>{
+    const pages = Object.keys(e.pages).map(Number).sort((a,b)=>a-b);
+    let hasTerlupakan = false;
+    let maxDays = -1; // -1 = belum ada yg qualify; Infinity dipakai utk "belum pernah tercatat"
+    const qualifying = [];
+    pages.forEach(p=>{
       const pg = e.pages[p];
-      if(pg.status!=='murajaah' && pg.status!=='mutqin' && pg.status!=='terlupakan') return;
-      const streak = pageReviewStreak(e, p);
-      const interval = srsIntervalDays(streak);
-      const days = pg.lastMurajaah ? daysSince(pg.lastMurajaah) : 9999; // belum pernah tercatat tanggalnya -> anggap paling mendesak
-      const score = days / interval;
-      results.push({ juz:n, page:p, status:pg.status, days, interval, score, streak });
+      if(pg.status==='terlupakan'){
+        hasTerlupakan = true;
+        qualifying.push(p);
+        return;
+      }
+      if(pg.status!=='murajaah' && pg.status!=='mutqin') return;
+      const days = pg.lastMurajaah ? daysSince(pg.lastMurajaah) : Infinity;
+      if(days===Infinity || days>threshold){
+        qualifying.push(p);
+        if(days===Infinity) maxDays = Infinity;
+        else if(maxDays!==Infinity) maxDays = Math.max(maxDays, days);
+      }
     });
+    if(!qualifying.length) continue;
+    result.push({ juz:n, hasTerlupakan, maxDays, pages:qualifying });
   }
-  results.sort((a,b)=> b.score - a.score);
-  return results.slice(0, limit || 8);
-}
-/* Gabungkan halaman-halaman BERTURUT-TURUT (nomor halaman nyambung,
-   juz sama) yang kondisinya IDENTIK PERSIS (status, "sudah berapa hari",
-   jadwal adaptifnya) jadi 1 baris rentang -- mis. 8 halaman kondisi sama
-   di Juz 13 cukup 1 baris "Halaman 242\u2013249", bukan 8 baris berulang.
-   Aman digabung tanpa perlu re-sort krn computeSrsRecommendations() sudah
-   urut per-juz/per-halaman menaik SEBELUM di-sort skor -- kandidat dgn
-   skor identik (yg kondisinya sama persis) otomatis tetap bertetangga
-   berkat stable sort JS, jadi tinggal dicek adjacency-nya di sini. */
-function groupSrsRecommendations(recs){
-  const groups = [];
-  let cur = null;
-  recs.forEach(r=>{
-    const sameRun = cur && cur.juz===r.juz && r.page===cur.endPage+1 &&
-      cur.status===r.status && cur.days===r.days && Math.round(cur.interval)===Math.round(r.interval);
-    if(sameRun){ cur.endPage = r.page; cur.count++; }
-    else{ cur = { juz:r.juz, startPage:r.page, endPage:r.page, status:r.status, days:r.days, interval:r.interval, count:1 }; groups.push(cur); }
+  result.sort((a,b)=>{
+    if(a.hasTerlupakan!==b.hasTerlupakan) return (b.hasTerlupakan?1:0)-(a.hasTerlupakan?1:0);
+    return b.maxDays-a.maxDays;
   });
-  return groups;
+  return result.slice(0, maxJuz || 3);
 }
 function renderSrsCard(){
   const card = document.getElementById('srsCard');
   const list = document.getElementById('srsList');
   if(!card || !list) return;
-  // Ambil SEMUA kandidat yg lolos filter dulu (tanpa batas), baru
-  // dikelompokkan jadi rentang, baru dibatasi ke 8 BARIS (bukan 8
-  // halaman) -- supaya rentang panjang tidak keburu terpotong duluan.
-  const recs = computeSrsRecommendations(appData, 9999)
-    .filter(r=> r.status==='terlupakan' || r.score>=0.85);
+  const recs = computeJuzRecommendations(appData, 3);
   if(!recs.length){ card.style.display='none'; return; }
   card.style.display='block';
-  const groups = groupSrsRecommendations(recs).slice(0, 8);
-  const statusLabel = { murajaah:'Sedang muraja\'ah', mutqin:'Mutqin', terlupakan:'Terlupakan' };
-  const statusColor = { murajaah:'var(--warning)', mutqin:'var(--success)', terlupakan:'var(--danger)' };
-  list.innerHTML = groups.map(g=>{
-    const pageLabel = (g.startPage===g.endPage) ? ('Halaman '+g.startPage) : ('Halaman '+g.startPage+'\u2013'+g.endPage);
-    const countLabel = g.count>1 ? ' ('+g.count+' halaman)' : '';
-    return '<button class="srs-item" data-juz="'+g.juz+'" data-page="'+g.startPage+'">'+
-      '<span class="srs-item-badge" style="background:'+(statusColor[g.status]||'var(--gray-300)')+';"></span>'+
+  const threshold = overdueDaysThreshold();
+  list.innerHTML = recs.map(r=>{
+    const first = r.pages[0], last = r.pages[r.pages.length-1];
+    const pageLabel = (first===last) ? ('Halaman '+first) : ('Halaman '+first+'\u2013'+last);
+    const statusLabel = r.hasTerlupakan ? 'Ada halaman terlupakan' : 'Perlu muraja\'ah';
+    const color = r.hasTerlupakan ? 'var(--danger)' : 'var(--warning)';
+    const daysLabel = (r.maxDays===Infinity) ? 'belum pernah tercatat' : 'lebih dari '+threshold+' hari';
+    return '<button class="srs-item" data-juz="'+r.juz+'" data-page="'+first+'">'+
+      '<span class="srs-item-badge" style="background:'+color+';"></span>'+
       '<span style="flex:1;">'+
-        '<span class="srs-item-title">'+pageLabel+' \u2014 Juz '+g.juz+countLabel+'</span>'+
-        '<span class="srs-item-sub">'+statusLabel[g.status]+' \u2022 '+(g.days>=9999 ? 'belum pernah tercatat' : g.days+' hari lalu')+' \u2022 jadwal tiap ~'+Math.round(g.interval)+' hari</span>'+
+        '<span class="srs-item-title">'+pageLabel+' \u2014 Juz '+r.juz+' ('+r.pages.length+' halaman)</span>'+
+        '<span class="srs-item-sub">'+statusLabel+' \u2022 '+daysLabel+'</span>'+
       '</span>'+
       '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--gray-300);flex-shrink:0;"><path d="M9 6l6 6-6 6"/></svg>'+
     '</button>';
   }).join('');
-  // Tap 1 baris rentang -> buka editor halaman PERTAMA di rentang itu
-  // (paling masuk akal sbg titik mulai; halaman lain di rentang itu
-  // tinggal dibuka satu-satu manual dari sana kalau perlu).
+  // Tap 1 baris juz -> buka editor halaman PERTAMA yang overdue di juz
+  // itu (paling masuk akal sbg titik mulai muraja'ah hari ini).
   list.querySelectorAll('.srs-item').forEach(el=>{
     el.onclick = ()=> openPageEditor(Number(el.getAttribute('data-juz')), Number(el.getAttribute('data-page')));
   });
@@ -3083,24 +3112,43 @@ function renderPageGrid(n){
   const [start,end] = juzRange(n);
   grid.innerHTML = '';
   for(let p=start;p<=end;p++){
-    const pg = e.pages[p];
-    const overdue = isPageOverdue(pg);
-    const cell = document.createElement('div');
-    cell.className = 'page-cell' + (overdue?' overdue':'');
-    // sel netral (abu-abu) untuk semua status — warna status dipindah jadi
-    // dot kecil di bawah nomor, bukan background sel penuh, supaya sel bisa
-    // diperbesar (tap target lebih mudah dijangkau) tanpa tampilan jadi ramai.
-    // angka besar = nomor urut dalam juz (1-20), dot = warna status, angka
-    // kecil di pojok = nomor halaman mushaf asli — semua kelihatan sekaligus
-    // tanpa perlu tap dulu.
-    cell.innerHTML = '<span>'+(p - start + 1)+'</span>'
-      + '<span class="page-cell-dot" style="background:'+STATUS_META[pg.status].color+'"></span>'
-      + '<span class="page-cell-mushaf">'+p+'</span>';
-    const meta = getPageMeta(p);
-    const cnt = pageMurajaahCount(e, p);
-    cell.title = 'Halaman '+p+' (mushaf)' + (meta ? ' \u2014 '+meta.label : '') + ' \u2014 '+STATUS_META[pg.status].label + ' \u2014 '+cnt+'x';
-    cell.onclick = ()=> openPageEditor(n, p);
-    grid.appendChild(cell);
+    // Dibungkus try/catch PER HALAMAN dengan sengaja: kalau satu halaman
+    // saja punya data rusak/status tidak dikenal (mis. sisa key lama yang
+    // belum termigrasi), dulu itu bikin SELURUH grid gagal dirender jadi
+    // kosong total (loop berhenti di iterasi yang error). Sekarang cukup
+    // 1 kotak itu yang fallback ke tampilan aman ("belum"), 19 kotak
+    // lainnya tetap muncul normal.
+    try{
+      let pg = e.pages[p];
+      if(!pg || !STATUS_META[pg.status]){
+        console.log('page-grid: status tidak dikenal di hal.'+p+', fallback ke "belum"', pg);
+        pg = { status:'belum', lastMurajaah: (pg && pg.lastMurajaah) || null };
+      }
+      const overdue = isPageOverdue(pg);
+      const cell = document.createElement('div');
+      cell.className = 'page-cell' + (overdue?' overdue':'');
+      // sel netral (abu-abu) untuk semua status — warna status dipindah jadi
+      // dot kecil di bawah nomor, bukan background sel penuh, supaya sel bisa
+      // diperbesar (tap target lebih mudah dijangkau) tanpa tampilan jadi ramai.
+      // angka besar = nomor urut dalam juz (1-20), dot = warna status, angka
+      // kecil di pojok = nomor halaman mushaf asli — semua kelihatan sekaligus
+      // tanpa perlu tap dulu.
+      cell.innerHTML = '<span>'+(p - start + 1)+'</span>'
+        + '<span class="page-cell-dot" style="background:'+STATUS_META[pg.status].color+'"></span>'
+        + '<span class="page-cell-mushaf">'+p+'</span>';
+      const meta = getPageMeta(p);
+      const cnt = pageMurajaahCount(e, p);
+      cell.title = 'Halaman '+p+' (mushaf)' + (meta ? ' \u2014 '+meta.label : '') + ' \u2014 '+STATUS_META[pg.status].label + ' \u2014 '+cnt+'x';
+      cell.onclick = ()=> openPageEditor(n, p);
+      grid.appendChild(cell);
+    }catch(err){
+      console.log('page-grid: gagal render hal.'+p, err);
+      const cell = document.createElement('div');
+      cell.className = 'page-cell';
+      cell.innerHTML = '<span>'+(p - start + 1)+'</span><span class="page-cell-mushaf">'+p+'</span>';
+      cell.onclick = ()=> openPageEditor(n, p);
+      grid.appendChild(cell);
+    }
   }
 }
 

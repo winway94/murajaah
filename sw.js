@@ -7,7 +7,7 @@
    Naikkan CACHE_VERSION setiap kali index.html/manifest/ikon diubah,
    supaya pengguna otomatis dapat versi terbaru.
    ============================================================ */
-const CACHE_VERSION = "v71";
+const CACHE_VERSION = "v73";
 const CACHE_NAME = "hafalan-" + CACHE_VERSION;
 // Cache TERPISAH untuk aset statis pihak ketiga (SVG halaman mushaf +
 // audio murottal per-ayat). SENGAJA tidak ikut prefix "hafalan-"/
@@ -20,7 +20,7 @@ const MUSHAF_CACHE_NAME = "mushaf-assets-v1";
 // audio murottal, dan font Google "Amiri Quran" (dipakai render halaman
 // mode teks). Semua permanen/tidak pernah berubah, jadi aman di-cache
 // selamanya begitu pernah diakses sekali saat online.
-const MUSHAF_CACHEABLE_HOSTS = ["cdn.jsdelivr.net", "everyayah.com", "fonts.googleapis.com", "fonts.gstatic.com"];
+const MUSHAF_CACHEABLE_HOSTS = ["cdn.jsdelivr.net", "everyayah.com", "fonts.googleapis.com", "fonts.gstatic.com", "raw.githubusercontent.com"];
 
 // File same-origin yang wajib ada supaya app bisa dibuka offline.
 // Catatan: data hafalan sendiri TIDAK di-cache di sini — itu selalu
