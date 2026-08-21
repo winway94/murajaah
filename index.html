@@ -1335,8 +1335,14 @@ const DEFAULT_OVERDUE_DAYS = 30;
    AWAL array CHANGELOG (paling atas = paling baru). Ini murni tampilan
    (tidak memengaruhi cache); yang mengontrol update service worker
    tetap CACHE_VERSION di sw.js. */
-const APP_VERSION = 'v94';
+const APP_VERSION = 'v98';
 const CHANGELOG = [
+  { version:'v98', date:'21 Agustus 2026', changes:[
+    'Fix tombol "kembali" HP: dulu bisa nutup overlay yang SALAH kalau ada overlay bertumpuk (mis. Mushaf lalu Tafsir/Ulang Bacaan dibuka di atasnya) -- riwayat browser jadi tidak sinkron, akibatnya tombol kembali berikutnya malah langsung keluar app. Sekarang urutan overlay yang kebuka dilacak eksplisit (bukan lagi tebak dari urutan elemen di HTML), jadi kembali SELALU nutup satu per satu sesuai urutan dibuka. Popup Reciter & Ubah PIN yang sebelumnya tidak ikut sistem ini sama sekali juga sudah didaftarkan.',
+    'Hasil pencarian (kata Arab, lookup "surah:ayat", nama surah) sekarang langsung MENYOROT & men-scroll ke ayat yang dituju begitu Mode Mushaf terbuka -- sebelumnya cuma buka ke halaman yang benar, ayatnya sendiri harus dicari manual di antara semua ayat di halaman itu.',
+    'Tasbih Digital: Wake Lock (layar tidak mati) sekarang eksplisit & rapi -- tetap menyala selama halaman Tasbih aktif dilihat, tapi otomatis dilepas begitu app dipindah ke background/layar dikunci, dan dipasang ulang otomatis saat kembali.',
+    'Sinkronkan lagi APP_VERSION dgn CACHE_VERSION service worker (sempat ketinggalan di v94 padahal sw.js sudah v98) -- lihat juga catatan serupa di v79.'
+  ]},
   { version:'v94', date:'21 Agustus 2026', changes:[
     '\u26A0\uFE0F PENTING: versi ini WAJIB di-deploy BERSAMAAN dengan worker.js versi terbaru (bukan salah satu duluan seperti biasanya) -- bentuk respons API /data berubah, app & worker versi lama-baru yang dicampur akan gagal baca data.',
     'Fix RACE CONDITION serius: app & bot Telegram bisa saling menimpa catatan satu sama lain TANPA PERINGATAN. Skenario nyata: app dibuka pagi (data ke-load saat itu) -> siang catat murajaah lewat bot -> sore app yang masih kebuka dari pagi (belum di-refresh) menyimpan sesuatu -> catatan murajaah dari bot ikut TERTIMPA HILANG, senyap tanpa ada peringatan apa pun. Penyebabnya: server cuma ambil versi file TERBARU lalu langsung timpa penuh pakai data yang dikirim app, tanpa cek apakah data app itu sendiri sudah basi. Sekarang app menyimpan penanda versi data (sha) tiap kali baca, dan menyertakannya tiap kali simpan -- kalau ketahuan sudah ada perubahan lain masuk sejak itu (mis. dari bot), penyimpanan DITOLAK & data dimuat ulang otomatis (bukan dipaksa timpa) -- jauh lebih aman walau konsekuensinya perubahan yang sangat baru saja mungkin perlu diulang sekali.'
