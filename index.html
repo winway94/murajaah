@@ -438,9 +438,9 @@ button{font-family:var(--font-sans);}
 .mushaf-word-group.sorot{background:var(--mushaf-sorot-bg);}
 .word-group-head{direction:rtl;text-align:right;margin:0 2px 6px;}
 .mushaf-word-grid{direction:rtl;display:grid;grid-template-columns:repeat(auto-fill,minmax(60px,1fr));gap:8px;}
-.word-card{background:var(--gray-100);border-radius:10px;padding:8px 4px 6px;text-align:center;}
-.word-card .word-ar{font-family:'Amiri Quran',serif;font-size:calc(var(--mushaf-font-size, 26px) - 4px);color:var(--gray-900);line-height:1.3;}
-.word-card .word-id{direction:ltr;font-family:'DM Sans',sans-serif;font-size:10px;color:var(--gray-500);margin-top:4px;font-weight:600;}
+.word-card{background:var(--gray-100);border-radius:10px;padding:8px 4px 6px;text-align:center;min-width:0;overflow:hidden;}
+.word-card .word-ar{font-family:'Amiri Quran',serif;font-size:calc(var(--mushaf-font-size, 26px) - 4px);color:var(--gray-900);line-height:1.3;overflow-wrap:break-word;}
+.word-card .word-id{direction:ltr;font-family:'DM Sans',sans-serif;font-size:10px;color:var(--gray-500);margin-top:4px;font-weight:600;overflow-wrap:break-word;word-break:break-word;}
 .word-card-loading{grid-column:1/-1;text-align:center;font-size:11px;color:var(--gray-500);padding:10px 0;}
 .mushaf-loading,.mushaf-error{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   text-align:center;padding:20px;font-size:12.5px;color:var(--gray-500);}
@@ -1277,9 +1277,10 @@ const DEFAULT_OVERDUE_DAYS = 30;
    AWAL array CHANGELOG (paling atas = paling baru). Ini murni tampilan
    (tidak memengaruhi cache); yang mengontrol update service worker
    tetap CACHE_VERSION di sw.js. */
-const APP_VERSION = 'v82';
+const APP_VERSION = 'v83';
 const CHANGELOG = [
   { version:'v83', date:'21 Agustus 2026', changes:[
+    'Fix teks arti kata (mode Perkata) kadang kelihatan dempet/tumpang-tindih dengan kartu kata di sebelahnya -- penyebabnya kartu kata dirender pakai CSS Grid, dan secara default sebuah elemen di dalam grid tidak boleh menyusut lebih kecil dari lebar teks terpanjang di dalamnya (min-width:auto bawaan browser) -- kalau arti sebuah kata cukup panjang & kolomnya sempit (misal cuma 2 kata dalam 1 ayat, kolom jadi lebar tapi teksnya lebih panjang lagi), teksnya meluber KELUAR kartu dan menimpa kartu tetangga alih-alih membungkus (wrap) rapi ke baris berikutnya. Sekarang kartu kata dipaksa boleh menyusut (min-width:0) & teksnya dipaksa membungkus di dalam lebar kartunya sendiri, jadi tidak akan pernah lagi meluber ke kartu sebelah.',
     'Fix AKAR MASALAH progres "Unduh semua halaman" kelihatan 100% tapi masih muncul toast "font Mushaf Madinah gagal dimuat" & tombol unduh terasa tidak melakukan apa-apa lagi -- penyebabnya getQcf4Page() (dipanggil setiap kali user SEKADAR MEMBUKA halaman di Mode Madinah, bukan cuma lewat tombol unduh) langsung menyimpan halaman ke penyimpanan permanen (IndexedDB) begitu JSON layout-nya berhasil diambil, TANPA menunggu/mengecek apakah file font woff2 halaman itu juga benar-benar berhasil dimuat. Akibatnya halaman yang cuma sempat dibuka sekilas (misal font-nya waktu itu gagal/lambat) sudah kadung tercatat "sudah tersimpan offline" secara permanen, sehingga persentase di Pengaturan menunjukkan 100% padahal sebagian font sebenarnya belum benar-benar ke-cache -- dan karena tombol "Unduh semua halaman" melihat halaman ini sudah ada datanya, ia butuh membuka & mem-verifikasi ulang tiap halaman (bukan langsung skip), yang terasa lambat/seperti macet. Sekarang getQcf4Page() ikut memverifikasi font dulu sebelum menyimpan permanen ke IndexedDB, persis seperti alur tombol unduh -- jadi status "tersimpan offline" sekarang benar-benar mencerminkan halaman yang lengkap (JSON + font), tidak ada lagi "sukses palsu" dari sekadar membuka halaman.',
     'Tambah percobaan ulang otomatis saat memuat font QCF4: sebelumnya cuma dicoba 2x (jsdelivr, lalu mirror raw.githubusercontent.com) sebelum menyerah. Sekarang kalau keduanya gagal, ditunggu 1.5 detik lalu diulang sekali lagi (jsdelivr + mirror), total 4 percobaan -- supaya gangguan jaringan yang cuma sesaat (lumrah terjadi ke CDN luar negeri dari koneksi Indonesia) tidak langsung dianggap gagal permanen.'
   ]},
