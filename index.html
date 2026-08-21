@@ -866,6 +866,7 @@ button{font-family:var(--font-sans);}
           <div class="legend-row"><span class="legend-dot" style="background:var(--primary)"></span><span id="legStabil">Mutqin: 0</span></div>
           <div class="legend-row"><span class="legend-dot" style="background:var(--success)"></span><span id="legMurajaah">Muraja'ah: 0</span></div>
           <div class="legend-row"><span class="legend-dot" style="background:var(--accent)"></span><span id="legZiyadah">Ziyadah: 0</span></div>
+          <div class="legend-row"><span class="legend-dot" style="background:var(--status-terlupakan)"></span><span id="legTerlupakan">Terlupakan: 0</span></div>
           <div class="legend-row"><span class="legend-dot" style="background:var(--gray-300)"></span><span id="legBelum">Belum: 0</span></div>
         </div>
       </div>
@@ -3377,11 +3378,12 @@ function renderStatistik(){
 
   renderHeatmap(all);
 
-  let counts = { belum:0, ziyadah:0, murajaah:0, mutqin:0 };
-  for(let i=1;i<=TOTAL_JUZ;i++){ const ps=juzPageStats(juz[i]); counts.belum+=ps.belum; counts.ziyadah+=ps.ziyadah; counts.murajaah+=ps.murajaah; counts.mutqin+=ps.mutqin; }
+  let counts = { belum:0, ziyadah:0, murajaah:0, mutqin:0, terlupakan:0 };
+  for(let i=1;i<=TOTAL_JUZ;i++){ const ps=juzPageStats(juz[i]); counts.belum+=ps.belum; counts.ziyadah+=ps.ziyadah; counts.murajaah+=ps.murajaah; counts.mutqin+=ps.mutqin; counts.terlupakan+=ps.terlupakan; }
   document.getElementById('legStabil').textContent = 'Mutqin: '+counts.mutqin+' hal.';
   document.getElementById('legMurajaah').textContent = 'Muraja\'ah: '+counts.murajaah+' hal.';
   document.getElementById('legZiyadah').textContent = 'Ziyadah: '+counts.ziyadah+' hal.';
+  document.getElementById('legTerlupakan').textContent = 'Terlupakan: '+counts.terlupakan+' hal.';
   document.getElementById('legBelum').textContent = 'Belum: '+counts.belum+' hal.';
   const pct = Math.round(counts.mutqin/TOTAL_PAGES*100);
   document.getElementById('statDonutPct').textContent = pct+'%';
