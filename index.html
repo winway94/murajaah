@@ -350,6 +350,35 @@ button{font-family:var(--font-sans);}
    di alur normal seperti semula -- supaya navigasi ganti halaman tetap
    selalu terlihat & tidak menutupi teks ayat. */
 #mushafOverlay .mushaf-stage{flex:1 1 auto; min-height:0; position:relative;}
+/* Mode imersif (fullscreen): sisa bingkai putih/abu di tepi layar
+   (padding .sheet + background beda antara imgwrap & kartu kertas)
+   dihilangkan -- tujuan mode ini kan MEMAKSIMALKAN area baca & minim
+   distraksi visual, jadi kalau masih nyisain garis putih tipis di
+   sekeliling ya kurang "penuh". Cuma padding bawah (safe-area-inset,
+   area gestur sistem) yang tetap dipertahankan, sisanya 0. Border-radius
+   & beda warna kartu-vs-latar ikut dihilangkan biar benar2 nyambung
+   tanpa jahitan/seam yang kelihatan. Mode NORMAL (nav/header masih
+   tampil) TIDAK terpengaruh sama sekali -- kartunya tetap seperti biasa. */
+#mushafOverlay.immersive .sheet{padding:0 0 env(safe-area-inset-bottom);}
+#mushafOverlay.immersive .mushaf-imgwrap{border-radius:0;background:var(--mushaf-paper-bg);}
+#mushafOverlay.immersive .mushaf-textwrap{border-radius:0;}
+/* Badge indikator ukuran teks ("zoom") -- muncul sesaat di tengah layar
+   selagi slider ukuran font digeser, supaya user tahu persis angka
+   ukurannya sekarang tanpa harus melototin posisi thumb slider yang
+   kecil. Ditaruh sbg anak #mushafStage (bukan body) supaya posisinya
+   selalu center RELATIF ke area baca, ikut kalau immersive/nav
+   disembunyikan, dan otomatis di atas konten (z-index tinggi). Muncul
+   lewat class "show" (lihat showMushafZoomIndicator()), hilang sendiri
+   ~3 detik setelah slider berhenti disentuh -- lihat JS-nya. */
+.mushaf-zoom-indicator{
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) scale(.92);
+  background:rgba(23,32,30,0.82); color:#fff; font-family:'DM Sans',sans-serif;
+  font-weight:800; font-size:22px; letter-spacing:.2px;
+  padding:14px 22px; border-radius:16px; z-index:30;
+  opacity:0; pointer-events:none;
+  transition:opacity .18s ease, transform .18s ease;
+}
+.mushaf-zoom-indicator.show{opacity:1; transform:translate(-50%,-50%) scale(1);}
 /* Cegah popup seleksi teks bawaan Android/Chrome ("Terjemahkan/Salin/
    Bagikan") ikut muncul pas tahan-lama ayat -- tanpa ini, tahan-lama
    memicu DUA popup sekaligus: pil ikon kustom kita DAN popup seleksi
@@ -1031,6 +1060,7 @@ button{font-family:var(--font-sans);}
     <span id="mushafImmersiveJuzHizb"></span>
   </div>
   <div class="mushaf-stage" id="mushafStage">
+  <div class="mushaf-zoom-indicator" id="mushafZoomIndicator"></div>
   <div class="mushaf-imgwrap" id="mushafImgWrap">
     <div class="mushaf-textwrap" id="mushafTextWrap" style="display:none;"></div>
     <img id="mushafImg" alt="Halaman mushaf" style="display:none;" />
@@ -1277,8 +1307,15 @@ const DEFAULT_OVERDUE_DAYS = 30;
    AWAL array CHANGELOG (paling atas = paling baru). Ini murni tampilan
    (tidak memengaruhi cache); yang mengontrol update service worker
    tetap CACHE_VERSION di sw.js. */
-const APP_VERSION = 'v87';
+const APP_VERSION = 'v89';
 const CHANGELOG = [
+  { version:'v89', date:'21 Agustus 2026', changes:[
+    'Mode imersif (fullscreen): sisa bingkai putih/abu tipis di tepi layar dihilangkan -- kartu kertas sekarang mengisi PENUH sampai ke tepi layar (cuma padding bawah utk area gestur sistem/notch yang dipertahankan). Mode normal (nav/header masih tampil) tidak berubah sama sekali, tetap seperti sebelumnya.'
+  ]},
+  { version:'v88', date:'21 Agustus 2026', changes:[
+    'Mode imersif (fullscreen): sekarang tap DI MANA SAJA di layar -- termasuk tepat di atas teks ayat -- langsung memunculkan lagi header/nav yang disembunyikan. Sebelumnya harus tap area KOSONG secara spesifik (tap di atas ayat malah menjalankan aksi ayat itu/main audio, nav-nya tidak muncul).',
+    'Tambah badge angka ukuran teks yang muncul sesaat (mis. "26px") tepat di tengah layar selagi slider ukuran font digeser, hilang otomatis sendiri \u224e3 detik setelah berhenti disentuh -- supaya lebih mudah tahu persis ukuran sekarang tanpa harus melototin posisi thumb slider yang kecil.'
+  ]},
   { version:'v87', date:'21 Agustus 2026', changes:[
     'Ruang kosong putih/abu di SEKELILING halaman mushaf (Mode Teks/Perkata/Madinah) dipangkas drastis (dipilih dari 3 opsi mockup: "Opsi A - Full bleed ala PNG") -- penyebabnya sebelumnya ada 3 lapis padding bertumpuk (sheet + area abu pembungkus + pembungkus teks + kartu kertas Mode Madinah, total \u224844px tiap sisi), beda jauh dari Mode Gambar (PNG) yang cuma 1 lapis. Sekarang cuma ada SATU kartu kertas (background krem + padding tipis) yang langsung mengisi penuh area baca, nyaris seedge-to-edge seperti Mode Gambar -- lapisan abu pembungkus & padding ganda di tengah dihapus.'
   ]},
@@ -4436,6 +4473,20 @@ function applyMushafFontSize(px){
   document.documentElement.style.setProperty('--mushaf-font-size', px+'px');
   try{ localStorage.setItem(LS_MUSHAF_FONT_SIZE, String(px)); }catch(e){}
 }
+// Badge angka ukuran teks: muncul begitu slider disentuh, hilang sendiri
+// ~3 detik SETELAH sentuhan terakhir (bukan 3 detik fixed sejak muncul --
+// supaya selama masih digeser terus-menerus, badge-nya tidak berkedip
+// hilang-muncul di tengah proses, cuma benar-benar hilang begitu user
+// selesai/berhenti menggeser).
+let mushafZoomIndicatorTimer = null;
+function showMushafZoomIndicator(px){
+  const el = document.getElementById('mushafZoomIndicator');
+  if(!el) return;
+  el.textContent = px + 'px';
+  el.classList.add('show');
+  clearTimeout(mushafZoomIndicatorTimer);
+  mushafZoomIndicatorTimer = setTimeout(()=>{ el.classList.remove('show'); }, 3000);
+}
 function setupMushafFontSizeSlider(){
   const slider = document.getElementById('mushafFontSize');
   if(!slider) return;
@@ -4443,6 +4494,7 @@ function setupMushafFontSizeSlider(){
   applyMushafFontSize(Number(slider.value));
   slider.oninput = ()=>{
     applyMushafFontSize(Number(slider.value));
+    showMushafZoomIndicator(Number(slider.value));
     // ukuran font berubah -> lebar asli tiap baris QCF4 ikut berubah,
     // scaleX-nya perlu dihitung ulang supaya tetap rata kiri-kanan
     if(mushafViewMode==='madinah') adjustQcf4LineWidths();
@@ -4951,6 +5003,18 @@ function setupMushafSwipe(){
   // delegasi klik: tap ayat = putar audio / toggle sorot; tap area kosong = toggle fullscreen / keluar Mode Sorot
   el.addEventListener('click', (e)=>{
     if(mushafLongPressFired){ mushafLongPressFired = false; return; } // klik sintetis stlh tahan lama, abaikan
+    // Mode imersif (fullscreen): tap DI MANA SAJA -- termasuk tepat di atas
+    // teks ayat -- cukup utk memunculkan lagi header/nav yang disembunyikan,
+    // tidak perlu tap area kosong secara spesifik. Tap pertama ini SENGAJA
+    // tidak sekalian menjalankan aksi ayat (main audio dst) di baliknya,
+    // supaya user bisa dengan aman "intip" nav dulu tanpa risiko kepencet
+    // memutar audio/ganti apa pun -- kalau mau berinteraksi dgn ayatnya,
+    // tap lagi sesudah nav muncul (perilaku sama seperti reader/video
+    // player pada umumnya).
+    if(mushafImmersive){
+      setMushafImmersive(false);
+      return;
+    }
     const trigger = e.target.closest('.tafsir-trigger');
     if(trigger){
       toggleTafsirPanel(trigger.getAttribute('data-surah'), trigger.getAttribute('data-ayah'));
