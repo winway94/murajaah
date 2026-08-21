@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Tasbih Digital</title>
 <meta name="theme-color" content="#0F332C">
+<!-- Halaman ini SELALU bertema gelap (teal tua), bukan ikut toggle
+     terang/gelap aplikasi utama -- beri tahu WebView supaya tidak ikut
+     memaksakan algoritma "force dark" di atasnya (bisa bikin warna
+     ke-invert aneh di atas tema gelap yg memang disengaja ini). -->
+<meta name="color-scheme" content="dark">
+<meta name="supported-color-schemes" content="dark">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Amiri+Quran&display=swap" rel="stylesheet">
@@ -19,7 +25,7 @@
   --transition:all .25s ease;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-html,body{height:100%;}
+html,body{height:100%;color-scheme:dark;}
 body{margin:0;font-family:var(--font-sans);color:var(--white);overscroll-behavior:none;
   -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}
 button{font-family:var(--font-sans);}

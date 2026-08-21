@@ -4,6 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Hafalan &amp; Muraja'ah</title>
+<!-- Beritahu WebView/browser kalau app ini SUDAH punya tema terang & gelap
+     sendiri (lihat toggle data-theme di bawah) -- tanpa ini, WebView
+     Android (fitur "force dark"/"algorithmic darkening") bisa memaksa
+     invert warna teks & background secara otomatis di atas tampilan app,
+     TAPI gambar latar (background-image, termasuk bingkai ornamen nama
+     surat yg berupa data-URI SVG) tidak ikut ter-invert -- hasilnya:
+     bingkai nama surat tetap warna terang aslinya sementara sekelilingnya
+     dipaksa gelap oleh sistem, kelihatan seperti "tempelan"/kontras
+     nyeleneh walau CSS tema gelap app sendiri sudah benar. Deklarasi ini
+     memberi tahu sistem supaya berhenti memaksakan dark mode sendiri. -->
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#164A40">
 <meta name="mobile-web-app-capable" content="yes">
@@ -695,6 +707,7 @@ button{font-family:var(--font-sans);}
     var saved = localStorage.getItem('hafalan_theme') || 'auto';
     var isDark = saved==='dark' || (saved==='auto' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
   }catch(e){}
 })();
 </script>
@@ -1244,6 +1257,25 @@ button{font-family:var(--font-sans);}
   <div id="searchResultsBody" style="overflow-y:auto;flex:1;"></div>
 </div></div>
 
+<!-- HASIL PENCARIAN LENGKAP (halaman penuh) -- dipakai saat hasil pencarian
+     kata Arab dibatasi (mis. cuma tampil 30 pertama di sheet kecil) & user
+     minta lihat SEMUANYA. Sengaja halaman penuh (bukan sheet kecil lagi,
+     supaya muat daftar panjang dgn nyaman) + tombol KEMBALI (chevron, gaya
+     sama dgn header layar Detail Juz) di pojok kiri atas, BUKAN tombol X --
+     supaya konsisten dgn pola navigasi "kembali" di seluruh app & terhubung
+     rapi ke sistem back-button/riwayat (lihat openSearchFullOverlay()). -->
+<div class="overlay center" id="searchFullOverlay">
+  <div class="sheet" style="max-width:100%;max-height:100%;height:100%;width:100%;border-radius:0;display:flex;flex-direction:column;padding:0;">
+    <div class="appbar" style="position:static;flex-shrink:0;">
+      <div class="appbar-left">
+        <button class="icon-btn" id="btnSearchFullBack" aria-label="Kembali"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <p class="appbar-title" id="searchFullTitle">Semua Hasil</p>
+      </div>
+    </div>
+    <div id="searchFullBody" style="flex:1;overflow-y:auto;padding:14px 16px calc(14px + env(safe-area-inset-bottom));"></div>
+  </div>
+</div>
+
 <!-- PIN MODAL -->
 <div class="overlay center" id="pinOverlay"><div class="sheet" style="text-align:center;">
   <div class="lock-icon-circle" style="margin:0 auto 12px;">
@@ -1335,8 +1367,14 @@ const DEFAULT_OVERDUE_DAYS = 30;
    AWAL array CHANGELOG (paling atas = paling baru). Ini murni tampilan
    (tidak memengaruhi cache); yang mengontrol update service worker
    tetap CACHE_VERSION di sw.js. */
-const APP_VERSION = 'v98';
+const APP_VERSION = 'v99';
 const CHANGELOG = [
+  { version:'v99', date:'22 Agustus 2026', changes:[
+    'Fix bingkai/judul nama surat "seperti tempelan" di mode gelap: ternyata CSS tema gelapnya sendiri sudah benar, akar masalahnya WebView Android bisa memaksakan "force dark" otomatis di ATAS tampilan app -- teks & background di-invert paksa tapi gambar latar (bingkai ornamen nama surat) tidak ikut ke-invert. Ditambahkan deklarasi color-scheme supaya sistem berhenti memaksakan tema sendiri di atas tema app.',
+    'Fix (lanjutan v98) tombol kembali: kasus spesifik pilih hasil pencarian ternyata MASIH bisa langsung keluar app -- akar masalahnya history.back() (nutup overlay Pencarian) dipanggil lalu LANGSUNG disusul history.pushState() (buka overlay Mushaf) sebelum browser selesai memproses back()-nya (dibuktikan lewat simulasi: riwayatnya jadi kacau). Diganti pakai history.replaceState() utk transisi Pencarian -> Mushaf, tidak ada lagi 2 operasi riwayat yang balapan.',
+    'Pencarian kata Arab: hasil yg dibatasi 30 sekarang ada tombol "Lihat semua N hasil" -- membuka halaman PENUH (bukan sheet kecil) berisi semua hasil, dgn tombol kembali (chevron, gaya sama dgn header Detail Juz) di pojok kiri atas, terhubung rapi ke sistem tombol kembali HP.',
+    'Fix "Distribusi status" di dashboard: angka mutqin yg kelihatan dobel di mode gelap -- ternyata SVG donut-nya menggambar angka % dua kali di posisi sama (satu di dalam SVG, satu lagi label HTML di atasnya) -- di mode terang kebetulan saling menutupi, di mode gelap keduanya kelihatan. Salah satunya (yg di dalam SVG, redundan) sudah dihapus dari ring ini.'
+  ]},
   { version:'v98', date:'21 Agustus 2026', changes:[
     'Fix tombol "kembali" HP: dulu bisa nutup overlay yang SALAH kalau ada overlay bertumpuk (mis. Mushaf lalu Tafsir/Ulang Bacaan dibuka di atasnya) -- riwayat browser jadi tidak sinkron, akibatnya tombol kembali berikutnya malah langsung keluar app. Sekarang urutan overlay yang kebuka dilacak eksplisit (bukan lagi tebak dari urutan elemen di HTML), jadi kembali SELALU nutup satu per satu sesuai urutan dibuka. Popup Reciter & Ubah PIN yang sebelumnya tidak ikut sistem ini sama sekali juga sudah didaftarkan.',
     'Hasil pencarian (kata Arab, lookup "surah:ayat", nama surah) sekarang langsung MENYOROT & men-scroll ke ayat yang dituju begitu Mode Mushaf terbuka -- sebelumnya cuma buka ke halaman yang benar, ayatnya sendiri harus dicari manual di antara semua ayat di halaman itu.',
@@ -2662,6 +2700,21 @@ function pushNavState(label){
   if(suppressHistoryPush) return;
   try{ history.pushState({ navMarker: label, t: Date.now() }, ''); }catch(e){ /* abaikan kalau browser tolak (mis. di dalam iframe) */ }
 }
+/* Dipakai KHUSUS utk transisi langsung dari satu overlay ke overlay lain
+   TANPA benar-benar kembali ke layar dasar dulu (mis. pilih hasil
+   pencarian -> overlay Pencarian digantikan overlay Mushaf). GANTI entry
+   riwayat yang ada (bukan history.back() lalu history.pushState() lagi)
+   -- dulu pola back()-lalu-push() ini race: history.back() itu ASYNC,
+   kalau history.pushState() langsung dipanggil lagi sebelum navigasi
+   back() itu benar2 selesai diproses browser, riwayatnya jadi kacau
+   (entry "menghilang"/salah posisi) -- akibatnya SEKALI tekan tombol
+   kembali HP setelah itu malah langsung keluar app, bukan nutup Mushaf
+   dulu. replaceState tidak punya masalah ini krn tidak ada navigasi
+   async yang perlu ditunggu. */
+function replaceNavState(label){
+  if(suppressHistoryPush) return;
+  try{ history.replaceState({ navMarker: label, t: Date.now() }, ''); }catch(e){}
+}
 /* dipanggil di UJUNG setiap fungsi closeXxx()/closeDetail() — supaya riwayat
    browser TETAP SINKRON entah modal itu ditutup lewat tombol X/Batal/Simpan
    ATAU lewat tombol back HP. Kalau lagi diproses akibat popstate sendiri,
@@ -2700,6 +2753,7 @@ const OVERLAY_CLOSERS = {
   searchOverlay: ()=>closeSearchOverlay(),
   ayahNoteOverlay: ()=>closeAyahNoteModal(),
   ayahTafsirOverlay: ()=>closeAyahTafsirModal(),
+  searchFullOverlay: ()=>closeSearchFullOverlay(),
   reciterOverlay: ()=>closeReciterOverlay(),
   pinOverlay: ()=>closePinModal()
 };
@@ -3308,14 +3362,23 @@ function renderJuzGrid(){
   }
 }
 
-function drawRing(svgId, pct, size, stroke, fg, bg){
+function drawRing(svgId, pct, size, stroke, fg, bg, showText){
+  // showText default true (dipakai progRing yg TIDAK punya label HTML
+  // terpisah, jadi teks % di dalam SVG ini satu-satunya indikator).
+  // statDonut sengaja dipanggil dgn showText=false krn sudah py label
+  // HTML sendiri (#statDonutPct) yg ditumpuk pas di tengah lewat CSS --
+  // dulu KEDUANYA dirender bareng (dobel!), di mode terang teks HTML gelap
+  // menutupi teks SVG putih dgn sempurna jadi tidak kelihatan, tapi di
+  // mode gelap teks HTML jadi terang juga -> dua angka persis di posisi
+  // sama sekaligus kelihatan (itulah laporan "angka mutqin double").
+  if(showText === undefined) showText = true;
   const svg = document.getElementById(svgId);
   const r = (size-stroke)/2, c = size/2, circ = 2*Math.PI*r;
   const off = circ * (1 - pct/100);
   svg.innerHTML =
     '<circle cx="'+c+'" cy="'+c+'" r="'+r+'" fill="none" stroke="'+bg+'" stroke-width="'+stroke+'"/>' +
     '<circle cx="'+c+'" cy="'+c+'" r="'+r+'" fill="none" stroke="'+fg+'" stroke-width="'+stroke+'" stroke-linecap="round" stroke-dasharray="'+circ+'" stroke-dashoffset="'+off+'" transform="rotate(-90 '+c+' '+c+')"/>' +
-    '<text x="'+c+'" y="'+(c+5)+'" text-anchor="middle" font-size="15" font-weight="800" fill="#fff">'+pct+'%</text>';
+    (showText ? '<text x="'+c+'" y="'+(c+5)+'" text-anchor="middle" font-size="15" font-weight="800" fill="#fff">'+pct+'%</text>' : '');
 }
 
 /* ---------- RIWAYAT (global) ---------- */
@@ -3453,7 +3516,7 @@ function renderStatistik(){
   document.getElementById('legBelum').textContent = 'Belum: '+counts.belum+' hal.';
   const pct = Math.round(counts.mutqin/TOTAL_PAGES*100);
   document.getElementById('statDonutPct').textContent = pct+'%';
-  drawRing('statDonut', pct, 120, 12, '#164A40', '#E5E9E7');
+  drawRing('statDonut', pct, 120, 12, '#164A40', '#E5E9E7', false);
 }
 
 /* ---------- DETAIL JUZ ---------- */
@@ -3880,9 +3943,10 @@ function toggleTafsirPanel(surah, ayah){
   renderTafsirPanelBody(surah, ayah);
 }
 
-function openMushafViewer(page){
+function openMushafViewer(page, replaceHistory){
   currentMushafPage = Math.min(TOTAL_PAGES, Math.max(1, page));
-  pushNavState('mushaf:'+currentMushafPage);
+  if(replaceHistory) replaceNavState('mushaf:'+currentMushafPage);
+  else pushNavState('mushaf:'+currentMushafPage);
   document.getElementById('mushafOverlay').classList.add('open');
   pushOverlayStack('mushafOverlay');
   renderMushafViewer();
@@ -3920,9 +3984,9 @@ const mushafSorotedKeys = new Set();
    masih di-fetch), langsung disorot (dipakai ulang class .sorot yang
    sama dgn Mode Sorot manual) + di-scroll ke tengah layar otomatis. */
 let pendingHighlightAyahKey = null;
-function openMushafViewerToAyah(page, surah, ayah){
+function openMushafViewerToAyah(page, surah, ayah, replaceHistory){
   pendingHighlightAyahKey = surah+':'+ayah;
-  openMushafViewer(page);
+  openMushafViewer(page, replaceHistory);
 }
 function applyPendingAyahHighlight(){
   if(!pendingHighlightAyahKey) return;
@@ -4354,11 +4418,41 @@ function openSearchOverlay(){
   fetchSurahList(); // mulai preload daftar surah di background, biar pencarian nama surah langsung cepat
   setTimeout(()=> input.focus(), 250);
 }
-function closeSearchOverlay(){
+function closeSearchOverlay(skipHistoryBack){
   document.getElementById('searchOverlay').classList.remove('open');
   popOverlayStack('searchOverlay');
-  consumeNavStateIfNeeded();
+  // skipHistoryBack=true dipakai saat overlay Pencarian ini akan LANGSUNG
+  // digantikan overlay Mushaf (lihat catatan replaceNavState) -- entry
+  // riwayatnya nanti di-REPLACE oleh openMushafViewer(..., true), bukan
+  // di-back() dulu di sini, supaya tidak ada 2 operasi riwayat yang
+  // balapan.
+  if(!skipHistoryBack) consumeNavStateIfNeeded();
 }
+/* ---------- Halaman penuh "Semua Hasil" pencarian ----------
+   Dulu hasil pencarian kata Arab dibatasi 30 & tidak ada cara melihat
+   sisanya. Sekarang: kalau totalnya lebih dari yang ditampilkan, muncul
+   tombol "Lihat semua N hasil" yang membuka halaman PENUH (bukan sheet
+   kecil lagi) berisi seluruh hasil, dgn tombol KEMBALI (bukan X) di
+   header -- lihat markup #searchFullOverlay.
+   Overlay ini menggantikan (bukan menumpuk di atas) overlay Pencarian --
+   levelnya di riwayat browser TETAP SAMA (pakai replaceNavState, bukan
+   pushNavState) supaya alurnya konsisten & tidak butuh 2x tekan back
+   cuma buat balik ke Beranda. */
+function openSearchFullOverlay(bodyHtml, title){
+  document.getElementById('searchOverlay').classList.remove('open');
+  popOverlayStack('searchOverlay');
+  document.getElementById('searchFullTitle').textContent = title || 'Semua Hasil';
+  document.getElementById('searchFullBody').innerHTML = bodyHtml;
+  document.getElementById('searchFullOverlay').classList.add('open');
+  pushOverlayStack('searchFullOverlay');
+  replaceNavState('searchFull');
+}
+function closeSearchFullOverlay(skipHistoryBack){
+  document.getElementById('searchFullOverlay').classList.remove('open');
+  popOverlayStack('searchFullOverlay');
+  if(!skipHistoryBack) consumeNavStateIfNeeded();
+}
+document.getElementById('btnSearchFullBack').onclick = ()=> closeSearchFullOverlay();
 let searchDebounceTimer = null;
 function onSearchInput(){
   clearTimeout(searchDebounceTimer);
@@ -4475,32 +4569,63 @@ function buildCenteredSnippetHtml(m){
   const suffix = end<m.text.length ? '\u2026' : '';
   return prefix + before + '<mark style="background:var(--gold,#d3a329);color:#1c2624;padding:0 2px;border-radius:3px;">' + matched + '</mark>' + after + suffix;
 }
+// Markup 1 item hasil pencarian kata Arab -- dipakai ULANG baik di sheet
+// kecil (dibatasi) maupun di halaman "Semua Hasil" (lihat
+// openFullLocalSearchResults), supaya tampilannya selalu konsisten.
+function buildKeywordResultItemHtml(m, nameOf){
+  return '<button class="menu-item search-result-item" data-page="'+m.page+'" data-surah="'+m.surah+'" data-ayah="'+m.ayah+'" style="width:100%;align-items:flex-start;">'+
+      '<span style="flex:1;text-align:left;">'+
+        '<span style="display:block;font-weight:700;">'+escapeHtml(nameOf(m.surah))+' '+m.surah+':'+m.ayah+'</span>'+
+        '<span class="hint" style="margin:2px 0 0;display:block;direction:rtl;font-family:\'Amiri Quran\',serif;font-size:15px;">'+buildCenteredSnippetHtml(m)+'</span>'+
+      '</span>'+
+    '</button>';
+}
+// Pasang klik utk daftar hasil kata Arab -- dipakai ulang di sheet kecil
+// & halaman "Semua Hasil". closeOverlayFn dipanggil dgn (true) dulu
+// (skip history.back()) sebelum lompat ke Mushaf, supaya transisinya
+// pakai replaceNavState, bukan back()-lalu-push() yg race (lihat catatan
+// lengkap di replaceNavState()).
+function wireKeywordResultClicks(container, closeOverlayFn){
+  container.querySelectorAll('.search-result-item').forEach(el=>{
+    el.onclick = ()=>{
+      const page = Number(el.getAttribute('data-page'));
+      const surah = Number(el.getAttribute('data-surah'));
+      const ayah = Number(el.getAttribute('data-ayah'));
+      closeOverlayFn(true);
+      openMushafViewerToAyah(page, surah, ayah, true);
+    };
+  });
+}
+// Index+query pencarian kata Arab TERAKHIR -- disimpan supaya tombol
+// "Lihat semua N hasil" bisa jalanin ulang pencarian yg SAMA dgn limit
+// jauh lebih besar tanpa perlu fetch ulang index dari IndexedDB.
+let lastLocalSearchContext = null;
 async function renderLocalKeywordResults(matches, total){
   const body = document.getElementById('searchResultsBody');
   if(!matches.length){ body.innerHTML = '<p class="tafsir-loading">Tidak ada hasil ditemukan.</p>'; return; }
   const list = await fetchSurahList();
   const nameOf = (n)=>{ const s = list.find(x=>x.number===n); return s ? s.englishName : ''; };
   const countLabel = '<p class="hint" style="margin:0 0 8px;padding:0 4px;">'+total+' hasil ditemukan'+(total>matches.length?' (menampilkan '+matches.length+' pertama)':'')+'</p>';
-  body.innerHTML = countLabel + matches.map(m=>
-    '<button class="menu-item search-result-item" data-page="'+m.page+'" data-surah="'+m.surah+'" data-ayah="'+m.ayah+'" style="width:100%;align-items:flex-start;">'+
-      '<span style="flex:1;text-align:left;">'+
-        '<span style="display:block;font-weight:700;">'+escapeHtml(nameOf(m.surah))+' '+m.surah+':'+m.ayah+'</span>'+
-        '<span class="hint" style="margin:2px 0 0;display:block;direction:rtl;font-family:\'Amiri Quran\',serif;font-size:15px;">'+buildCenteredSnippetHtml(m)+'</span>'+
-      '</span>'+
-    '</button>'
-  ).join('');
-  body.querySelectorAll('.search-result-item').forEach(el=>{
-    el.onclick = ()=>{
-      const page = Number(el.getAttribute('data-page'));
-      const surah = Number(el.getAttribute('data-surah'));
-      const ayah = Number(el.getAttribute('data-ayah'));
-      closeSearchOverlay();
-      // sudah ada nomor halaman+surah+ayat langsung dari index lokal, tidak
-      // perlu fetch API lagi kayak jalur lama -- ayatnya langsung disorot
-      // begitu halaman selesai dirender, tidak perlu dicari manual lagi.
-      openMushafViewerToAyah(page, surah, ayah);
-    };
-  });
+  // Kalau hasilnya lebih banyak dari yg ditampilkan (dibatasi 30) --
+  // kasih tombol buat lihat SEMUANYA di halaman penuh (lihat
+  // openFullLocalSearchResults & #searchFullOverlay).
+  const seeAllBtn = total>matches.length ?
+    '<button class="menu-item" id="btnSeeAllSearchResults" style="width:100%;justify-content:center;font-weight:700;color:var(--primary-text);margin-top:6px;">Lihat semua '+total+' hasil</button>' : '';
+  body.innerHTML = countLabel + matches.map(m=> buildKeywordResultItemHtml(m, nameOf)).join('') + seeAllBtn;
+  wireKeywordResultClicks(body, closeSearchOverlay);
+  const seeAllEl = document.getElementById('btnSeeAllSearchResults');
+  if(seeAllEl) seeAllEl.onclick = ()=> openFullLocalSearchResults(nameOf, total);
+}
+// Buka halaman PENUH berisi seluruh hasil (bukan cuma 30 pertama) --
+// pencarian dijalankan ULANG dgn limit setinggi total (index sudah ada
+// di memori/IndexedDB, jadi instan, tidak perlu fetch apa pun lagi).
+function openFullLocalSearchResults(nameOf, total){
+  if(!lastLocalSearchContext) return;
+  const { index, query } = lastLocalSearchContext;
+  const { matches } = searchQuranLocalApp(index, query, total || 9999);
+  const html = matches.map(m=> buildKeywordResultItemHtml(m, nameOf)).join('');
+  openSearchFullOverlay(html, total+' Hasil Pencarian');
+  wireKeywordResultClicks(document.getElementById('searchFullBody'), closeSearchFullOverlay);
 }
 
 async function runSearch(q){
@@ -4535,6 +4660,7 @@ async function runSearch(q){
       body.innerHTML = '<p class="tafsir-loading">Mencari\u2026</p>';
       const index = await getQuranBulkIndexApp();
       const { total, matches } = searchQuranLocalApp(index, q, 30);
+      lastLocalSearchContext = { index, query:q }; // dipakai tombol "Lihat semua hasil" (lihat renderLocalKeywordResults)
       await renderLocalKeywordResults(matches, total);
       return;
     }catch(e){
@@ -4569,7 +4695,7 @@ function renderAyahLookupResult(surahNum, ayahNum){
         '</span>'+
       '</button>';
       const btn = body.querySelector('.search-result-item');
-      if(btn) btn.onclick = ()=>{ const page=d.page; closeSearchOverlay(); openMushafViewerToAyah(page, surahNum, ayahNum); };
+      if(btn) btn.onclick = ()=>{ const page=d.page; closeSearchOverlay(true); openMushafViewerToAyah(page, surahNum, ayahNum, true); };
     })
     .catch(e=>{
       console.log('gagal ambil data ayat:', e);
@@ -4590,8 +4716,8 @@ function renderSurahNameResults(matches){
   body.querySelectorAll('.search-result-item').forEach(el=>{
     el.onclick = ()=>{
       const surahNum = Number(el.getAttribute('data-surah'));
-      closeSearchOverlay();
-      jumpToAyahByLookup(surahNum, 1);
+      closeSearchOverlay(true);
+      jumpToAyahByLookup(surahNum, 1, true);
     };
   });
 }
@@ -4641,19 +4767,19 @@ function renderKeywordResults(matches, isArabic, query, totalCount){
     el.onclick = ()=>{
       const surahNum = Number(el.getAttribute('data-surah'));
       const ayahNum = Number(el.getAttribute('data-ayah'));
-      closeSearchOverlay();
-      jumpToAyahByLookup(surahNum, ayahNum);
+      closeSearchOverlay(true);
+      jumpToAyahByLookup(surahNum, ayahNum, true);
     };
   });
 }
 // dipakai hasil "nama surah" (lompat ke ayat 1) & bisa dipakai ulang di
 // tempat lain kalau perlu lompat by surah:ayah tanpa lihat detail dulu
-function jumpToAyahByLookup(surahNum, ayahNum){
+function jumpToAyahByLookup(surahNum, ayahNum, replaceHistory){
   fetch(SEARCH_AYAH_API + surahNum + ':' + ayahNum + '/quran-simple')
     .then(r=> r.json())
     .then(json=>{
       const d = json && json.data;
-      if(d && d.page) openMushafViewerToAyah(d.page, surahNum, ayahNum);
+      if(d && d.page) openMushafViewerToAyah(d.page, surahNum, ayahNum, replaceHistory);
       else showToast('Gagal membuka ayat ini', false);
     })
     .catch(()=> showToast('Gagal membuka ayat ini (cek koneksi)', false));
@@ -5784,6 +5910,7 @@ function applyTheme(){
   const pref = currentThemePref();
   const isDark = pref==='dark' || (pref==='auto' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
   document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
   const metaTheme = document.querySelector('meta[name="theme-color"]');
   if(metaTheme) metaTheme.setAttribute('content', isDark ? '#0F1613' : '#164A40');
   document.querySelectorAll('.theme-opt').forEach(btn=>{
