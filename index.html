@@ -391,6 +391,32 @@ button{font-family:var(--font-sans);}
   transition:opacity .18s ease, transform .18s ease;
 }
 .mushaf-zoom-indicator.show{opacity:1; transform:translate(-50%,-50%) scale(1);}
+/* Tombol Sebelumnya/Berikutnya khusus perangkat mouse (PC/desktop) --
+   lihat catatan lengkap di markup HTML-nya (id=mushafDesktopNext/Prev).
+   Disembunyikan TOTAL secara default (display:none, bukan cuma
+   opacity:0) supaya di HP/tablet layar sentuh benar2 tidak makan tempat
+   ataupun ketutupan jari secara tidak sengaja -- baru dimunculkan lewat
+   media query "(hover:hover) and (pointer:fine)" yg cuma cocok utk
+   perangkat dgn mouse/trackpad sungguhan (deteksi lebih andal drpd cuma
+   cek lebar layar, krn tablet besar/HP landscape juga bisa lebar tapi
+   tetap layar sentuh). */
+.mushaf-desktop-nav-btn{
+  display:none; position:absolute; top:50%; transform:translateY(-50%);
+  width:44px; height:44px; border-radius:50%; border:none; cursor:pointer;
+  background:rgba(23,32,30,0.55); color:#fff; align-items:center; justify-content:center;
+  z-index:25; transition:background .15s ease, opacity .15s ease; opacity:.55;
+}
+.mushaf-desktop-nav-btn:hover{opacity:1; background:rgba(23,32,30,0.8);}
+.mushaf-desktop-nav-btn-left{left:10px;}
+.mushaf-desktop-nav-btn-right{right:10px;}
+@media (hover:hover) and (pointer:fine){
+  .mushaf-desktop-nav-btn{display:flex;}
+}
+/* Sembunyikan lagi di Mode Sorot & mode imersif (fullscreen) -- Mode
+   Sorot butuh klik bebas di seluruh area ayat tanpa terhalang tombol,
+   & mode imersif memang sengaja melipat semua kontrol lain juga
+   (lihat #mushafOverlay.immersive di bawah). */
+#mushafOverlay.immersive .mushaf-desktop-nav-btn{display:none!important;}
 /* Cegah popup seleksi teks bawaan Android/Chrome ("Terjemahkan/Salin/
    Bagikan") ikut muncul pas tahan-lama ayat -- tanpa ini, tahan-lama
    memicu DUA popup sekaligus: pil ikon kustom kita DAN popup seleksi
@@ -1101,6 +1127,19 @@ button{font-family:var(--font-sans);}
     <span id="mushafImmersiveJuzHizb"></span>
   </div>
   <div class="mushaf-stage" id="mushafStage">
+  <!-- Tombol Sebelumnya/Berikutnya KHUSUS perangkat dgn mouse (PC/desktop)
+       -- disembunyikan lewat CSS (lihat @media hover:hover and
+       pointer:fine) di HP/tablet layar sentuh, krn di sana sudah ada
+       swipe. Konvensi arah SAMA PERSIS spt swipe (lihat setupMushafSwipe):
+       ini konten RTL, jadi tombol KIRI (‹, menuju arah alur baca lanjut)
+       = Berikutnya (maju), tombol KANAN (›, menuju awal) = Sebelumnya
+       (mundur) -- kebalikan dari carousel LTR biasa. -->
+  <button class="mushaf-desktop-nav-btn mushaf-desktop-nav-btn-left" id="mushafDesktopNext" aria-label="Halaman berikutnya" title="Halaman berikutnya">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+  </button>
+  <button class="mushaf-desktop-nav-btn mushaf-desktop-nav-btn-right" id="mushafDesktopPrev" aria-label="Halaman sebelumnya" title="Halaman sebelumnya">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+  </button>
   <div class="mushaf-zoom-indicator" id="mushafZoomIndicator"></div>
   <div class="mushaf-imgwrap" id="mushafImgWrap">
     <div class="mushaf-textwrap" id="mushafTextWrap" style="display:none;"></div>
@@ -1367,8 +1406,12 @@ const DEFAULT_OVERDUE_DAYS = 30;
    AWAL array CHANGELOG (paling atas = paling baru). Ini murni tampilan
    (tidak memengaruhi cache); yang mengontrol update service worker
    tetap CACHE_VERSION di sw.js. */
-const APP_VERSION = 'v105';
+const APP_VERSION = 'v106';
 const CHANGELOG = [
+  { version:'v106', date:'22 Agustus 2026', changes:[
+    'Tombol Sebelumnya/Berikutnya (panah bulat kiri-kanan) ditambahkan di Mode Mushaf, KHUSUS muncul di perangkat yg terdeteksi punya mouse/trackpad (PC/desktop) -- sebelumnya di sana cuma bisa navigasi lewat swipe jari yg tidak jalan tanpa layar sentuh. Panah kiri-kanan keyboard juga didukung sekarang.',
+    'Fix AKAR MASALAH kenapa ayat di Mode Mushaf Madina kelihatan kecil² dibanding mushaf cetak asli/app lain: fitur "stretch biar rata kiri-kanan spt cetakan asli" ternyata SALAH ukur lebar baris (bug scrollWidth yg sama spt kasus rata-tengah v105) -- utk baris yg tidak meluber (kasus PALING umum), scrollWidth-nya kebaca sama dgn lebar KOTAK, bukan lebar TULISAN aslinya yg jauh lebih sempit, jadi stretch-nya nyaris tidak pernah kepakai & teks diam kecil di ukuran font mentahnya, menyisakan banyak ruang halaman terbuang. Diperbaiki dgn trik ukur lebar asli (inline-block sementara) -- sekarang baris ayat benar2 mengisi lebar halaman spt mushaf cetak, bukan cuma pas baris yg kebetulan sudah panjang.'
+  ]},
   { version:'v105', date:'22 Agustus 2026', changes:[
     'Baris ayat di Mode Mushaf Madina sekarang RATA TENGAH (dulu rata kanan). Akar masalahnya: fitur perata kiri-kanan otomatis (spt mushaf cetak) ternyata cuma efektif utk baris yg BENAR2 meluber lebih panjang dari lebar layar -- baris pendek/normal (mayoritas) browser tidak bisa ukur lebar aslinya dgn akurat, jadi tidak pernah kena stretching & jatuh ke perataan default RTL (rata kanan). Ditambahkan text-align:center supaya baris² yg tidak kena stretching itu rata tengah, sementara baris yg benar2 meluber tetap dirapikan spt sebelumnya.'
   ]},
@@ -2312,18 +2355,21 @@ function buildQcf4PageHtml(pageData){
    cetak asli), tiap baris di-scale horizontal sesudah font kepasang &
    lebar aslinya diketahui. Dibatasi 0.85x-1.15x supaya baris terakhir
    pendek (mis. akhir surah) tidak dipaksa melar aneh.
-   CATATAN (rata tengah vs rata kanan): scaleX di bawah cuma efektif utk
-   baris yg BENAR2 MELUBER (scrollWidth > lebar kotak) -- utk baris yg
-   pas/lebih pendek dari lebar kotak, browser lapor scrollWidth == lebar
-   kotaknya sendiri (bukan lebar teks aslinya yg lebih sempit), jadi scale
-   yg dihitung selalu 1 (tidak ada stretching sama sekali) & baris itu
-   jatuh ke perataan DEFAULT elemen blok RTL, yaitu rata KANAN -- inilah
-   yg dilaporkan user. Makanya .qcf4-line dikasih text-align:center di
-   CSS (lihat definisinya) -- utk baris² yg TIDAK kena scaling (kasus
-   paling umum) jadi rata TENGAH spt diminta, sementara baris yg BENAR2
-   meluber & di-scaleX di bawah (kasus lebih jarang) tetap dijangkar ke
-   kanan (transform-origin) spt aslinya, krn itu utk mensimulasikan
-   margin kanan halaman cetak asli. */
+   CATATAN PENTING (kenapa dulu ayat kelihatan kecil² & rata kanan):
+   .qcf4-line defaultnya elemen block (lebar penuh 100% kontainer) --
+   scrollWidth-nya SELALU balas lebar kotak itu sendiri kalau kontennya
+   TIDAK meluber (kasus paling umum, dibuktikan lewat pengujian nyata),
+   BUKAN lebar asli tulisan yg jauh lebih sempit. Akibatnya scale yg
+   dihitung nyaris selalu 1 (baris TIDAK PERNAH benar2 di-stretch), teks
+   diam di ukuran font mentahnya & menyisakan banyak ruang halaman
+   terbuang -- inilah kenapa ayat kelihatan kecil² dibanding mushaf cetak
+   asli/app lain yg linenya benar2 penuh dari tepi ke tepi (dilaporkan
+   user). Diperbaiki dgn trik ukur: baris diubah SEMENTARA jadi
+   inline-block (shrink-to-fit ke lebar konten aslinya) pas mau diukur,
+   baru scrollWidth-nya akurat, langsung dikembalikan ke block spt semula
+   sebelum discale. Efek sampingnya: skala jadi lebih SERING & lebih
+   BESAR (mendekati bentuk asli mushaf cetak, teks terasa lebih "penuh"),
+   bukan cuma soal perataan lagi. */
 function adjustQcf4LineWidths(){
   const wrap = document.getElementById('mushafTextWrap');
   if(!wrap) return;
@@ -2339,7 +2385,11 @@ function adjustQcf4LineWidths(){
   if(!wrapWidth) return;
   wrap.querySelectorAll('.qcf4-line').forEach(line=>{
     line.style.transform = 'none';
+    line.style.display = 'inline-block';
+    line.style.width = 'auto';
     const natural = line.scrollWidth;
+    line.style.display = '';
+    line.style.width = '';
     if(!natural) return;
     let scale = wrapWidth / natural;
     if(scale > 1.15) scale = 1.15;
@@ -6042,6 +6092,20 @@ function init(){
   document.getElementById('reciterClose').onclick = closeReciterOverlay;
   updateRepeatUI();
   setupMushafSwipe();
+  // Tombol Sebelumnya/Berikutnya khusus PC/desktop (lihat catatan CSS-nya)
+  // + panah keyboard kiri/kanan saat Mode Mushaf sedang terbuka -- konvensi
+  // arah SAMA PERSIS spt swipe/tombol (RTL: panah kiri = maju/berikutnya,
+  // panah kanan = mundur/sebelumnya). Diabaikan kalau fokus lagi ada di
+  // input/textarea (jangan sampai ganggu ketik, mis. di catatan ayat).
+  document.getElementById('mushafDesktopNext').onclick = mushafNext;
+  document.getElementById('mushafDesktopPrev').onclick = mushafPrev;
+  document.addEventListener('keydown', (e)=>{
+    if(!document.getElementById('mushafOverlay').classList.contains('open')) return;
+    const tag = (document.activeElement && document.activeElement.tagName) || '';
+    if(tag==='INPUT' || tag==='TEXTAREA') return;
+    if(e.key==='ArrowLeft') mushafNext();
+    else if(e.key==='ArrowRight') mushafPrev();
+  });
 
   document.getElementById('menuBookmarks').onclick = openBookmarkList;
   document.getElementById('bookmarkListClose').onclick = closeBookmarkList;
