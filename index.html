@@ -405,11 +405,15 @@ button{font-family:var(--font-sans);}
    -- warnanya transparan (tetap makan tempat yg sama persis, supaya
    tata letak halaman tidak berubah) + garis bawah tipis menggantikan
    posisi teks itu (niru "garis kosong" di contoh referensi user).
-   Ketuk 1 ayat = teksnya muncul lagi (garis hilang). Nomor ayat
-   (.mushaf-ayah-num) & tanda dekorasi qcf4-deco SENGAJA tidak ikut
-   disembunyikan (bukan bagian isi hafalan, biar tetap kelihatan batas
-   ayatnya -- sama seperti lingkaran nomor di contoh referensi). ---- */
-.mushaf-textwrap.hafalan-mode .mushaf-ayah{
+   Ketuk 1 ayat = teksnya muncul lagi (garis hilang). Nomor ayat SENGAJA
+   tidak ikut disembunyikan (bukan bagian isi hafalan, biar tetap
+   kelihatan batas ayatnya) -- di Mode Teks itu .mushaf-ayah-num (elemen
+   TERPISAH, otomatis aman), di Mode Madinah itu .qcf4-ayahnum (glyph
+   rosette nomor ayat yg SEBELUMNYA numpang class "mushaf-ayah" yg sama
+   dgn kata biasa, jadi ikut ke-transparent -- fix bug dilaporkan user:
+   halaman jadi cuma garis kosong tanpa ada angka penanda ayat sama
+   sekali). ---- */
+.mushaf-textwrap.hafalan-mode .mushaf-ayah:not(.qcf4-ayahnum){
   color:transparent;border-bottom:1.5px solid var(--gray-300);
   transition:color .15s ease,border-color .15s ease;cursor:pointer;
 }
@@ -1012,6 +1016,10 @@ button{font-family:var(--font-sans);}
       <p class="hint" id="mushafHint" style="margin:2px 0 0;"></p>
     </div>
     <div style="display:flex; align-items:center; gap:6px;">
+      <!-- Muncul CUMA pas Mode Uji Hafalan aktif (lihat setMushafHafalanMode) --
+           "buka semua ayat sekaligus" buat cek jawaban, tanpa perlu bar/pil
+           terpisah yang makan tempat/menutupi baris teks. -->
+      <button class="icon-btn" id="mushafHafalanRevealAll" title="Buka semua ayat (cek jawaban)" style="display:none;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
       <button class="icon-btn" id="mushafHafalanToggle" title="Mode Uji Hafalan (sembunyikan teks)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg></button>
       <button class="icon-btn" id="mushafToggleMode" title="Ganti tampilan (teks/gambar)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></button>
       <button class="icon-btn" id="mushafClose"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
@@ -1027,14 +1035,6 @@ button{font-family:var(--font-sans);}
     <button class="mushaf-mode-btn" id="mushafModeMushafBtn">Mode Mushaf</button>
     <button class="mushaf-mode-btn" id="mushafModePerkataBtn">Terjemahan Perkata</button>
   </div>
-  <!-- Header khusus Mode Fullscreen (imersif): tersembunyi (max-height:0)
-       selama mode biasa -- karena info halaman sudah lengkap ditampilkan
-       di header utama (mushaf-head) di atas. Begitu masuk fullscreen
-       (semua header/nav lain ikut collapse), header ringkas ini GANTI
-       muncul supaya tetap ada orientasi nama surat & Juz/Hizb walau
-       lagi baca "penuh layar" -- gayanya sengaja polos (tanpa kartu/
-       background) niru contoh referensi: nama surat rata kiri, info
-       Juz/Hizb rata kanan. -->
   <div class="mushaf-immersive-header" id="mushafImmersiveHeader">
     <span id="mushafImmersiveSurah"></span>
     <span id="mushafImmersiveJuzHizb"></span>
@@ -1043,15 +1043,6 @@ button{font-family:var(--font-sans);}
   <div class="mushaf-sorot-pill" id="mushafSorotPill">
     <span>Mode Sorot — ketuk ayat lain untuk menambah</span>
     <button id="mushafSorotDone">Selesai</button>
-  </div>
-  <!-- Mode Uji Hafalan: teks ayat disamarkan (blur), ketuk 1 ayat utk
-       buka/tutup teksnya sendiri-sendiri -- dipakai buat cek hafalan
-       tanpa perlu tutup mushaf/app. "Buka Semua" = jawaban langsung
-       kebuka semua (cek pas sudah selesai coba), tanpa keluar dari mode. -->
-  <div class="mushaf-sorot-pill" id="mushafHafalanPill">
-    <span>Mode Uji Hafalan — ketuk ayat utk buka/tutup teks</span>
-    <button id="mushafHafalanRevealAll" style="background:rgba(255,255,255,.28);">Buka Semua</button>
-    <button id="mushafHafalanDone">Selesai</button>
   </div>
   <div class="mushaf-imgwrap" id="mushafImgWrap">
     <div class="mushaf-textwrap" id="mushafTextWrap" style="display:none;"></div>
@@ -1299,8 +1290,21 @@ const DEFAULT_OVERDUE_DAYS = 30;
    AWAL array CHANGELOG (paling atas = paling baru). Ini murni tampilan
    (tidak memengaruhi cache); yang mengontrol update service worker
    tetap CACHE_VERSION di sw.js. */
-const APP_VERSION = 'v60';
+const APP_VERSION = 'v64';
 const CHANGELOG = [
+  { version:'v64', date:'20 Agustus 2026', changes:[
+    'Hapus bar Mode Uji Hafalan sepenuhnya -- keluar dari mode sudah otomatis bisa lewat ketuk ikon mata-coret di header lagi atau ketuk area kosong (tombol "Selesai" jadi mubazir). "Buka Semua" dipindah jadi 1 ikon kecil di header (muncul cuma pas mode aktif), bukan bar terpisah yang makan tempat.'
+  ]},
+  { version:'v63', date:'20 Agustus 2026', changes:[
+    'Fix bug Mode Uji Hafalan di Mode Madinah: penanda nomor ayat (rosette angka di akhir ayat) sebelumnya ikut tersembunyi/transparan sama seperti kata biasa, bikin halaman jadi cuma garis-garis kosong tanpa ada angka penanda sama sekali. Sekarang penanda nomor ayat SELALU tetap terlihat di kedua mode (Teks & Madinah), sama seperti ayat yang masih tersembunyi teksnya di contoh referensi.',
+    'Bar "Mode Uji Hafalan" (tombol Buka semua/Selesai) tidak lagi mengambang menimpa 1-2 baris teks paling atas -- sekarang jadi bar biasa yang ikut mendorong konten ke bawah, tidak menutupi apa pun.'
+  ]},
+  { version:'v62', date:'20 Agustus 2026', changes:[
+    'Fix judul surah kelihatan "gepeng"/berantakan di bingkai nama surah utk nama yang agak panjang (mis. Al-Ahzaab) -- sebelumnya buru-buru dikompres horizontal (scaleX turun sampai 0.72, kelewat agresif) begitu mentok font minimum 10px. Sekarang font-size boleh mengecil lebih jauh dulu (sampai 8px, tetap proporsional/tidak berubah bentuk) sebelum kompresi horizontal dipakai, dan kompresinya sendiri dibikin jauh lebih halus (minimal 0.88). Sudah dites langsung pakai teks "Surah Al-Ahzaab" -- hasilnya muat cuma dgn mengecilkan font, tanpa kompresi sama sekali.'
+  ]},
+  { version:'v61', date:'20 Agustus 2026', changes:[
+    'Ringkas kartu "Rekomendasi Muraja\'ah Hari Ini": halaman-halaman berturut-turut yang kondisinya identik persis (status, riwayat, jadwal) sekarang digabung jadi 1 baris rentang (mis. "Halaman 242\u2013249 \u2014 Juz 13 (8 halaman)"), bukan diulang satu-satu per halaman seperti sebelumnya.'
+  ]},
   { version:'v60', date:'20 Agustus 2026', changes:[
     'Fitur baru: toggle "30 Juz" / "114 Surah" di Beranda -- lihat progress hafalan dikelompokkan per surah, bukan cuma per juz. Tiap baris pakai nama Latin+terjemahan, badge bulat berwarna sesuai status hafalan (mutqin/muraja\'ah/dst), dan nama Arab-nya pakai glyph font Mushaf Madinah ASLI (sumber yang sama dgn bingkai ornamen nama surah di viewer, di-reuse otomatis) -- dimuat progresif biar tidak nge-block tampilan awal. Ketuk salah satu surah utk langsung buka halaman awalnya di mushaf.'
   ]},
@@ -1933,7 +1937,16 @@ function buildQcf4PageHtml(pageData){
       fontsUsed[w.font] = true;
       if((w.type==='word' || w.type==='end') && w.verse_key){
         const parts = w.verse_key.split(':');
-        return '<span class="mushaf-ayah qcf4-word" data-surah="'+parts[0]+'" data-ayah="'+parts[1]+'" style="font-family:\''+w.font+'\';">'+escapeHtml(w.char)+'</span>';
+        // type 'end' = glyph penanda nomor ayat (rosette) -- dikasih
+        // class TAMBAHAN "qcf4-ayahnum" (di luar "mushaf-ayah" yang tetap
+        // dipertahankan biar tap-to-play/sorot tetap konsisten) supaya
+        // CSS Mode Uji Hafalan bisa PENGECUALIAN elemen ini dari
+        // penyembunyian (lihat .mushaf-textwrap.hafalan-mode .mushaf-ayah
+        // :not(.qcf4-ayahnum)) -- sebelumnya penanda nomor ayat ikut jadi
+        // transparan sama kayak kata biasa, bikin halaman jadi cuma garis
+        // kosong tanpa ada angka penanda ayat sama sekali (dilaporkan user).
+        const isAyahNum = w.type==='end' ? ' qcf4-ayahnum' : '';
+        return '<span class="mushaf-ayah qcf4-word'+isAyahNum+'" data-surah="'+parts[0]+'" data-ayah="'+parts[1]+'" style="font-family:\''+w.font+'\';">'+escapeHtml(w.char)+'</span>';
       }
       return '<span class="qcf4-deco" style="font-family:\''+w.font+'\';">'+escapeHtml(w.char)+'</span>';
     }).join('');
@@ -1972,10 +1985,13 @@ function adjustQcf4LineWidths(){
 /* ---------- "Fit" teks nama surah ke kotak krem bingkai (.surah-banner-text) ----------
    Kotak kremnya sempit (~25% lebar bingkai, lihat CSS .surah-banner-frame),
    sedangkan nama surah panjangnya macam-macam -- jadi tiap kali dirender,
-   font-size-nya dikecilkan dulu selangkah demi selangkah sampai muat;
-   kalau di font minimum masih kepanjangan (nama surah yang sangat panjang),
-   baru dikompres tipis pakai scaleX (bukan langsung dipepetkan gepeng,
-   dibatasi minimal 0.72 spy tetap kebaca). */
+   font-size-nya dikecilkan dulu selangkah demi selangkah sampai muat
+   (diprioritaskan habis-habisan sampai cukup kecil, TETAP proporsional/
+   tidak berubah bentuk). scaleX cuma dipakai sebagai jalan TERAKHIR kalau
+   di font sekecil itu masih kepanjangan (nama surah yang sangat panjang),
+   dan sekarang dibatasi HALUS (minimal 0.88, bukan 0.72 seperti
+   sebelumnya) -- kompresi 0.72 kelewat agresif, bikin hurufnya kelihatan
+   "gepeng"/berantakan (dilaporkan user), bukan sekadar mengecil wajar. */
 function fitSurahBannerText(el){
   if(!el) return;
   el.style.transform = 'none';
@@ -1985,13 +2001,13 @@ function fitSurahBannerText(el){
   if(!avail) return;
   let fontSize = baseFontSize;
   let guard = 0;
-  while(el.scrollWidth > avail && fontSize > 10 && guard < 40){
-    fontSize -= 0.5;
+  while(el.scrollWidth > avail && fontSize > 8 && guard < 48){
+    fontSize -= 0.25;
     el.style.fontSize = fontSize+'px';
     guard++;
   }
   if(el.scrollWidth > avail){
-    const scale = Math.max(0.72, avail/el.scrollWidth);
+    const scale = Math.max(0.88, avail/el.scrollWidth);
     el.style.transform = 'scaleX('+scale.toFixed(3)+')';
   }
 }
@@ -2466,30 +2482,54 @@ function computeSrsRecommendations(data, limit){
   results.sort((a,b)=> b.score - a.score);
   return results.slice(0, limit || 8);
 }
+/* Gabungkan halaman-halaman BERTURUT-TURUT (nomor halaman nyambung,
+   juz sama) yang kondisinya IDENTIK PERSIS (status, "sudah berapa hari",
+   jadwal adaptifnya) jadi 1 baris rentang -- mis. 8 halaman kondisi sama
+   di Juz 13 cukup 1 baris "Halaman 242\u2013249", bukan 8 baris berulang.
+   Aman digabung tanpa perlu re-sort krn computeSrsRecommendations() sudah
+   urut per-juz/per-halaman menaik SEBELUM di-sort skor -- kandidat dgn
+   skor identik (yg kondisinya sama persis) otomatis tetap bertetangga
+   berkat stable sort JS, jadi tinggal dicek adjacency-nya di sini. */
+function groupSrsRecommendations(recs){
+  const groups = [];
+  let cur = null;
+  recs.forEach(r=>{
+    const sameRun = cur && cur.juz===r.juz && r.page===cur.endPage+1 &&
+      cur.status===r.status && cur.days===r.days && Math.round(cur.interval)===Math.round(r.interval);
+    if(sameRun){ cur.endPage = r.page; cur.count++; }
+    else{ cur = { juz:r.juz, startPage:r.page, endPage:r.page, status:r.status, days:r.days, interval:r.interval, count:1 }; groups.push(cur); }
+  });
+  return groups;
+}
 function renderSrsCard(){
   const card = document.getElementById('srsCard');
   const list = document.getElementById('srsList');
   if(!card || !list) return;
-  // Ambil kandidat lebih banyak dulu (50) baru difilter+dibatasi ke 8 --
-  // supaya halaman "terlupakan" yang skornya masih rendah tidak keburu
-  // terpotong duluan sebelum sempat ikut lolos filter di bawah.
-  const recs = computeSrsRecommendations(appData, 50)
-    .filter(r=> r.status==='terlupakan' || r.score>=0.85)
-    .slice(0, 8);
+  // Ambil SEMUA kandidat yg lolos filter dulu (tanpa batas), baru
+  // dikelompokkan jadi rentang, baru dibatasi ke 8 BARIS (bukan 8
+  // halaman) -- supaya rentang panjang tidak keburu terpotong duluan.
+  const recs = computeSrsRecommendations(appData, 9999)
+    .filter(r=> r.status==='terlupakan' || r.score>=0.85);
   if(!recs.length){ card.style.display='none'; return; }
   card.style.display='block';
+  const groups = groupSrsRecommendations(recs).slice(0, 8);
   const statusLabel = { murajaah:'Sedang muraja\'ah', mutqin:'Mutqin', terlupakan:'Terlupakan' };
   const statusColor = { murajaah:'var(--warning)', mutqin:'var(--success)', terlupakan:'var(--danger)' };
-  list.innerHTML = recs.map(r=>
-    '<button class="srs-item" data-juz="'+r.juz+'" data-page="'+r.page+'">'+
-      '<span class="srs-item-badge" style="background:'+(statusColor[r.status]||'var(--gray-300)')+';"></span>'+
+  list.innerHTML = groups.map(g=>{
+    const pageLabel = (g.startPage===g.endPage) ? ('Halaman '+g.startPage) : ('Halaman '+g.startPage+'\u2013'+g.endPage);
+    const countLabel = g.count>1 ? ' ('+g.count+' halaman)' : '';
+    return '<button class="srs-item" data-juz="'+g.juz+'" data-page="'+g.startPage+'">'+
+      '<span class="srs-item-badge" style="background:'+(statusColor[g.status]||'var(--gray-300)')+';"></span>'+
       '<span style="flex:1;">'+
-        '<span class="srs-item-title">Halaman '+r.page+' \u2014 Juz '+r.juz+'</span>'+
-        '<span class="srs-item-sub">'+statusLabel[r.status]+' \u2022 '+(r.days>=9999 ? 'belum pernah tercatat' : r.days+' hari lalu')+' \u2022 jadwal tiap ~'+Math.round(r.interval)+' hari</span>'+
+        '<span class="srs-item-title">'+pageLabel+' \u2014 Juz '+g.juz+countLabel+'</span>'+
+        '<span class="srs-item-sub">'+statusLabel[g.status]+' \u2022 '+(g.days>=9999 ? 'belum pernah tercatat' : g.days+' hari lalu')+' \u2022 jadwal tiap ~'+Math.round(g.interval)+' hari</span>'+
       '</span>'+
       '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--gray-300);flex-shrink:0;"><path d="M9 6l6 6-6 6"/></svg>'+
-    '</button>'
-  ).join('');
+    '</button>';
+  }).join('');
+  // Tap 1 baris rentang -> buka editor halaman PERTAMA di rentang itu
+  // (paling masuk akal sbg titik mulai; halaman lain di rentang itu
+  // tinggal dibuka satu-satu manual dari sana kalau perlu).
   list.querySelectorAll('.srs-item').forEach(el=>{
     el.onclick = ()=> openPageEditor(Number(el.getAttribute('data-juz')), Number(el.getAttribute('data-page')));
   });
@@ -3328,8 +3368,8 @@ let mushafHafalanMode = false;
 const mushafHafalanRevealed = new Set();
 function setMushafHafalanMode(on){
   mushafHafalanMode = on;
-  const pill = document.getElementById('mushafHafalanPill');
-  if(pill) pill.classList.toggle('show', on);
+  const revealAllBtn = document.getElementById('mushafHafalanRevealAll');
+  if(revealAllBtn) revealAllBtn.style.display = on ? 'flex' : 'none';
   const wrap = document.getElementById('mushafTextWrap');
   if(wrap) wrap.classList.toggle('hafalan-mode', on);
   const toggleBtn = document.getElementById('mushafHafalanToggle');
@@ -4519,8 +4559,6 @@ function setupMushafSwipe(){
 
   const sorotDoneBtn = document.getElementById('mushafSorotDone');
   if(sorotDoneBtn) sorotDoneBtn.onclick = (e)=>{ e.stopPropagation(); setMushafSorotMode(false); };
-  const hafalanDoneBtn = document.getElementById('mushafHafalanDone');
-  if(hafalanDoneBtn) hafalanDoneBtn.onclick = (e)=>{ e.stopPropagation(); setMushafHafalanMode(false); };
   const hafalanRevealBtn = document.getElementById('mushafHafalanRevealAll');
   if(hafalanRevealBtn) hafalanRevealBtn.onclick = (e)=>{ e.stopPropagation(); revealAllMushafHafalan(); };
 
