@@ -1805,7 +1805,7 @@ function buildMushafWordGridHtml(meta, wordAyahs){
   meta.ayahs.forEach(a=>{
     if(!currentGroup || currentGroup.surah !== a.surah){
       const seg = meta.segs.find(s=> s.surahNumber===a.surah);
-      blocks.push({ type:'banner', text: seg ? simplifyArabicSurahName(seg.surahArab) : '' });
+      blocks.push({ type:'banner', text: seg ? simplifyArabicSurahName(seg.surahArab) : '', surah: a.surah });
       currentGroup = { type:'group', surah:a.surah, ayahs:[] };
       blocks.push(currentGroup);
     }
@@ -1814,7 +1814,7 @@ function buildMushafWordGridHtml(meta, wordAyahs){
   const wordMap = {};
   (wordAyahs||[]).forEach(wa=> wordMap[wa.surah+':'+wa.ayah] = wa.words);
   return blocks.map(b=>{
-    if(b.type==='banner') return '<div class="mushaf-surah-banner surah-banner-frame"><span class="surah-banner-text">'+escapeHtml(b.text)+'</span></div>';
+    if(b.type==='banner') return '<div class="mushaf-surah-banner surah-banner-frame"><span class="surah-banner-text" data-surah-banner="'+b.surah+'">'+escapeHtml(b.text)+'</span></div>';
     return b.ayahs.map(a=>{
       const words = wordMap[a.surah+':'+a.ayah];
       const cardsHtml = (words && words.length)
@@ -2130,6 +2130,46 @@ function fitSurahBannerText(el){
 }
 function fitAllSurahBanners(){
   document.querySelectorAll('#mushafTextWrap .surah-banner-text').forEach(fitSurahBannerText);
+}
+/* ---------- Upgrade banner nama surah (Mode Teks/Perkata) ke glyph resmi ----------
+   Amiri Quran memang dirancang buat teks ayat BERHARAKAT LENGKAP -- nama
+   surah yang dipakai di banner ini TANPA harakat sama sekali (lihat
+   simplifyArabicSurahName), dan ternyata di font itu kombinasi huruf
+   tanpa harakat kadang di-render dengan bentuk sambung yang aneh/susah
+   dibaca (dilaporkan user: "الفاتحة" jadi kelihatan seperti coretan,
+   bukan cuma soal ukuran/kompresi). Font QCF4 (dipakai di Mode Madinah)
+   punya glyph KHUSUS utk tiap nama surah yang memang didesain sebagai
+   lempeng nama surah (persis kaligrafi asli mushaf cetak) -- jadi di
+   sini kita pakai ULANG glyph resmi itu (data sama yg dipakai
+   renderSurahList di daftar surah), sebagai UPGRADE progresif: banner
+   tetap tampil teks Amiri Quran biasa dulu (aman, instan, tidak
+   nge-block render), lalu begitu glyph resmi berhasil didapat &
+   font-nya siap, teks diganti diam-diam ke glyph itu + ukuran di-fit
+   ulang. Kalau gagal (offline/CDN bermasalah), banner TETAP tampil versi
+   teks biasa -- tidak pernah kosong/rusak. */
+function upgradeMushafTextBanners(p){
+  const wrap = document.getElementById('mushafTextWrap');
+  if(!wrap) return;
+  const slots = wrap.querySelectorAll('.surah-banner-text[data-surah-banner]');
+  if(!slots.length) return;
+  fetchQcf4PageAsync(p).then(pageJson=>{
+    if(!pageJson) return;
+    const banners = extractQcf4SurahBanners(pageJson);
+    slots.forEach(slot=>{
+      const surahNum = Number(slot.getAttribute('data-surah-banner'));
+      const b = banners[surahNum];
+      if(!b) return;
+      ensureQcf4Font(b.font).then(ok=>{
+        if(ok===false) return;
+        // jaga-jaga: pastikan slot ini masih ada di halaman yg sama
+        // saat ini (bukan sisa render halaman lama yg sudah ditinggal)
+        if(!document.body.contains(slot)) return;
+        slot.style.fontFamily = '"'+b.font+'"';
+        slot.textContent = b.char;
+        fitSurahBannerText(slot);
+      });
+    });
+  });
 }
 
 /* ---------- Unduh semua halaman untuk dipakai offline ----------
@@ -3357,14 +3397,14 @@ function buildMushafTextHtml(meta){
   meta.ayahs.forEach(a=>{
     if(!currentGroup || currentGroup.surah !== a.surah){
       const seg = meta.segs.find(s=> s.surahNumber===a.surah);
-      blocks.push({ type:'banner', text: seg ? simplifyArabicSurahName(seg.surahArab) : '' });
+      blocks.push({ type:'banner', text: seg ? simplifyArabicSurahName(seg.surahArab) : '', surah: a.surah });
       currentGroup = { type:'text', surah:a.surah, ayahs:[] };
       blocks.push(currentGroup);
     }
     currentGroup.ayahs.push(a);
   });
   return blocks.map(b=>{
-    if(b.type==='banner') return '<div class="mushaf-surah-banner surah-banner-frame"><span class="surah-banner-text">'+escapeHtml(b.text)+'</span></div>';
+    if(b.type==='banner') return '<div class="mushaf-surah-banner surah-banner-frame"><span class="surah-banner-text" data-surah-banner="'+b.surah+'">'+escapeHtml(b.text)+'</span></div>';
     return b.ayahs.map(a=>
       '<p class="mushaf-ayat-text"><span class="mushaf-ayah" data-surah="'+a.surah+'" data-ayah="'+a.ayah+'">'+escapeHtml(a.text)+
       ' <span class="mushaf-ayah-num">\uFD3F'+toArabicDigits(a.ayah)+'\uFD3E</span></span></p>'+
@@ -4337,6 +4377,7 @@ function renderMushafViewer(){
     fitAllSurahBanners();
     if(document.fonts && document.fonts.ready) document.fonts.ready.then(fitAllSurahBanners).catch(()=>{});
     setTimeout(fitAllSurahBanners, 350);
+    upgradeMushafTextBanners(p);
     document.getElementById('mushafFontSizeRow').style.display = 'flex';
     document.getElementById('mushafPlayerIdle').style.display = 'flex';
   }else if(mushafViewMode==='text' && hasAyahData){
@@ -4356,6 +4397,11 @@ function renderMushafViewer(){
     // timeout jaga-jaga kalau browser tidak dukung Font Loading API).
     if(document.fonts && document.fonts.ready) document.fonts.ready.then(fitAllSurahBanners).catch(()=>{});
     setTimeout(fitAllSurahBanners, 350);
+    // Upgrade banner ke glyph resmi QCF4 (lihat komentar di
+    // upgradeMushafTextBanners) -- teks Amiri Quran polos tanpa harakat
+    // ternyata kadang di-render aneh/susah dibaca oleh font itu; glyph
+    // resmi ini yang benar-benar terbukti selalu jelas dibaca.
+    upgradeMushafTextBanners(p);
     document.getElementById('mushafFontSizeRow').style.display = 'flex';
     document.getElementById('mushafPlayerIdle').style.display = 'flex';
   }else if(mushafViewMode==='text' && !meta && !pageMetaFailed[p]){
