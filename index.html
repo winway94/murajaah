@@ -1591,9 +1591,9 @@ function renderLastMurajaahBanner(){
   const surahLabel = meta && meta.segs && meta.segs.length ? meta.segs[meta.segs.length-1].surah : null;
   const whenLabel = formatRelativeTime(info.date, true);
   document.getElementById('lastMurajaahText').innerHTML =
-    'Terakhir muraja\'ah: <b>Juz ' + info.juz + ', halaman ' + info.pageInJuz + '</b>' +
+    'Terakhir muraja\'ah: <b>halaman ' + info.page + ' dari mushaf</b>' +
     (surahLabel ? ' \u2014 <b>QS ' + surahLabel + '</b>' : '') +
-    ', hal. ' + info.page + ' dari mushaf' +
+    ' (Juz ' + info.juz + ', halaman ke-' + info.pageInJuz + ' di juz ini)' +
     (whenLabel ? ' \u2022 ' + whenLabel : '');
 }
 const LS_PIN = 'hafalan_pin';
