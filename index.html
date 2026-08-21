@@ -1277,8 +1277,11 @@ const DEFAULT_OVERDUE_DAYS = 30;
    AWAL array CHANGELOG (paling atas = paling baru). Ini murni tampilan
    (tidak memengaruhi cache); yang mengontrol update service worker
    tetap CACHE_VERSION di sw.js. */
-const APP_VERSION = 'v81';
+const APP_VERSION = 'v82';
 const CHANGELOG = [
+  { version:'v82', date:'21 Agustus 2026', changes:[
+    'Fix lanjutan tombol "Unduh semua halaman": halaman yang di v81 sempat kadung tersimpan "sukses palsu" (dari sebelum fix v81 ada) sekarang ikut diverifikasi ulang otomatis begitu tombol ini ditekan lagi -- sebelumnya kalau progres sudah kadung 100%, tombolnya kelihatan seperti tidak melakukan apa-apa (langsung "selesai" instan) karena semua halaman dianggap sudah beres tanpa dicek ulang sama sekali, padahal sebagian font-nya masih bolong. Sekarang tiap kali ditekan, semua halaman dicek ulang (JSON yang sudah ada tidak diunduh ulang, cuma font-nya yang diverifikasi -- jadi tetap cepat utk halaman yang memang sudah benar-benar lengkap, cuma yang ternyata masih bolong yang benar-benar dikerjakan ulang).'
+  ]},
   { version:'v81', date:'21 Agustus 2026', changes:[
     'Fix bug "Unduh semua halaman" yang bikin font Mushaf Madinah tetap error walau sudah pernah diunduh -- penyebabnya progres unduhan cuma ngecek JSON layout halamannya berhasil diambil atau tidak, TIDAK ikut ngecek apakah file font woff2-nya sendiri benar-benar berhasil ke-cache. Jadi kalau 1 font gagal dimuat di tengah proses unduh ratusan halaman berturut-turut (koneksi sempat putus sesaat, dsb), halaman itu tetap ditandai "sudah tersimpan" padahal fontnya belum benar-benar tersimpan permanen -- baru ketahuan belakangan pas halaman itu dibuka & jaringan lagi tidak ada. Sekarang keberhasilan font ikut dicek; kalau ada yang gagal, halaman itu dianggap belum selesai & otomatis dicoba ulang lain kali tekan "Unduh semua halaman".'
   ]},
@@ -2234,22 +2237,48 @@ function offlineDownloadedCount(){
    halaman ini TIDAK ditandai selesai (dianggap gagal, sama seperti
    JSON-nya sendiri yang gagal diambil) -- jadi bakal otomatis dicoba
    lagi kalau user tekan "Unduh semua halaman" sekali lagi, bukan
-   diam-diam dianggap beres padahal belum. */
+   diam-diam dianggap beres padahal belum.
+   BUG LANJUTAN (dilaporkan user: "sudah unduh 100% tapi masih error DAN
+   tidak bisa unduh ulang"): fix di atas saja TIDAK CUKUP -- halaman yang
+   SUDAH KADUNG tersimpan salah (dari sebelum fix ini ada) tetap lolos
+   tanpa diverifikasi ulang, karena baris "if(cache[p]) return cache[p]"
+   di bawah langsung mengembalikan data lama begitu saja tiap halaman
+   itu SUDAH ADA di cache -- tidak peduli apakah font-nya waktu itu
+   benar-benar berhasil atau tidak (ini juga penyebab tombolnya kelihatan
+   "macet"/tidak mau unduh apa-apa lagi begitu progress sudah 100%,
+   sebab downloadAllPagesForOffring() di bawah skip total halaman yang
+   sudah ada di cache). Sekarang: JSON yang sudah ada di cache tetap
+   dipakai ulang (tidak fetch ulang, hemat kuota/waktu), TAPI font-nya
+   tetap diverifikasi ulang tiap kali fungsi ini dipanggil dalam sesi
+   berjalan (via qcf4PageFontsVerified sbg penanda "sudah pasti oke di
+   sesi ini", supaya tidak berulang-ulang verifikasi page yang sama) --
+   begitu ketahuan font sebuah halaman ternyata belum benar-benar
+   tersimpan, halaman itu dianggap BELUM selesai lagi & akan dicoba
+   diunduh ulang. */
+const qcf4PageFontsVerified = new Set();
 async function fetchAndCacheQcf4PageSync(p){
   const cache = loadQcf4PageCache();
-  if(cache[p]) return cache[p];
   try{
-    const res = await fetch(QCF4_JSON_BASE + String(p).padStart(3,'0') + '.json');
-    if(!res.ok) throw new Error('HTTP '+res.status);
-    const json = await res.json();
-    if(!json || !json.lines || !json.lines.length) throw new Error('respons kosong');
+    let json = cache[p];
+    if(json && qcf4PageFontsVerified.has(p)) return json; // sudah dipastikan oke di sesi ini, tidak perlu verifikasi ulang
+    if(!json){
+      const res = await fetch(QCF4_JSON_BASE + String(p).padStart(3,'0') + '.json');
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      json = await res.json();
+      if(!json || !json.lines || !json.lines.length) throw new Error('respons kosong');
+    }
     // prefetch juga font woff2 yang dipakai halaman ini, supaya sekalian
-    // tersimpan permanen di cache Service Worker (bukan cuma JSON layout-nya)
+    // tersimpan permanen di cache Service Worker (bukan cuma JSON layout-nya).
+    // Ini tetap dijalankan meski JSON-nya sudah pernah ke-cache sebelumnya,
+    // supaya halaman yang dulu kadung tersimpan "sukses palsu" (font-nya
+    // sebenarnya belum benar-benar ke-cache, lihat catatan di atas) ikut
+    // ketahuan & diperbaiki, bukan cuma dilewati begitu saja.
     const fontsUsed = {};
     json.lines.forEach(line=> line.words.forEach(w=>{ if(w.font) fontsUsed[w.font]=true; }));
     const fontResults = await Promise.all(Object.keys(fontsUsed).map(ensureQcf4Font));
     if(fontResults.some(ok=> ok===false)) throw new Error('sebagian font gagal dimuat');
     cache[p] = json;
+    qcf4PageFontsVerified.add(p);
     idbPutQcf4Page(p, json); // simpan permanen ke IndexedDB (bukan localStorage -- lihat catatan di atas)
     delete qcf4PageFailed[p];
     return cache[p];
@@ -2356,12 +2385,21 @@ async function downloadAllPagesForOffline(){
       await new Promise(r=> setTimeout(r, 100)); // jeda kecil, jangan banjiri API
     }
     if(offlineDownloadCancelled) break;
-    const qcf4Cache = loadQcf4PageCache();
-    if(!qcf4Cache[p]){
-      const pg = await fetchAndCacheQcf4PageSync(p);
-      if(!pg) failed++;
-      await new Promise(r=> setTimeout(r, 100));
-    }
+    // PENTING: sengaja TIDAK dicek "if(!qcf4Cache[p])" dulu di sini
+    // seperti sebelumnya -- itu yang bikin halaman yang dulu kadung
+    // tersimpan "sukses palsu" (font-nya sebenarnya belum ke-cache,
+    // lihat catatan panjang di fetchAndCacheQcf4PageSync) TIDAK PERNAH
+    // dicoba ulang / diverifikasi lagi, sehingga tombol ini kelihatan
+    // "macet" (tidak mau unduh apa-apa) begitu progress sudah kadung
+    // 100% walau sebenarnya ada yang masih bolong. fetchAndCacheQcf4PageSync
+    // sendiri sudah cukup pintar: JSON yang sudah ada di cache dipakai
+    // ulang (tidak fetch dari internet lagi), font yang sudah pasti oke
+    // di sesi ini juga dilewati (qcf4PageFontsVerified) -- jadi halaman
+    // yang memang sudah benar-benar lengkap tetap cepat, cuma yang
+    // ternyata masih bolong yang benar-benar dikerjakan ulang.
+    const pg = await fetchAndCacheQcf4PageSync(p);
+    if(!pg) failed++;
+    await new Promise(r=> setTimeout(r, 100));
     renderOfflineProgress();
   }
   offlineDownloadRunning = false;
