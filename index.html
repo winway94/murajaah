@@ -579,14 +579,6 @@ button{font-family:var(--font-sans);}
 #mushafOverlay.immersive .mushaf-immersive-header{
   max-height:32px;opacity:1;margin:0 0 12px;
 }
-.mushaf-sorot-pill{position:absolute;left:50%;top:10px;transform:translateX(-50%);z-index:6;
-  max-width:calc(100% - 28px);background:var(--gray-900);color:var(--white);font-family:'DM Sans',sans-serif;
-  font-size:11px;font-weight:700;padding:8px 14px;border-radius:99px;display:flex;align-items:center;gap:8px;
-  box-shadow:var(--shadow-md);opacity:0;pointer-events:none;transition:opacity .2s ease;}
-.mushaf-sorot-pill.show{opacity:1;pointer-events:auto;}
-.mushaf-sorot-pill span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.mushaf-sorot-pill button{background:rgba(255,255,255,.18);border:none;color:var(--white);font-size:10.5px;
-  font-weight:700;padding:4px 10px;border-radius:99px;font-family:'DM Sans',sans-serif;flex-shrink:0;cursor:pointer;}
 /* ---- Pil ikon ayat (bookmark/catatan/salin/tafsir/putar) ----
    Muncul TAMBAHAN di atas Mode Sorot yang sudah ada (bukan pengganti):
    begitu 1 ayat disorot (tahan-lama, atau tap lagi selagi Mode Sorot
@@ -1039,10 +1031,6 @@ button{font-family:var(--font-sans);}
     <span id="mushafImmersiveJuzHizb"></span>
   </div>
   <div class="mushaf-stage" id="mushafStage">
-  <div class="mushaf-sorot-pill" id="mushafSorotPill">
-    <span>Mode Sorot — ketuk ayat lain untuk menambah</span>
-    <button id="mushafSorotDone">Selesai</button>
-  </div>
   <div class="mushaf-imgwrap" id="mushafImgWrap">
     <div class="mushaf-textwrap" id="mushafTextWrap" style="display:none;"></div>
     <img id="mushafImg" alt="Halaman mushaf" style="display:none;" />
@@ -1289,8 +1277,12 @@ const DEFAULT_OVERDUE_DAYS = 30;
    AWAL array CHANGELOG (paling atas = paling baru). Ini murni tampilan
    (tidak memengaruhi cache); yang mengontrol update service worker
    tetap CACHE_VERSION di sw.js. */
-const APP_VERSION = 'v68';
+const APP_VERSION = 'v79';
 const CHANGELOG = [
+  { version:'v79', date:'21 Agustus 2026', changes:[
+    'Hapus bar/pil "Mode Sorot — ketuk ayat lain untuk menambah" yang mengambang di atas halaman mushaf -- dirasa mengganggu & menutupi teks. Fungsinya tidak hilang: tahan-lama 1 ayat tetap menyalakan Mode Sorot dan ayat lain tetap bisa ditambah cukup dgn tap, cuma keluarnya sekarang lewat tap area kosong saja (sama seperti Mode Uji Hafalan di v64), bukan lewat tombol "Selesai" di bar yang sudah dihapus.',
+    'Fix nomor versi aplikasi yang sempat tidak sinkron dgn versi cache service worker (APP_VERSION di index.html ketinggalan di v68 padahal sw.js sudah di-deploy sampai v78) -- keduanya sekarang disamakan lagi di v79.'
+  ]},
   { version:'v68', date:'21 Agustus 2026', changes:[
     'Fix: tombol ganti mode (ikon kotak-belah di viewer mushaf) kelihatan tidak berfungsi begitu Mode Madinah pernah gagal dimuat sekali (font/data dari CDN) -- kegagalan itu dulu "dikunci" permanen di memori selama sesi berjalan, jadi tap ulang ke Mode Madinah selalu langsung bounce balik ke Mode Mushaf biasa. Sekarang tiap kali user MANUAL pilih Mode Madinah, dicoba ulang dari awal.',
     'Fix: nama surah di banner ornamen (Mode Mushaf biasa/fallback) kadang kelihatan gepeng/numpuk susah dibaca -- sebelumnya pakai teks Arab lengkap dgn kata "Surah" + tashkil penuh yg dipaksa muat ke kotak sempit yg didesain utk Mode Madinah. Sekarang kata "Surah" & tashkil dibuang dulu sebelum ditampilkan, jadi jauh lebih ringkas & tidak perlu dikompres ekstrem.',
@@ -3560,8 +3552,6 @@ function setMushafImmersive(on){
 }
 function setMushafSorotMode(on){
   mushafSorotMode = on;
-  const pill = document.getElementById('mushafSorotPill');
-  if(pill) pill.classList.toggle('show', on);
   if(on) setMushafHafalanMode(false); // 2 mode tap-ayat ini saling eksklusif, biar tap ayat tidak ambigu
   if(!on){
     mushafSorotedKeys.clear();
@@ -4816,8 +4806,6 @@ function setupMushafSwipe(){
     else setMushafImmersive(!mushafImmersive);
   });
 
-  const sorotDoneBtn = document.getElementById('mushafSorotDone');
-  if(sorotDoneBtn) sorotDoneBtn.onclick = (e)=>{ e.stopPropagation(); setMushafSorotMode(false); };
   const hafalanRevealBtn = document.getElementById('mushafHafalanRevealAll');
   if(hafalanRevealBtn) hafalanRevealBtn.onclick = (e)=>{ e.stopPropagation(); revealAllMushafHafalan(); };
 
