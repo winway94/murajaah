@@ -534,7 +534,12 @@ button{font-family:var(--font-sans);}
 .mushaf-word-grid{direction:rtl;display:grid;grid-template-columns:repeat(auto-fill,minmax(60px,1fr));gap:8px;}
 .word-card{background:var(--gray-100);border-radius:10px;padding:8px 4px 6px;text-align:center;min-width:0;overflow:hidden;}
 .word-card .word-ar{font-family:'Amiri Quran',serif;font-size:calc(var(--mushaf-font-size, 26px) - 4px);color:var(--gray-900);line-height:1.3;overflow-wrap:break-word;}
-.word-card .word-id{direction:ltr;font-family:'DM Sans',sans-serif;font-size:10px;color:var(--gray-500);margin-top:4px;font-weight:600;overflow-wrap:break-word;word-break:break-word;}
+/* Teks terjemahan Indonesia per-kata: dulu pakai --gray-500 & 10px, tapi
+   di mode TERANG kontrasnya cuma ~3.68:1 thd latar kartu (--gray-100) --
+   di bawah standar keterbacaan minimum (4.5:1), makanya terasa samar
+   (dilaporkan user). Diganti ke --gray-700 (kontras >10:1 di kedua tema)
+   + font sedikit dibesarkan (10px -> 11px). */
+.word-card .word-id{direction:ltr;font-family:'DM Sans',sans-serif;font-size:11px;color:var(--gray-700);margin-top:4px;font-weight:600;overflow-wrap:break-word;word-break:break-word;}
 .word-card-loading{grid-column:1/-1;text-align:center;font-size:11px;color:var(--gray-500);padding:10px 0;}
 .mushaf-loading,.mushaf-error{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   text-align:center;padding:20px;font-size:12.5px;color:var(--gray-500);}
@@ -1108,7 +1113,7 @@ button{font-family:var(--font-sans);}
            terpisah yang makan tempat/menutupi baris teks. -->
       <button class="icon-btn" id="mushafHafalanRevealAll" title="Buka semua ayat (cek jawaban)" style="display:none;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
       <button class="icon-btn" id="mushafHafalanToggle" title="Mode Uji Hafalan (sembunyikan teks)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg></button>
-      <button class="icon-btn" id="mushafToggleMode" title="Ganti tampilan (teks/gambar)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></button>
+      <button class="icon-btn" id="mushafToggleMode" title="Pilih tampilan (Madinah/Teks/Gambar)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></button>
       <button class="icon-btn" id="mushafClose"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
   </div>
@@ -1246,6 +1251,21 @@ button{font-family:var(--font-sans);}
     <h3 style="margin:0;">Pilih Qori</h3>
   </div>
   <div class="reciter-list" id="reciterFullList"></div>
+</div></div>
+
+<!-- PILIH TAMPILAN MUSHAF -- dulu cuma 1 tombol ikon kotak yang memutar
+     diam-diam antar 3 mode (Teks/Madinah/Gambar) sekali klik, tanpa
+     indikator lagi di mode apa & ikonnya tidak pernah berubah -- terasa
+     ambigu/klik-coba-lihat (dilaporkan user). Diganti pola yang SAMA spt
+     "Pilih Qori" di atas: layar penuh berisi daftar nama mode + deskripsi
+     singkat + centang di mode yg lagi aktif, tap nama = langsung pindah
+     (lihat populateViewModeList/openViewModeOverlay). -->
+<div class="overlay center" id="viewModeOverlay"><div class="sheet reciter-sheet">
+  <div class="reciter-head">
+    <button class="icon-btn" id="viewModeClose" aria-label="Tutup"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <h3 style="margin:0;">Pilih Tampilan</h3>
+  </div>
+  <div class="reciter-list" id="viewModeList"></div>
 </div></div>
 
 <!-- CATATAN AYAT (fitur baru: catatan pribadi per ayat, tersimpan di perangkat ini) -->
@@ -1406,8 +1426,14 @@ const DEFAULT_OVERDUE_DAYS = 30;
    AWAL array CHANGELOG (paling atas = paling baru). Ini murni tampilan
    (tidak memengaruhi cache); yang mengontrol update service worker
    tetap CACHE_VERSION di sw.js. */
-const APP_VERSION = 'v107';
+const APP_VERSION = 'v109';
 const CHANGELOG = [
+  { version:'v109', date:'22 Agustus 2026', changes:[
+    'Tombol "ganti tampilan" (ikon kotak) di Mode Mushaf diganti total: dulu 1 tombol yang memutar diam-diam antar 3 mode (Teks/Madinah/Gambar) sekali klik, tanpa indikator lagi di mode apa & ikonnya tidak pernah berubah -- terasa ambigu, cuma klik-coba-lihat (dilaporkan user). Sekarang buka halaman "Pilih Tampilan" (pola sama spt "Pilih Qori") berisi nama + deskripsi singkat tiap mode, tap nama = langsung pindah, ada tanda centang di mode yg lagi aktif.'
+  ]},
+  { version:'v108', date:'22 Agustus 2026', changes:[
+    'Fix teks terjemahan Indonesia per-kata (Mode Terjemahan Perkata) yg terasa samar/kurang jelas di mode terang -- ternyata warnanya (--gray-500) cuma kontras ~3.68:1 thd latar kartu, di bawah standar keterbacaan minimum (4.5:1). Diganti ke warna lebih gelap (--gray-700, kontras >10:1) + font sedikit dibesarkan.'
+  ]},
   { version:'v107', date:'22 Agustus 2026', changes:[
     'Fix ayat Mode Mushaf Madina yang condong ke kiri (baru muncul stlh perbaikan ukuran teks v106) -- fitur stretch-nya ternyata menjangkarkan pembesaran ke TEPI KANAN kotak, bukan ke tengah teks yg sudah dirata-tengahkan. Selama scale nyaris selalu 1 (bug lama v105 & sebelumnya), ini tidak kelihatan; begitu v106 bikin stretch beneran aktif, jangkar yg salah ini jadi kelihatan jelas (dibuktikan lewat pengujian: meleset ~30px ke kiri thd pusat kotak). Jangkarnya diganti ke tengah -- sekarang pembesaran teks simetris & selalu pas di tengah pada ukuran berapa pun.'
   ]},
@@ -2856,6 +2882,7 @@ const OVERLAY_CLOSERS = {
   ayahTafsirOverlay: ()=>closeAyahTafsirModal(),
   searchFullOverlay: ()=>closeSearchFullOverlay(),
   reciterOverlay: ()=>closeReciterOverlay(),
+  viewModeOverlay: ()=>closeViewModeOverlay(),
   pinOverlay: ()=>closePinModal()
 };
 /* tutup modal/overlay teratas yang lagi kebuka. Return true kalau ada
@@ -5035,8 +5062,18 @@ function renderAyahTafsirModalBody(){
   else if(!text) body.innerHTML = '<p class="tafsir-loading">Tafsir tidak tersedia untuk ayat ini, atau gagal dimuat (cek koneksi).</p>';
   else body.innerHTML = '<p>'+escapeHtml(text)+'</p><div class="tafsir-attr">\u2014 '+escapeHtml(src.attr)+'</div>';
 }
-function toggleMushafViewMode(){
-  mushafViewMode = (mushafViewMode==='text') ? 'madinah' : (mushafViewMode==='madinah') ? 'image' : 'text';
+const MUSHAF_VIEW_MODES = [
+  { id:'madinah', name:'Mushaf Madinah', desc:'Tata letak & tulisan persis Mushaf cetak Madinah, per halaman.' },
+  { id:'text', name:'Teks (Amiri Quran)', desc:'Ayat ditulis ulang pakai font Arab standar, mendukung Mode Perkata.' },
+  { id:'image', name:'Gambar (scan asli)', desc:'Foto/scan halaman mushaf apa adanya, tanpa font digital.' }
+];
+// Ganti mode tampilan Mushaf ke `mode` secara LANGSUNG (dipilih dari
+// daftar #viewModeOverlay) -- dulu cuma 1 tombol yang MEMUTAR diam-diam
+// antar 3 mode sekali klik tanpa indikator sedang di mode apa, terasa
+// ambigu (dilaporkan user). Sekarang user lihat & pilih nama modenya
+// langsung, mirip pola "Pilih Qori".
+function setMushafViewMode(mode){
+  mushafViewMode = mode;
   if(mushafViewMode==='madinah' && currentMushafPage!=null){
     // User SECARA MANUAL memilih Mode Madinah -- kalau sebelumnya sempat
     // gagal (koneksi putus/CDN sesaat), jangan terus dikunci "gagal
@@ -5047,6 +5084,36 @@ function toggleMushafViewMode(){
   }
   try{ localStorage.setItem('hafalan_mushaf_view_mode', mushafViewMode); }catch(e){}
   renderMushafViewer();
+}
+function populateViewModeList(){
+  const list = document.getElementById('viewModeList');
+  if(!list) return;
+  list.innerHTML = MUSHAF_VIEW_MODES.map(m=>
+    '<div class="mushaf-reciter-item'+(m.id===mushafViewMode ? ' active' : '')+'" data-mode="'+m.id+'">'+
+      '<span style="display:flex;flex-direction:column;gap:3px;">'+
+        '<span style="font-weight:700;">'+m.name+'</span>'+
+        '<span class="hint" style="font-weight:400;">'+m.desc+'</span>'+
+      '</span>'+
+      (m.id===mushafViewMode ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;margin-left:8px;"><path d="M20 6L9 17l-5-5"/></svg>' : '')+
+    '</div>'
+  ).join('');
+  list.querySelectorAll('.mushaf-reciter-item').forEach(el=>{
+    el.onclick = ()=>{
+      setMushafViewMode(el.getAttribute('data-mode'));
+      closeViewModeOverlay();
+    };
+  });
+}
+function openViewModeOverlay(){
+  populateViewModeList();
+  pushNavState('viewMode');
+  document.getElementById('viewModeOverlay').classList.add('open');
+  pushOverlayStack('viewModeOverlay');
+}
+function closeViewModeOverlay(){
+  document.getElementById('viewModeOverlay').classList.remove('open');
+  popOverlayStack('viewModeOverlay');
+  consumeNavStateIfNeeded();
 }
 /* ---------- Panel pilih qori (custom, BUKAN <select> browser) ----------
    Ditampilkan di dalam mushafPlayerIdle (kondisi berhenti saja) — qori
@@ -6082,7 +6149,7 @@ function init(){
   document.getElementById('pageMarkTerlupakan').onclick = markPageTerlupakan;
   document.getElementById('pageViewMushaf').onclick = ()=>{ if(currentEditPage!=null) openMushafViewer(currentEditPage); };
   document.getElementById('mushafClose').onclick = closeMushafViewer;
-  document.getElementById('mushafToggleMode').onclick = toggleMushafViewMode;
+  document.getElementById('mushafToggleMode').onclick = openViewModeOverlay;
   document.getElementById('mushafHafalanToggle').onclick = ()=> setMushafHafalanMode(!mushafHafalanMode);
   document.getElementById('mushafModeMushafBtn').onclick = ()=> setMushafWordMode(false);
   document.getElementById('mushafModePerkataBtn').onclick = ()=> setMushafWordMode(true);
@@ -6104,6 +6171,7 @@ function init(){
   document.getElementById('mushafIdlePlay').onclick = startMushafPlayback;
   document.getElementById('mushafIdleReciterBtn').onclick = openReciterOverlay;
   document.getElementById('reciterClose').onclick = closeReciterOverlay;
+  document.getElementById('viewModeClose').onclick = closeViewModeOverlay;
   updateRepeatUI();
   setupMushafSwipe();
   // Tombol Sebelumnya/Berikutnya khusus PC/desktop (lihat catatan CSS-nya)
