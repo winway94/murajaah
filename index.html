@@ -1289,8 +1289,16 @@ const DEFAULT_OVERDUE_DAYS = 30;
    AWAL array CHANGELOG (paling atas = paling baru). Ini murni tampilan
    (tidak memengaruhi cache); yang mengontrol update service worker
    tetap CACHE_VERSION di sw.js. */
-const APP_VERSION = 'v66';
+const APP_VERSION = 'v68';
 const CHANGELOG = [
+  { version:'v68', date:'21 Agustus 2026', changes:[
+    'Fix: tombol ganti mode (ikon kotak-belah di viewer mushaf) kelihatan tidak berfungsi begitu Mode Madinah pernah gagal dimuat sekali (font/data dari CDN) -- kegagalan itu dulu "dikunci" permanen di memori selama sesi berjalan, jadi tap ulang ke Mode Madinah selalu langsung bounce balik ke Mode Mushaf biasa. Sekarang tiap kali user MANUAL pilih Mode Madinah, dicoba ulang dari awal.',
+    'Fix: nama surah di banner ornamen (Mode Mushaf biasa/fallback) kadang kelihatan gepeng/numpuk susah dibaca -- sebelumnya pakai teks Arab lengkap dgn kata "Surah" + tashkil penuh yg dipaksa muat ke kotak sempit yg didesain utk Mode Madinah. Sekarang kata "Surah" & tashkil dibuang dulu sebelum ditampilkan, jadi jauh lebih ringkas & tidak perlu dikompres ekstrem.',
+    'Fix bug sisa migrasi IndexedDB: 1 jalur kode (pencarian glyph banner nama surah) masih memanggil fungsi lama yang sudah dihapus (saveQcf4PageCache), bisa bikin error diam-diam di jalur itu -- sudah diarahkan ke penyimpanan IndexedDB yang baru.'
+  ]},
+  { version:'v67', date:'21 Agustus 2026', changes:[
+    'Fix bug "Unduh semua halaman" (offline) selalu mengulang dari 0% tiap refresh -- penyebabnya data Mode Madinah (~15MB utk 604 halaman) disimpan sbg 1 blob raksasa di localStorage yang cuma muat sekitar 5-10MB, jadi penyimpanannya gagal diam-diam begitu kelewat kuota walau progresnya sempat kelihatan jalan. Sekarang disimpan per-halaman di IndexedDB (kuota jauh lebih besar), jadi progres unduhan benar-benar permanen antar sesi/refresh.'
+  ]},
   { version:'v66', date:'21 Agustus 2026', changes:[
     'Fix bug kotak "Halaman (tap untuk ubah)" di Detail Juz kadang hilang total (kosong, tidak ada satu kotak pun) -- penyebabnya 1 halaman saja dengan status data tidak dikenal bisa bikin SELURUH proses render kotak berhenti di tengah jalan. Sekarang tiap kotak dirender terpisah (gagal 1 tidak menggagalkan yang lain) + status tidak dikenal otomatis dianggap "Belum ziyadah" alih-alih bikin error.',
     'Tombol "Unduh semua halaman" (offline) sekarang ikut mengunduh data Mode Madinah (layout QCF4 + font) per halaman, bukan cuma info surah/ayat -- sebelumnya Mode Madinah tetap loading tiap dibuka pertama kali walau sudah pernah tekan unduh semua.'
@@ -1797,7 +1805,7 @@ function buildMushafWordGridHtml(meta, wordAyahs){
   meta.ayahs.forEach(a=>{
     if(!currentGroup || currentGroup.surah !== a.surah){
       const seg = meta.segs.find(s=> s.surahNumber===a.surah);
-      blocks.push({ type:'banner', text: seg ? seg.surahArab : '' });
+      blocks.push({ type:'banner', text: seg ? simplifyArabicSurahName(seg.surahArab) : '' });
       currentGroup = { type:'group', surah:a.surah, ayahs:[] };
       blocks.push(currentGroup);
     }
@@ -1847,19 +1855,91 @@ function setMushafWordMode(on){
    halaman kosong/rusak. */
 const QCF4_JSON_BASE = 'https://raw.githubusercontent.com/MohamadHajjRabee/quran-qcf4/main/pages/';
 const QCF4_FONT_BASE = 'https://cdn.jsdelivr.net/gh/MohamadHajjRabee/quran-qcf4@main/fonts-woff2/';
-const LS_QCF4_PAGE = 'hafalan_qcf4_page_v1';
+const LS_QCF4_PAGE = 'hafalan_qcf4_page_v1'; // key lama, dipertahankan cuma utk migrasi 1x ke IndexedDB (lihat migrateQcf4LocalStorageToIdb)
 let qcf4PageCache = null;
 const qcf4PageInFlight = {};
 const qcf4PageFailed = {};
 function loadQcf4PageCache(){
   if(qcf4PageCache) return qcf4PageCache;
-  try{ qcf4PageCache = JSON.parse(localStorage.getItem(LS_QCF4_PAGE) || '{}'); }
-  catch(e){ qcf4PageCache = {}; }
+  qcf4PageCache = {}; // sumber kebenaran sekarang IndexedDB (lihat loadQcf4PageCacheFromIdb), bukan localStorage lagi
   return qcf4PageCache;
 }
-function saveQcf4PageCache(){
-  try{ localStorage.setItem(LS_QCF4_PAGE, JSON.stringify(qcf4PageCache)); }catch(e){ /* penuh/di-block, abaikan */ }
+/* ---------- Penyimpanan permanen halaman Mode Madinah (IndexedDB) ----------
+   localStorage cuma muat sekitar 5-10MB per situs -- 604 halaman Mode
+   Madinah (layout QCF4 per-kata) totalnya sekitar 15MB, jauh melebihi itu.
+   Sebelumnya semua halaman digabung jadi 1 blob JSON raksasa lalu disimpan
+   ke SATU key localStorage lewat saveQcf4PageCache() -- begitu blobnya
+   kelewat kuota, localStorage.setItem GAGAL DIAM-DIAM (try/catch menelan
+   errornya), jadi TIDAK ADA satupun halaman yang benar-benar tersimpan
+   permanen walau progres sempat kelihatan jalan. Efeknya: tiap refresh,
+   progres balik ke 0 dan "Unduh semua halaman" mengulang dari awal lagi.
+   Sekarang tiap halaman disimpan sbg 1 RECORD TERPISAH di IndexedDB
+   (kuotanya jauh lebih besar, umumnya ratusan MB+), jadi 604 halaman
+   muat semua dan progres benar-benar permanen antar sesi/refresh. */
+const QCF4_IDB_NAME = 'hafalan_qcf4_db';
+const QCF4_IDB_STORE = 'pages';
+let qcf4IdbPromise = null;
+function openQcf4Idb(){
+  if(qcf4IdbPromise) return qcf4IdbPromise;
+  qcf4IdbPromise = new Promise((resolve)=>{
+    if(!('indexedDB' in window)){ resolve(null); return; }
+    try{
+      const req = indexedDB.open(QCF4_IDB_NAME, 1);
+      req.onupgradeneeded = ()=>{ if(!req.result.objectStoreNames.contains(QCF4_IDB_STORE)) req.result.createObjectStore(QCF4_IDB_STORE); };
+      req.onsuccess = ()=> resolve(req.result);
+      req.onerror = ()=>{ console.log('IndexedDB QCF4 gagal dibuka:', req.error); resolve(null); };
+    }catch(e){ console.log('IndexedDB QCF4 exception:', e); resolve(null); }
+  });
+  return qcf4IdbPromise;
 }
+function idbPutQcf4Page(p, json){
+  openQcf4Idb().then(db=>{
+    if(!db) return;
+    try{ db.transaction(QCF4_IDB_STORE, 'readwrite').objectStore(QCF4_IDB_STORE).put(json, p); }
+    catch(e){ console.log('IndexedDB QCF4 gagal simpan hal.'+p, e); }
+  });
+}
+/* Migrasi 1x: kalau ada sisa data lama di localStorage (dari sebelum versi
+   ini, biasanya cuma sebagian kecil yg sempat kesimpan sebelum quota
+   penuh), pindahkan ke IndexedDB lalu bersihkan key lama supaya tidak
+   makan tempat localStorage yang sudah sempit. */
+function migrateQcf4LocalStorageToIdb(){
+  try{
+    const raw = localStorage.getItem(LS_QCF4_PAGE);
+    if(!raw) return;
+    const old = JSON.parse(raw);
+    Object.keys(old||{}).forEach(p=> idbPutQcf4Page(Number(p), old[p]));
+    localStorage.removeItem(LS_QCF4_PAGE);
+  }catch(e){ /* abaikan, bukan fatal */ }
+}
+/* Muat SEMUA halaman yang sudah tersimpan dari IndexedDB ke cache memori
+   (qcf4PageCache) -- dipanggil di awal (background) & di-await dulu di
+   downloadAllPagesForOffline() sebelum mengecek halaman mana yang sudah
+   ada, supaya progres tidak salah dianggap 0 padahal sebenarnya sudah
+   pernah diunduh di sesi sebelumnya. */
+let qcf4IdbLoadPromise = null;
+function loadQcf4PageCacheFromIdb(){
+  if(qcf4IdbLoadPromise) return qcf4IdbLoadPromise;
+  qcf4IdbLoadPromise = openQcf4Idb().then(db=>{
+    if(!db) return;
+    return new Promise((resolve)=>{
+      try{
+        const store = db.transaction(QCF4_IDB_STORE, 'readonly').objectStore(QCF4_IDB_STORE);
+        const cache = loadQcf4PageCache();
+        const req = store.openCursor();
+        req.onsuccess = (ev)=>{
+          const cur = ev.target.result;
+          if(cur){ cache[cur.key] = cur.value; cur.continue(); }
+          else resolve();
+        };
+        req.onerror = ()=> resolve();
+      }catch(e){ resolve(); }
+    });
+  }).catch(()=>{});
+  return qcf4IdbLoadPromise;
+}
+migrateQcf4LocalStorageToIdb();
+loadQcf4PageCacheFromIdb(); // mulai dari awal di background, tidak block apapun
 function getQcf4Page(p){
   const cache = loadQcf4PageCache();
   if(cache[p]) return cache[p];
@@ -1869,7 +1949,7 @@ function getQcf4Page(p){
       .then(json=>{
         if(!json || !json.lines || !json.lines.length) throw new Error('respons kosong');
         cache[p] = json;
-        saveQcf4PageCache();
+        idbPutQcf4Page(p, json);
         onQcf4PageLoaded(p, false);
       })
       .catch(e=>{ qcf4PageFailed[p] = true; console.log('QCF4 hal.'+p+' gagal dimuat:', e); onQcf4PageLoaded(p, true); })
@@ -1908,7 +1988,16 @@ function ensureQcf4Font(fontName){
     const face = new FontFace(fontName, 'url("'+QCF4_FONT_BASE+fontName+'_W.woff2") format("woff2")');
     p = face.load()
       .then(loaded=>{ document.fonts.add(loaded); return true; })
-      .catch(e=>{ console.log('QCF4 font gagal dimuat:', fontName, e); return false; });
+      .catch(e=>{
+        console.log('QCF4 font gagal dimuat:', fontName, e);
+        // JANGAN simpan kegagalan ini permanen -- kalau tetap disimpan di
+        // qcf4FontPromises, panggilan berikutnya (mis. user manual coba
+        // pindah lagi ke Mode Madinah) akan selalu dapat promise lama yang
+        // sudah gagal, tanpa pernah coba fetch ulang. Hapus dari cache
+        // supaya percobaan BERIKUTNYA mulai dari awal lagi (retry nyata).
+        delete qcf4FontPromises[fontName];
+        return false;
+      });
   } else {
     let styleEl = document.getElementById('qcf4FontStyles');
     if(!styleEl){
@@ -2071,7 +2160,7 @@ async function fetchAndCacheQcf4PageSync(p){
     json.lines.forEach(line=> line.words.forEach(w=>{ if(w.font) fontsUsed[w.font]=true; }));
     await Promise.all(Object.keys(fontsUsed).map(ensureQcf4Font));
     cache[p] = json;
-    saveQcf4PageCache();
+    idbPutQcf4Page(p, json); // simpan permanen ke IndexedDB (bukan localStorage -- lihat catatan di atas)
     delete qcf4PageFailed[p];
     return cache[p];
   }catch(e){
@@ -2137,14 +2226,22 @@ function renderOfflineProgress(){
   const hint = document.getElementById('offlineDlHint');
   const bar = document.getElementById('offlineDlBar');
   if(!hint || !bar) return;
-  // Dihitung dari 2 sumber sekaligus (info surah/ayat + layout Mode
-  // Madinah) -- 1 "halaman" dianggap lengkap kalau KEDUANYA sudah
-  // tersimpan, supaya persentase mencerminkan kesiapan offline yang
-  // sesungguhnya (termasuk Mode Madinah, bukan cuma metadata teks).
-  const n = Math.min(offlineDownloadedCount(), offlineQcf4DownloadedCount());
-  const pct = Math.round(n/TOTAL_PAGES*100);
-  hint.textContent = n+' / '+TOTAL_PAGES+' halaman tersimpan offline, termasuk Mode Madinah ('+pct+'%).';
-  bar.style.width = pct+'%';
+  hint.textContent = 'Memeriksa data tersimpan\u2026';
+  // loadQcf4PageCacheFromIdb() dulu di-await -- data Mode Madinah yang
+  // sudah tersimpan dari sesi sebelumnya baru kebaca dari IndexedDB
+  // secara async, kalau langsung dihitung sebelum ini selesai maka akan
+  // salah dianggap 0/belum ada apa-apa.
+  loadQcf4PageCacheFromIdb().then(()=>{
+    if(document.getElementById('screenPengaturan') && !document.getElementById('screenPengaturan').classList.contains('active')) return;
+    // Dihitung dari 2 sumber sekaligus (info surah/ayat + layout Mode
+    // Madinah) -- 1 "halaman" dianggap lengkap kalau KEDUANYA sudah
+    // tersimpan, supaya persentase mencerminkan kesiapan offline yang
+    // sesungguhnya (termasuk Mode Madinah, bukan cuma metadata teks).
+    const n = Math.min(offlineDownloadedCount(), offlineQcf4DownloadedCount());
+    const pct = Math.round(n/TOTAL_PAGES*100);
+    hint.textContent = n+' / '+TOTAL_PAGES+' halaman tersimpan offline, termasuk Mode Madinah ('+pct+'%).';
+    bar.style.width = pct+'%';
+  });
 }
 let offlineDownloadCancelled = false;
 let offlineDownloadRunning = false;
@@ -2153,6 +2250,10 @@ async function downloadAllPagesForOffline(){
   offlineDownloadRunning = true;
   offlineDownloadCancelled = false;
   const btn = document.getElementById('btnDownloadOffline');
+  btn.textContent = 'Memeriksa data tersimpan\u2026';
+  btn.disabled = true;
+  await loadQcf4PageCacheFromIdb(); // pastikan halaman yg sudah tersimpan sesi lalu ikut terhitung, tidak diunduh ulang
+  btn.disabled = false;
   btn.textContent = 'Batalkan unduhan';
   btn.onclick = ()=>{ offlineDownloadCancelled = true; };
   let failed = 0;
@@ -3196,6 +3297,26 @@ let mushafPlaybackArmed = false;
 const mushafAudioEl = new Audio();
 
 function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+/* Nama surah dari API (a.surah.name) formatnya "سُورَةُ الْفَاتِحَةِ" -- ada
+   kata "سورة" di depan + harakat/tashkil penuh, jadi visualnya PANJANG.
+   Di Mode Madinah itu tidak masalah karena bannernya pakai 1 glyph
+   dekoratif yang memang didesain pas ukurannya (bukan teks biasa). Tapi
+   di Mode Mushaf biasa (fallback), banner ini teks Arab sungguhan yang
+   di-fit-kan (lihat fitSurahBannerText) ke kotak sempit yang sama --
+   kalau teksnya sepanjang itu, ujung-ujungnya kepaksa dikompres/dikecilkan
+   ekstrem sampai sulit terbaca (dilaporkan user). Dibuang kata "سورة" di
+   depan (sudah jelas dari konteks bingkai ornamennya) + tashkil-nya
+   (\u064B-\u065F rentang harakat umum, \u0670 alif khanjariyah, \u06D6-\u06ED
+   tanda waqf/tajwid tambahan) supaya jadi jauh lebih ringkas & tetap
+   terbaca wajar tanpa kompresi berlebihan.
+   Ganti nama fungsi tetap "buildMushafTextHtml"-dst di tempat lain. */
+function simplifyArabicSurahName(s){
+  if(!s) return s;
+  return s
+    .replace(/^\s*سُورَةُ\s*|^\s*سورة\s*/,'')
+    .replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g,'')
+    .trim();
+}
 function toArabicDigits(n){
   const map = ['\u0660','\u0661','\u0662','\u0663','\u0664','\u0665','\u0666','\u0667','\u0668','\u0669'];
   return String(n).split('').map(d=> map[+d] !== undefined ? map[+d] : d).join('');
@@ -3214,7 +3335,7 @@ function buildMushafTextHtml(meta){
   meta.ayahs.forEach(a=>{
     if(!currentGroup || currentGroup.surah !== a.surah){
       const seg = meta.segs.find(s=> s.surahNumber===a.surah);
-      blocks.push({ type:'banner', text: seg ? seg.surahArab : '' });
+      blocks.push({ type:'banner', text: seg ? simplifyArabicSurahName(seg.surahArab) : '' });
       currentGroup = { type:'text', surah:a.surah, ayahs:[] };
       blocks.push(currentGroup);
     }
@@ -3679,7 +3800,7 @@ function fetchQcf4PageAsync(p){
     .then(json=>{
       if(!json || !json.lines || !json.lines.length) throw new Error('respons kosong');
       cache[p] = json;
-      saveQcf4PageCache();
+      idbPutQcf4Page(p, json);
       onQcf4PageLoaded(p, false);
       return json;
     })
@@ -4039,6 +4160,14 @@ function renderAyahTafsirModalBody(){
 }
 function toggleMushafViewMode(){
   mushafViewMode = (mushafViewMode==='text') ? 'madinah' : (mushafViewMode==='madinah') ? 'image' : 'text';
+  if(mushafViewMode==='madinah' && currentMushafPage!=null){
+    // User SECARA MANUAL memilih Mode Madinah -- kalau sebelumnya sempat
+    // gagal (koneksi putus/CDN sesaat), jangan terus dikunci "gagal
+    // selamanya" untuk sisa sesi ini (itu penyebab tombol ganti mode
+    // kelihatan tidak berfungsi). Bersihkan penanda gagal utk halaman
+    // ini supaya dicoba ulang dari awal.
+    delete qcf4PageFailed[currentMushafPage];
+  }
   try{ localStorage.setItem('hafalan_mushaf_view_mode', mushafViewMode); }catch(e){}
   renderMushafViewer();
 }
