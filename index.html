@@ -1855,6 +1855,13 @@ function setMushafWordMode(on){
    halaman kosong/rusak. */
 const QCF4_JSON_BASE = 'https://raw.githubusercontent.com/MohamadHajjRabee/quran-qcf4/main/pages/';
 const QCF4_FONT_BASE = 'https://cdn.jsdelivr.net/gh/MohamadHajjRabee/quran-qcf4@main/fonts-woff2/';
+// Mirror cadangan (repo GitHub yang sama, tanpa lewat jsdelivr) -- dipakai
+// ensureQcf4Font() sebagai percobaan KEDUA kalau jsdelivr gagal/lambat,
+// supaya 1 CDN yang lagi ngambek tidak langsung memaksa seluruh halaman
+// mundur ke Mode Mushaf biasa (sebelumnya begitu 1 file font gagal dari
+// jsdelivr, app langsung menyerah & fallback -- padahal seringkali cuma
+// jsdelivr yang lagi lambat/terblokir, bukan filenya benar-benar hilang).
+const QCF4_FONT_BASE_MIRROR = 'https://raw.githubusercontent.com/MohamadHajjRabee/quran-qcf4/main/fonts-woff2/';
 const LS_QCF4_PAGE = 'hafalan_qcf4_page_v1'; // key lama, dipertahankan cuma utk migrasi 1x ke IndexedDB (lihat migrateQcf4LocalStorageToIdb)
 let qcf4PageCache = null;
 const qcf4PageInFlight = {};
@@ -1980,16 +1987,31 @@ function onQcf4PageLoaded(p, failed){
    FontFace API: fallback ke cara lama (inject <style>), tanpa deteksi
    gagal (perilaku lama, jarang kejadian di browser modern). */
 const qcf4FontPromises = {};
+// Coba muat 1 file font dari 1 base URL tertentu -- dipisah dari
+// ensureQcf4Font supaya bisa dipanggil 2x (jsdelivr lalu mirror) tanpa
+// duplikasi kode.
+function loadQcf4FontFrom(fontName, baseUrl){
+  const face = new FontFace(fontName, 'url("'+baseUrl+fontName+'_W.woff2") format("woff2")');
+  return face.load().then(loaded=>{ document.fonts.add(loaded); return true; });
+}
 function ensureQcf4Font(fontName){
   if(!fontName) return Promise.resolve(true);
   if(qcf4FontPromises[fontName]) return qcf4FontPromises[fontName];
   let p;
   if(typeof FontFace === 'function'){
-    const face = new FontFace(fontName, 'url("'+QCF4_FONT_BASE+fontName+'_W.woff2") format("woff2")');
-    p = face.load()
-      .then(loaded=>{ document.fonts.add(loaded); return true; })
+    p = loadQcf4FontFrom(fontName, QCF4_FONT_BASE)
       .catch(e=>{
-        console.log('QCF4 font gagal dimuat:', fontName, e);
+        // jsdelivr gagal (lambat/terblokir/error sesaat) -- SEBELUM
+        // menyerah & bikin seluruh Mode Madinah mundur ke Mode Mushaf
+        // biasa, coba dulu 1x lagi lewat mirror raw.githubusercontent.com
+        // (repo sama, jalur beda). Banyak kasus "font gagal dimuat" yang
+        // dilaporkan user sebenarnya cuma jsdelivr yang lagi ngambek,
+        // bukan filenya benar-benar tidak ada.
+        console.log('QCF4 font gagal dari jsdelivr, coba mirror:', fontName, e);
+        return loadQcf4FontFrom(fontName, QCF4_FONT_BASE_MIRROR);
+      })
+      .catch(e=>{
+        console.log('QCF4 font gagal dimuat (jsdelivr & mirror):', fontName, e);
         // JANGAN simpan kegagalan ini permanen -- kalau tetap disimpan di
         // qcf4FontPromises, panggilan berikutnya (mis. user manual coba
         // pindah lagi ke Mode Madinah) akan selalu dapat promise lama yang
@@ -4313,6 +4335,8 @@ function renderMushafViewer(){
     textWrap.innerHTML = buildMushafWordGridHtml(meta, wordAyahs);
     textWrap.style.display = 'block';
     fitAllSurahBanners();
+    if(document.fonts && document.fonts.ready) document.fonts.ready.then(fitAllSurahBanners).catch(()=>{});
+    setTimeout(fitAllSurahBanners, 350);
     document.getElementById('mushafFontSizeRow').style.display = 'flex';
     document.getElementById('mushafPlayerIdle').style.display = 'flex';
   }else if(mushafViewMode==='text' && hasAyahData){
@@ -4320,6 +4344,18 @@ function renderMushafViewer(){
     textWrap.innerHTML = buildMushafTextHtml(meta);
     textWrap.style.display = 'block';
     fitAllSurahBanners();
+    // Sama seperti Mode Madinah (lihat cabang 'madinah' di bawah): kalau
+    // font "Amiri Quran" dari Google Fonts BELUM selesai dimuat saat
+    // fitAllSurahBanners() dipanggil di atas, browser mengukur lebar teks
+    // pakai font pengganti sementara (metrik lebar beda jauh dari Amiri
+    // Quran) -- bikin fitSurahBannerText() salah kira teksnya kepanjangan
+    // & mengecilkannya habis-habisan (sampai mendekati 8px), lalu TIDAK
+    // PERNAH diukur ulang setelah font asli benar-benar siap -> judul
+    // surat jadi nyangkut kekecilan/tidak terbaca selamanya di halaman
+    // itu. Ulangi fit-nya begitu font sudah pasti siap (+ fallback
+    // timeout jaga-jaga kalau browser tidak dukung Font Loading API).
+    if(document.fonts && document.fonts.ready) document.fonts.ready.then(fitAllSurahBanners).catch(()=>{});
+    setTimeout(fitAllSurahBanners, 350);
     document.getElementById('mushafFontSizeRow').style.display = 'flex';
     document.getElementById('mushafPlayerIdle').style.display = 'flex';
   }else if(mushafViewMode==='text' && !meta && !pageMetaFailed[p]){
