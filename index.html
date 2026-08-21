@@ -2792,8 +2792,15 @@ function juzAggregateStatus(entry){
   if(c.mutqin===total) return 'mutqin';
   if(c.belum===total) return 'belum';
   if(c.terlupakan>0) return 'terlupakan';
-  if(c.ziyadah>0 || (c.belum>0 && (c.murajaah>0||c.mutqin>0))) return 'ziyadah';
-  return 'murajaah';
+  if(c.ziyadah>0) return 'ziyadah';
+  // Campuran belum/murajaah/mutqin TANPA ada halaman literal berstatus
+  // "ziyadah" -> jangan dipaksa jadi 'ziyadah' (menyesatkan, seolah ada
+  // hafalan baru padahal tidak ada). Pakai status dgn jumlah halaman
+  // TERBANYAK di juz itu, representasi progres yg lebih jujur.
+  let best = 'belum', bestCount = c.belum;
+  if(c.murajaah > bestCount){ best = 'murajaah'; bestCount = c.murajaah; }
+  if(c.mutqin > bestCount){ best = 'mutqin'; bestCount = c.mutqin; }
+  return best;
 }
 function juzPageStats(entry){
   const c = { belum:0, ziyadah:0, murajaah:0, mutqin:0, terlupakan:0, total:0 };
@@ -4115,8 +4122,11 @@ function pageRangeAggregateStatus(startPage, endPage){
   if(c.mutqin===total) return 'mutqin';
   if(c.belum===total) return 'belum';
   if(c.terlupakan>0) return 'terlupakan';
-  if(c.ziyadah>0 || (c.belum>0 && (c.murajaah>0||c.mutqin>0))) return 'ziyadah';
-  return 'murajaah';
+  if(c.ziyadah>0) return 'ziyadah';
+  let best = 'belum', bestCount = c.belum;
+  if(c.murajaah > bestCount){ best = 'murajaah'; bestCount = c.murajaah; }
+  if(c.mutqin > bestCount){ best = 'mutqin'; bestCount = c.mutqin; }
+  return best;
 }
 function statusColorVar(status){
   return 'var(--status-'+status+')';
