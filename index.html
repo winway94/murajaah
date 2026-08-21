@@ -1406,8 +1406,11 @@ const DEFAULT_OVERDUE_DAYS = 30;
    AWAL array CHANGELOG (paling atas = paling baru). Ini murni tampilan
    (tidak memengaruhi cache); yang mengontrol update service worker
    tetap CACHE_VERSION di sw.js. */
-const APP_VERSION = 'v106';
+const APP_VERSION = 'v107';
 const CHANGELOG = [
+  { version:'v107', date:'22 Agustus 2026', changes:[
+    'Fix ayat Mode Mushaf Madina yang condong ke kiri (baru muncul stlh perbaikan ukuran teks v106) -- fitur stretch-nya ternyata menjangkarkan pembesaran ke TEPI KANAN kotak, bukan ke tengah teks yg sudah dirata-tengahkan. Selama scale nyaris selalu 1 (bug lama v105 & sebelumnya), ini tidak kelihatan; begitu v106 bikin stretch beneran aktif, jangkar yg salah ini jadi kelihatan jelas (dibuktikan lewat pengujian: meleset ~30px ke kiri thd pusat kotak). Jangkarnya diganti ke tengah -- sekarang pembesaran teks simetris & selalu pas di tengah pada ukuran berapa pun.'
+  ]},
   { version:'v106', date:'22 Agustus 2026', changes:[
     'Tombol Sebelumnya/Berikutnya (panah bulat kiri-kanan) ditambahkan di Mode Mushaf, KHUSUS muncul di perangkat yg terdeteksi punya mouse/trackpad (PC/desktop) -- sebelumnya di sana cuma bisa navigasi lewat swipe jari yg tidak jalan tanpa layar sentuh. Panah kiri-kanan keyboard juga didukung sekarang.',
     'Fix AKAR MASALAH kenapa ayat di Mode Mushaf Madina kelihatan kecil² dibanding mushaf cetak asli/app lain: fitur "stretch biar rata kiri-kanan spt cetakan asli" ternyata SALAH ukur lebar baris (bug scrollWidth yg sama spt kasus rata-tengah v105) -- utk baris yg tidak meluber (kasus PALING umum), scrollWidth-nya kebaca sama dgn lebar KOTAK, bukan lebar TULISAN aslinya yg jauh lebih sempit, jadi stretch-nya nyaris tidak pernah kepakai & teks diam kecil di ukuran font mentahnya, menyisakan banyak ruang halaman terbuang. Diperbaiki dgn trik ukur lebar asli (inline-block sementara) -- sekarang baris ayat benar2 mengisi lebar halaman spt mushaf cetak, bukan cuma pas baris yg kebetulan sudah panjang.'
@@ -2394,7 +2397,18 @@ function adjustQcf4LineWidths(){
     let scale = wrapWidth / natural;
     if(scale > 1.15) scale = 1.15;
     if(scale < 0.85) scale = 0.85;
-    line.style.transformOrigin = 'right center';
+    // transform-origin TENGAH (bukan "right center" spt sebelumnya):
+    // .qcf4-line sudah dirata-tengahkan (text-align:center, lihat CSS),
+    // TAPI kalau titik jangkar scaleX-nya di tepi KANAN kotak, pembesaran/
+    // penyusutannya jadi tidak simetris thd teks yg sudah di tengah itu --
+    // hasilnya pusat teks "kabur" menjauh dari pusat kotak (dibuktikan
+    // lewat pengujian: meleset ~30px ke kiri), persis yg dilaporkan user
+    // ("kok condong ke kiri") begitu fitur stretch ini beneran aktif
+    // (sejak v106 -- dulu jangkar yg salah ini TIDAK kelihatan krn scale-
+    // nya nyaris selalu 1/tidak pernah benar2 membesar). Dgn jangkar
+    // TENGAH, pembesaran simetris thd pusat kotak -> selisihnya jadi ~0,
+    // teks tetap pas di tengah pada ukuran berapa pun.
+    line.style.transformOrigin = 'center center';
     line.style.transform = 'scaleX(' + scale.toFixed(4) + ')';
   });
 }
