@@ -1279,6 +1279,10 @@ const DEFAULT_OVERDUE_DAYS = 30;
    tetap CACHE_VERSION di sw.js. */
 const APP_VERSION = 'v82';
 const CHANGELOG = [
+  { version:'v83', date:'21 Agustus 2026', changes:[
+    'Fix AKAR MASALAH progres "Unduh semua halaman" kelihatan 100% tapi masih muncul toast "font Mushaf Madinah gagal dimuat" & tombol unduh terasa tidak melakukan apa-apa lagi -- penyebabnya getQcf4Page() (dipanggil setiap kali user SEKADAR MEMBUKA halaman di Mode Madinah, bukan cuma lewat tombol unduh) langsung menyimpan halaman ke penyimpanan permanen (IndexedDB) begitu JSON layout-nya berhasil diambil, TANPA menunggu/mengecek apakah file font woff2 halaman itu juga benar-benar berhasil dimuat. Akibatnya halaman yang cuma sempat dibuka sekilas (misal font-nya waktu itu gagal/lambat) sudah kadung tercatat "sudah tersimpan offline" secara permanen, sehingga persentase di Pengaturan menunjukkan 100% padahal sebagian font sebenarnya belum benar-benar ke-cache -- dan karena tombol "Unduh semua halaman" melihat halaman ini sudah ada datanya, ia butuh membuka & mem-verifikasi ulang tiap halaman (bukan langsung skip), yang terasa lambat/seperti macet. Sekarang getQcf4Page() ikut memverifikasi font dulu sebelum menyimpan permanen ke IndexedDB, persis seperti alur tombol unduh -- jadi status "tersimpan offline" sekarang benar-benar mencerminkan halaman yang lengkap (JSON + font), tidak ada lagi "sukses palsu" dari sekadar membuka halaman.',
+    'Tambah percobaan ulang otomatis saat memuat font QCF4: sebelumnya cuma dicoba 2x (jsdelivr, lalu mirror raw.githubusercontent.com) sebelum menyerah. Sekarang kalau keduanya gagal, ditunggu 1.5 detik lalu diulang sekali lagi (jsdelivr + mirror), total 4 percobaan -- supaya gangguan jaringan yang cuma sesaat (lumrah terjadi ke CDN luar negeri dari koneksi Indonesia) tidak langsung dianggap gagal permanen.'
+  ]},
   { version:'v82', date:'21 Agustus 2026', changes:[
     'Fix lanjutan tombol "Unduh semua halaman": halaman yang di v81 sempat kadung tersimpan "sukses palsu" (dari sebelum fix v81 ada) sekarang ikut diverifikasi ulang otomatis begitu tombol ini ditekan lagi -- sebelumnya kalau progres sudah kadung 100%, tombolnya kelihatan seperti tidak melakukan apa-apa (langsung "selesai" instan) karena semua halaman dianggap sudah beres tanpa dicek ulang sama sekali, padahal sebagian font-nya masih bolong. Sekarang tiap kali ditekan, semua halaman dicek ulang (JSON yang sudah ada tidak diunduh ulang, cuma font-nya yang diverifikasi -- jadi tetap cepat utk halaman yang memang sudah benar-benar lengkap, cuma yang ternyata masih bolong yang benar-benar dikerjakan ulang).'
   ]},
@@ -1957,8 +1961,25 @@ function getQcf4Page(p){
       .then(r=> r.ok ? r.json() : Promise.reject(new Error('HTTP '+r.status)))
       .then(json=>{
         if(!json || !json.lines || !json.lines.length) throw new Error('respons kosong');
-        cache[p] = json;
-        idbPutQcf4Page(p, json);
+        cache[p] = json; // simpan di memori dulu supaya bisa langsung dirender
+        // JANGAN langsung simpan permanen ke IndexedDB di sini -- ini baru
+        // berhasil ambil JSON layout-nya saja, BELUM tentu font woff2 yang
+        // dipakai halaman ini juga berhasil dimuat (itu baru ketahuan
+        // belakangan saat benar-benar dirender). Kalau tetap disimpan ke IDB
+        // tanpa nunggu font-nya sukses, halaman ini akan dihitung "sudah
+        // tersimpan offline" (lihat offlineQcf4DownloadedCount()) padahal
+        // fontnya belum tentu ke-cache permanen -- inilah penyebab progres
+        // sempat kelihatan 100% tapi masih muncul toast "font gagal dimuat"
+        // saat halaman itu dibuka lagi. Verifikasi font dulu; baru simpan
+        // permanen ke IDB kalau semua font halaman ini benar-benar berhasil.
+        const fontsUsedGP = {};
+        json.lines.forEach(line=> line.words.forEach(w=>{ if(w.font) fontsUsedGP[w.font]=true; }));
+        Promise.all(Object.keys(fontsUsedGP).map(ensureQcf4Font)).then(results=>{
+          if(!results.some(ok=> ok===false)){
+            idbPutQcf4Page(p, json);
+            qcf4PageFontsVerified.add(p);
+          }
+        });
         onQcf4PageLoaded(p, false);
       })
       .catch(e=>{ qcf4PageFailed[p] = true; console.log('QCF4 hal.'+p+' gagal dimuat:', e); onQcf4PageLoaded(p, true); })
@@ -2001,7 +2022,9 @@ function ensureQcf4Font(fontName){
   if(qcf4FontPromises[fontName]) return qcf4FontPromises[fontName];
   let p;
   if(typeof FontFace === 'function'){
-    p = loadQcf4FontFrom(fontName, QCF4_FONT_BASE)
+    // Coba 1 putaran (jsdelivr lalu mirror) -- dipisah jadi fungsi supaya
+    // bisa dipanggil 2x (lihat retry di bawah).
+    const attemptRound = ()=> loadQcf4FontFrom(fontName, QCF4_FONT_BASE)
       .catch(e=>{
         // jsdelivr gagal (lambat/terblokir/error sesaat) -- SEBELUM
         // menyerah & bikin seluruh Mode Madinah mundur ke Mode Mushaf
@@ -2011,9 +2034,20 @@ function ensureQcf4Font(fontName){
         // bukan filenya benar-benar tidak ada.
         console.log('QCF4 font gagal dari jsdelivr, coba mirror:', fontName, e);
         return loadQcf4FontFrom(fontName, QCF4_FONT_BASE_MIRROR);
+      });
+    p = attemptRound()
+      .catch(e=>{
+        // Putaran pertama (jsdelivr + mirror) gagal dua-duanya -- di
+        // jaringan Indonesia, raw.githubusercontent.com/cdn.jsdelivr.net
+        // kadang cuma lambat/putus SESAAT (bukan benar-benar down/hilang).
+        // Tunggu sebentar lalu ulangi SEKALI LAGI (jsdelivr + mirror)
+        // sebelum benar-benar menyerah, supaya gangguan sesaat begini
+        // tidak langsung dianggap "gagal permanen".
+        console.log('QCF4 font gagal percobaan pertama, tunggu lalu coba lagi:', fontName, e);
+        return new Promise(r=> setTimeout(r, 1500)).then(attemptRound);
       })
       .catch(e=>{
-        console.log('QCF4 font gagal dimuat (jsdelivr & mirror):', fontName, e);
+        console.log('QCF4 font gagal dimuat (semua percobaan):', fontName, e);
         // JANGAN simpan kegagalan ini permanen -- kalau tetap disimpan di
         // qcf4FontPromises, panggilan berikutnya (mis. user manual coba
         // pindah lagi ke Mode Madinah) akan selalu dapat promise lama yang
