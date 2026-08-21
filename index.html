@@ -1324,8 +1324,12 @@ const DEFAULT_OVERDUE_DAYS = 30;
    AWAL array CHANGELOG (paling atas = paling baru). Ini murni tampilan
    (tidak memengaruhi cache); yang mengontrol update service worker
    tetap CACHE_VERSION di sw.js. */
-const APP_VERSION = 'v93';
+const APP_VERSION = 'v94';
 const CHANGELOG = [
+  { version:'v94', date:'21 Agustus 2026', changes:[
+    '\u26A0\uFE0F PENTING: versi ini WAJIB di-deploy BERSAMAAN dengan worker.js versi terbaru (bukan salah satu duluan seperti biasanya) -- bentuk respons API /data berubah, app & worker versi lama-baru yang dicampur akan gagal baca data.',
+    'Fix RACE CONDITION serius: app & bot Telegram bisa saling menimpa catatan satu sama lain TANPA PERINGATAN. Skenario nyata: app dibuka pagi (data ke-load saat itu) -> siang catat murajaah lewat bot -> sore app yang masih kebuka dari pagi (belum di-refresh) menyimpan sesuatu -> catatan murajaah dari bot ikut TERTIMPA HILANG, senyap tanpa ada peringatan apa pun. Penyebabnya: server cuma ambil versi file TERBARU lalu langsung timpa penuh pakai data yang dikirim app, tanpa cek apakah data app itu sendiri sudah basi. Sekarang app menyimpan penanda versi data (sha) tiap kali baca, dan menyertakannya tiap kali simpan -- kalau ketahuan sudah ada perubahan lain masuk sejak itu (mis. dari bot), penyimpanan DITOLAK & data dimuat ulang otomatis (bukan dipaksa timpa) -- jauh lebih aman walau konsekuensinya perubahan yang sangat baru saja mungkin perlu diulang sekali.'
+  ]},
   { version:'v93', date:'21 Agustus 2026', changes:[
     'Fix kartu "Total dimuraja\'ah" di halaman detail juz nampilin angka yang salah (mis. "10x" padahal seharusnya "0,5x") -- penyebabnya kartu ini menjumlahkan MENTAH-MENTAH total aktivitas murajaah semua halaman dalam juz itu (mis. 20 halaman, tiap halaman baru 1x = kelihatan "20x"), padahal maksudnya nunjukin RATA-RATA per halaman (20 dibagi 20 halaman = "1x"). Detail per-halaman (di layar lain) sudah benar dari awal, cuma kartu ringkasan level-juz ini yang keliru. Sekarang dihitung total dibagi jumlah halaman terkait, diformat gaya Indonesia (koma, mis. "0,5x").'
   ]},
@@ -2797,8 +2801,15 @@ function juzPageStats(entry){
   return c;
 }
 
+// "sha" = versi file data.json di GitHub yg TERAKHIR diketahui app --
+// dipakai server (lihat POST /data di worker.js) utk DETEKSI apakah data
+// yg mau ditulis app ini masih berbasis versi TERBARU atau sudah basi
+// (mis. ada perubahan masuk dari bot Telegram di antara app terakhir baca
+// & sekarang mau nulis). Lihat catatan lengkap soal race condition ini di
+// komentar handler POST /data di worker.js.
+let dataSha = null;
 async function fetchData(){
-  if(!serverConfigured()){ appData = defaultData(); lastSyncOk = false; lastSyncDetail=''; return; }
+  if(!serverConfigured()){ appData = defaultData(); dataSha = null; lastSyncOk = false; lastSyncDetail=''; return; }
   try{
     const res = await fetch(apiBase() + '/data', { headers:{ 'X-App-Token': appToken() } });
     if(!res.ok){
@@ -2806,7 +2817,9 @@ async function fetchData(){
       try{ bodyText = JSON.stringify(await res.json()); }catch(e2){}
       throw new Error('HTTP ' + res.status + (bodyText ? ' — ' + bodyText : ''));
     }
-    appData = normalizeData(await res.json());
+    const json = await res.json();
+    appData = normalizeData(json.data);
+    dataSha = json.sha;
     lastSyncOk = true; lastSyncDetail='';
   }catch(e){
     console.log('fetchData gagal:', e);
@@ -2821,14 +2834,36 @@ async function pushData(){
     const res = await fetch(apiBase() + '/data', {
       method:'POST',
       headers:{ 'Content-Type':'application/json', 'X-App-Token': appToken() },
-      body: JSON.stringify(appData)
+      body: JSON.stringify({ data: appData, sha: dataSha })
     });
+    if(res.status === 409){
+      // KONFLIK: data di server sudah berubah sejak app terakhir baca
+      // (mis. dicatat lewat bot Telegram) -- SENGAJA TIDAK dipaksa tulis
+      // ulang di sini (itu justru penyebab bug lama: nekat menang-menangan
+      // nulis paling akhir, bikin catatan pihak lain ketiban timpa hilang
+      // tanpa peringatan). Aman-nya: muat ulang data TERBARU dari server
+      // sekarang juga, supaya app tidak diam-diam nyimpen state basi utk
+      // percobaan simpan berikutnya. Konsekuensinya: kalau memang ada
+      // perubahan LOKAL barusan yg belum sempat ke-refresh sebelum
+      // konflik ini, perubahan itu perlu diulang manual sekali -- jauh
+      // lebih aman drpd caranya yg lama (silent overwrite ke pihak lain).
+      console.log('pushData: KONFLIK (409) -- data di server sudah berubah, muat ulang.');
+      await fetchData();
+      if(document.getElementById('mainApp') && document.getElementById('mainApp').style.display!=='none') renderAll(); // pastikan tampilan ikut ter-refresh, bukan cuma data internal -- kalau tampilan masih layar lain (belum masuk app), biarkan render normal berikutnya yg urus
+      lastSyncOk = false;
+      lastSyncDetail = 'Data di server berubah dari sumber lain (mis. bot Telegram) — sudah dimuat ulang otomatis. Kalau ada perubahan barusan yang belum tersimpan, silakan ulangi.';
+      showToast('Data ter-update dari sumber lain, dimuat ulang \u2014 cek lagi perubahan terakhir Anda', false);
+      return false;
+    }
     lastSyncOk = res.ok;
     if(!res.ok){
       let bodyText = '';
       try{ bodyText = JSON.stringify(await res.json()); }catch(e2){}
       lastSyncDetail = 'HTTP ' + res.status + (bodyText ? ' — ' + bodyText : '');
-    }else{ lastSyncDetail=''; }
+    }else{
+      lastSyncDetail='';
+      try{ const j = await res.json(); if(j && j.sha) dataSha = j.sha; }catch(e2){} // update sha lokal ke versi baru stlh berhasil simpan, biar simpan BERIKUTNYA bandingkan ke versi yg benar
+    }
     return res.ok;
   }catch(e){ console.log('pushData gagal:', e); lastSyncOk = false; lastSyncDetail = String(e && e.message || e); return false; }
 }
