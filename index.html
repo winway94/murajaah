@@ -542,7 +542,7 @@ button{font-family:var(--font-sans);}
    class "mushaf-ayah" yang sudah ada supaya tap-untuk-audio & highlight
    otomatis ikut jalan tanpa kode terpisah. ---- */
 .qcf4-page{direction:rtl;}
-.qcf4-line{direction:rtl;unicode-bidi:bidi-override;white-space:nowrap;line-height:2.1;margin-bottom:4px;will-change:transform;}
+.qcf4-line{direction:rtl;unicode-bidi:bidi-override;white-space:nowrap;line-height:2.1;margin-bottom:4px;will-change:transform;text-align:center;}
 .qcf4-line .mushaf-ayah,.qcf4-deco{font-size:var(--mushaf-font-size, 26px);color:var(--gray-900);}
 .qcf4-deco{padding:0 1px;}
 .qcf4-surah-banner{margin:0 0 12px;}
@@ -1367,8 +1367,11 @@ const DEFAULT_OVERDUE_DAYS = 30;
    AWAL array CHANGELOG (paling atas = paling baru). Ini murni tampilan
    (tidak memengaruhi cache); yang mengontrol update service worker
    tetap CACHE_VERSION di sw.js. */
-const APP_VERSION = 'v104';
+const APP_VERSION = 'v105';
 const CHANGELOG = [
+  { version:'v105', date:'22 Agustus 2026', changes:[
+    'Baris ayat di Mode Mushaf Madina sekarang RATA TENGAH (dulu rata kanan). Akar masalahnya: fitur perata kiri-kanan otomatis (spt mushaf cetak) ternyata cuma efektif utk baris yg BENAR2 meluber lebih panjang dari lebar layar -- baris pendek/normal (mayoritas) browser tidak bisa ukur lebar aslinya dgn akurat, jadi tidak pernah kena stretching & jatuh ke perataan default RTL (rata kanan). Ditambahkan text-align:center supaya baris² yg tidak kena stretching itu rata tengah, sementara baris yg benar2 meluber tetap dirapikan spt sebelumnya.'
+  ]},
   { version:'v104', date:'22 Agustus 2026', changes:[
     'Bingkai nama surat gaya pil hijau-emas (dulu cuma khusus halaman Al-Fatihah & awal Al-Baqarah) sekarang jadi bingkai STANDAR di SEMUA surat/halaman -- bingkai motif bintang lama sudah tidak dipakai lagi di mana pun (semua jalur render: Mode Madinah, Mode Teks, & Mode Per-kata). Ukuran teks nama surat otomatis menyesuaikan (auto-shrink) buat nama surat sepanjang apa pun.'
   ]},
@@ -2308,7 +2311,19 @@ function buildQcf4PageHtml(pageData){
    tetap rata kiri-kanan di lebar layar HP berapa pun (seperti mushaf
    cetak asli), tiap baris di-scale horizontal sesudah font kepasang &
    lebar aslinya diketahui. Dibatasi 0.85x-1.15x supaya baris terakhir
-   pendek (mis. akhir surah) tidak dipaksa melar aneh. */
+   pendek (mis. akhir surah) tidak dipaksa melar aneh.
+   CATATAN (rata tengah vs rata kanan): scaleX di bawah cuma efektif utk
+   baris yg BENAR2 MELUBER (scrollWidth > lebar kotak) -- utk baris yg
+   pas/lebih pendek dari lebar kotak, browser lapor scrollWidth == lebar
+   kotaknya sendiri (bukan lebar teks aslinya yg lebih sempit), jadi scale
+   yg dihitung selalu 1 (tidak ada stretching sama sekali) & baris itu
+   jatuh ke perataan DEFAULT elemen blok RTL, yaitu rata KANAN -- inilah
+   yg dilaporkan user. Makanya .qcf4-line dikasih text-align:center di
+   CSS (lihat definisinya) -- utk baris² yg TIDAK kena scaling (kasus
+   paling umum) jadi rata TENGAH spt diminta, sementara baris yg BENAR2
+   meluber & di-scaleX di bawah (kasus lebih jarang) tetap dijangkar ke
+   kanan (transform-origin) spt aslinya, krn itu utk mensimulasikan
+   margin kanan halaman cetak asli. */
 function adjustQcf4LineWidths(){
   const wrap = document.getElementById('mushafTextWrap');
   if(!wrap) return;
