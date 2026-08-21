@@ -1277,8 +1277,11 @@ const DEFAULT_OVERDUE_DAYS = 30;
    AWAL array CHANGELOG (paling atas = paling baru). Ini murni tampilan
    (tidak memengaruhi cache); yang mengontrol update service worker
    tetap CACHE_VERSION di sw.js. */
-const APP_VERSION = 'v83';
+const APP_VERSION = 'v84';
 const CHANGELOG = [
+  { version:'v84', date:'21 Agustus 2026', changes:[
+    'Fix AKAR MASALAH "semua halaman awal surat gagal dibuka" di Mode Madinah (selalu jatuh ke Mode Mushaf biasa + toast font gagal) -- penyebabnya glyph header nama surah/bismillah pakai file font KHUSUS bernama "QCF4_QBSML" yang di repo sumbernya TIDAK memakai akhiran "_W" pada nama filenya (QCF4_QBSML.woff2), beda dari font kata ayat biasa yang semuanya memakai akhiran "_W" (QCF4_Hafs_01_W.woff2, dst). Kode ini sebelumnya SELALU menambahkan "_W.woff2" ke nama font apa pun tanpa kecuali, jadi khusus utk font header selalu minta file yang sebenarnya tidak pernah ada di server (404 terus, bukan soal koneksi) -- dan karena SETIAP halaman yang diawali surah baru pasti butuh glyph header ini, halaman jenis itu 100% selalu gagal, walau internet lancar. Sekarang dicoba 2 kemungkinan nama file (dengan akhiran "_W" dulu, baru tanpa akhiran) sebelum benar-benar dianggap gagal.'
+  ]},
   { version:'v83', date:'21 Agustus 2026', changes:[
     'Fix teks arti kata (mode Perkata) kadang kelihatan dempet/tumpang-tindih dengan kartu kata di sebelahnya -- penyebabnya kartu kata dirender pakai CSS Grid, dan secara default sebuah elemen di dalam grid tidak boleh menyusut lebih kecil dari lebar teks terpanjang di dalamnya (min-width:auto bawaan browser) -- kalau arti sebuah kata cukup panjang & kolomnya sempit (misal cuma 2 kata dalam 1 ayat, kolom jadi lebar tapi teksnya lebih panjang lagi), teksnya meluber KELUAR kartu dan menimpa kartu tetangga alih-alih membungkus (wrap) rapi ke baris berikutnya. Sekarang kartu kata dipaksa boleh menyusut (min-width:0) & teksnya dipaksa membungkus di dalam lebar kartunya sendiri, jadi tidak akan pernah lagi meluber ke kartu sebelah.',
     'Fix AKAR MASALAH progres "Unduh semua halaman" kelihatan 100% tapi masih muncul toast "font Mushaf Madinah gagal dimuat" & tombol unduh terasa tidak melakukan apa-apa lagi -- penyebabnya getQcf4Page() (dipanggil setiap kali user SEKADAR MEMBUKA halaman di Mode Madinah, bukan cuma lewat tombol unduh) langsung menyimpan halaman ke penyimpanan permanen (IndexedDB) begitu JSON layout-nya berhasil diambil, TANPA menunggu/mengecek apakah file font woff2 halaman itu juga benar-benar berhasil dimuat. Akibatnya halaman yang cuma sempat dibuka sekilas (misal font-nya waktu itu gagal/lambat) sudah kadung tercatat "sudah tersimpan offline" secara permanen, sehingga persentase di Pengaturan menunjukkan 100% padahal sebagian font sebenarnya belum benar-benar ke-cache -- dan karena tombol "Unduh semua halaman" melihat halaman ini sudah ada datanya, ia butuh membuka & mem-verifikasi ulang tiap halaman (bukan langsung skip), yang terasa lambat/seperti macet. Sekarang getQcf4Page() ikut memverifikasi font dulu sebelum menyimpan permanen ke IndexedDB, persis seperti alur tombol unduh -- jadi status "tersimpan offline" sekarang benar-benar mencerminkan halaman yang lengkap (JSON + font), tidak ada lagi "sukses palsu" dari sekadar membuka halaman.',
@@ -2012,11 +2015,32 @@ function onQcf4PageLoaded(p, failed){
    gagal (perilaku lama, jarang kejadian di browser modern). */
 const qcf4FontPromises = {};
 // Coba muat 1 file font dari 1 base URL tertentu -- dipisah dari
-// ensureQcf4Font supaya bisa dipanggil 2x (jsdelivr lalu mirror) tanpa
-// duplikasi kode.
-function loadQcf4FontFrom(fontName, baseUrl){
-  const face = new FontFace(fontName, 'url("'+baseUrl+fontName+'_W.woff2") format("woff2")');
+// ensureQcf4Font supaya bisa dipanggil berkali-kali (jsdelivr lalu mirror,
+// x2 nama file) tanpa duplikasi kode.
+// PENTING: font KATA biasa (QCF4_Hafs_01, QCF4_Hafs_02, dst) filenya
+// pakai akhiran "_W" (mis. QCF4_Hafs_01_W.woff2), TAPI font khusus utk
+// HEADER SURAH/bismillah (nama font: "QCF4_QBSML") filenya TIDAK pakai
+// akhiran "_W" sama sekali (cuma "QCF4_QBSML.woff2") -- beda konvensi
+// penamaan di repo sumbernya. Sebelumnya kode ini SELALU menambahkan
+// "_W.woff2" apa pun nama fontnya, jadi utk font header selalu minta
+// file yang tidak pernah ada (404 terus-menerus) -> SETIAP halaman yang
+// diawali surah baru (yang butuh glyph header ini) selalu gagal dimuat
+// di Mode Madinah, walau internet lancar & font kata biasa di halaman
+// itu baik-baik saja. Sekarang dicoba DUA varian nama file: dengan
+// akhiran "_W" dulu (kasus umum/font kata biasa), kalau gagal baru coba
+// TANPA akhiran "_W" (kasus font header) -- supaya app tidak perlu tahu
+// di muka nama font mana yang pakai konvensi yang mana.
+function loadQcf4FontFrom(fontName, baseUrl, noSuffix){
+  const fileName = fontName + (noSuffix ? '.woff2' : '_W.woff2');
+  const face = new FontFace(fontName, 'url("'+baseUrl+fileName+'") format("woff2")');
   return face.load().then(loaded=>{ document.fonts.add(loaded); return true; });
+}
+// Coba 1 base URL dengan KEDUA varian nama file berurutan (akhiran "_W"
+// dulu, baru tanpa akhiran) -- dipakai attemptRound() di bawah utk
+// jsdelivr maupun mirror.
+function loadQcf4FontFromBase(fontName, baseUrl){
+  return loadQcf4FontFrom(fontName, baseUrl, false)
+    .catch(()=> loadQcf4FontFrom(fontName, baseUrl, true));
 }
 function ensureQcf4Font(fontName){
   if(!fontName) return Promise.resolve(true);
@@ -2025,7 +2049,7 @@ function ensureQcf4Font(fontName){
   if(typeof FontFace === 'function'){
     // Coba 1 putaran (jsdelivr lalu mirror) -- dipisah jadi fungsi supaya
     // bisa dipanggil 2x (lihat retry di bawah).
-    const attemptRound = ()=> loadQcf4FontFrom(fontName, QCF4_FONT_BASE)
+    const attemptRound = ()=> loadQcf4FontFromBase(fontName, QCF4_FONT_BASE)
       .catch(e=>{
         // jsdelivr gagal (lambat/terblokir/error sesaat) -- SEBELUM
         // menyerah & bikin seluruh Mode Madinah mundur ke Mode Mushaf
@@ -2034,7 +2058,7 @@ function ensureQcf4Font(fontName){
         // dilaporkan user sebenarnya cuma jsdelivr yang lagi ngambek,
         // bukan filenya benar-benar tidak ada.
         console.log('QCF4 font gagal dari jsdelivr, coba mirror:', fontName, e);
-        return loadQcf4FontFrom(fontName, QCF4_FONT_BASE_MIRROR);
+        return loadQcf4FontFromBase(fontName, QCF4_FONT_BASE_MIRROR);
       });
     p = attemptRound()
       .catch(e=>{
@@ -2064,8 +2088,11 @@ function ensureQcf4Font(fontName){
       styleEl.id = 'qcf4FontStyles';
       document.head.appendChild(styleEl);
     }
+    // Browser lama tanpa FontFace API: sertakan KEDUA kemungkinan nama
+    // file sbg 2 baris "src" dipisah koma -- browser otomatis pakai yang
+    // pertama berhasil dimuat (perilaku standar @font-face multi-src).
     styleEl.appendChild(document.createTextNode(
-      '@font-face{font-family:"'+fontName+'";src:url("'+QCF4_FONT_BASE+fontName+'_W.woff2") format("woff2");font-display:swap;}'
+      '@font-face{font-family:"'+fontName+'";src:url("'+QCF4_FONT_BASE+fontName+'_W.woff2") format("woff2"),url("'+QCF4_FONT_BASE+fontName+'.woff2") format("woff2");font-display:swap;}'
     ));
     p = Promise.resolve(true);
   }
