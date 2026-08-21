@@ -1367,8 +1367,11 @@ const DEFAULT_OVERDUE_DAYS = 30;
    AWAL array CHANGELOG (paling atas = paling baru). Ini murni tampilan
    (tidak memengaruhi cache); yang mengontrol update service worker
    tetap CACHE_VERSION di sw.js. */
-const APP_VERSION = 'v100';
+const APP_VERSION = 'v101';
 const CHANGELOG = [
+  { version:'v101', date:'22 Agustus 2026', changes:[
+    'Fix tanggal Hijriyah yang kadang tampil ngaco (mis. "9 Maret 1448 SM" -- nama bulan Masehi nyelip di tanggal Hijriyah). Ternyata sebagian WebView "mengaku" dukung kalender Hijriyah (lolos pengecekan resolvedOptions()) TAPI data nama bulannya sendiri rusak/tidak lengkap di device itu. Ditambah validasi tambahan: kalau hasil formatnya kedapatan masih mengandung nama bulan Masehi, dianggap tidak didukung & baris tanggal Hijriyah disembunyikan (drpd nampilin yg jelas salah).'
+  ]},
   { version:'v100', date:'22 Agustus 2026', changes:[
     'Fix AKAR MASALAH sebenarnya dari "judul surat kontras seperti tempelan": bukan di bingkai ornamennya, tapi background pembungkusnya (.mushaf-imgwrap) ternyata pakai warna ABU-ABU NETRAL (--gray-100), sementara "kertas" ayat di dalamnya (.mushaf-textwrap) pakai warna KREM/COKLAT HANGAT (--mushaf-paper-bg) -- dua suhu warna berbeda bersebelahan persis kelihatan sebagai kotak nempel/seam, di terang MAUPUN gelap. Disamakan jadi satu warna kertas yang sama (mode imersif sudah lebih dulu benar, cuma mode biasa yg kelewat).'
   ]},
@@ -3138,12 +3141,29 @@ function fmtDateShort(iso){ if(!iso) return '-'; return new Date(iso).toLocaleDa
    Hijriyah cukup disembunyikan (return '') drpd nampilin tanggal Masehi
    dobel yg membingungkan. */
 let _hijriSupported = null;
+// Nama bulan Masehi (Indonesia) -- dipakai buat DETEKSI kalau hasil format
+// "Hijriyah" ternyata nyelip nama bulan Masehi (lihat catatan di bawah).
+const GREGORIAN_MONTH_NAMES = ['januari','februari','maret','april','mei','juni','juli','agustus','september','oktober','november','desember'];
 function fmtHijriDate(date){
   try{
     const fmt = new Intl.DateTimeFormat('id-ID-u-ca-islamic-umalqura', {day:'numeric', month:'long', year:'numeric'});
     if(_hijriSupported === null) _hijriSupported = /islamic/.test(fmt.resolvedOptions().calendar || '');
     if(!_hijriSupported) return '';
-    return fmt.format(date);
+    const out = fmt.format(date);
+    // Validasi TAMBAHAN, bukan cuma resolvedOptions().calendar: ternyata
+    // sebagian WebView (terutama Android versi tertentu) "mengaku" dukung
+    // kalender islamic-umalqura di resolvedOptions() -- lolos pengecekan
+    // di atas -- TAPI data ICU nama bulannya sendiri rusak/tidak lengkap,
+    // jadi hasil format-nya malah nyelip nama bulan MASEHI (mis. "9 Maret
+    // 1448 SM") padahal tahunnya udah dikonversi ke Hijriyah -- gado-gado
+    // yg jelas salah & membingungkan, bukan cuma "kurang akurat". Kalau
+    // kedeteksi ada nama bulan Masehi nyelip di hasil "Hijriyah"-nya,
+    // anggap device ini TIDAK benar2 didukung & sembunyikan (return ''),
+    // sama seperti kalau resolvedOptions()-nya dari awal sudah bilang
+    // tidak didukung -- drpd nampilin tanggal ngaco begini terus-terusan.
+    const lower = out.toLowerCase();
+    if(GREGORIAN_MONTH_NAMES.some(m=> lower.includes(m))){ _hijriSupported = false; return ''; }
+    return out;
   }catch(e){ return ''; }
 }
 
