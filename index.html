@@ -1445,8 +1445,11 @@ const DEFAULT_OVERDUE_DAYS = 30;
    AWAL array CHANGELOG (paling atas = paling baru). Ini murni tampilan
    (tidak memengaruhi cache); yang mengontrol update service worker
    tetap CACHE_VERSION di sw.js. */
-const APP_VERSION = 'v109';
+const APP_VERSION = 'v110';
 const CHANGELOG = [
+  { version:'v110', date:'22 Agustus 2026', changes:[
+    'Perbaiki keterbacaan teks mushaf (Mode Teks & Mode Madina/QCF4) yang terasa lebih lembek/kurang tajam dibanding mushaf cetak asli maupun app pembanding: ditambahkan font-smoothing & text-rendering:optimizeLegibility ke kedua mode supaya glyph lebih tajam, line-height Mode Madina dinaikkan dari 2.1 ke 2.3 (lebih lega, mendekati proporsi mushaf cetak), dan ditambahkan image-rendering utk Mode Gambar (PNG) supaya tidak blur di layar resolusi tinggi.'
+  ]},
   { version:'v109', date:'22 Agustus 2026', changes:[
     'Tombol "ganti tampilan" (ikon kotak) di Mode Mushaf diganti total: dulu 1 tombol yang memutar diam-diam antar 3 mode (Teks/Madinah/Gambar) sekali klik, tanpa indikator lagi di mode apa & ikonnya tidak pernah berubah -- terasa ambigu, cuma klik-coba-lihat (dilaporkan user). Sekarang buka halaman "Pilih Tampilan" (pola sama spt "Pilih Qori") berisi nama + deskripsi singkat tiap mode, tap nama = langsung pindah, ada tanda centang di mode yg lagi aktif.'
   ]},
